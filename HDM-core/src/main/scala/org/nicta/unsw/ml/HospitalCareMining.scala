@@ -30,7 +30,7 @@ object HospitalCareMining {
      val dataBase = if(args.length > 0) args(0) else defaultPath
      val targetPath = if(args.length > 1) args(1) else defaultResultPath
      val numIter = if(args.length > 2) args(2).toInt else 10
-     val cVFolds = if(args.length > 3) args(3).toInt esle 2
+     val cVFolds = if(args.length > 3) args(3).toInt else 2
      val pathMap = fileMap.map(kv => (dataBase + kv._1) -> kv._2)
      val learningRate = Seq(
        5.0D,

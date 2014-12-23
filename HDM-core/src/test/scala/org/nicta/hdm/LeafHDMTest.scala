@@ -5,7 +5,9 @@ package org.nicta.hdm
  */
 class LeafHDMTest {
 
-  def testMinus(){
+  def testFunctional(){
+
+    val arr = Array.fill(8)(Math.random())
 
   }
 

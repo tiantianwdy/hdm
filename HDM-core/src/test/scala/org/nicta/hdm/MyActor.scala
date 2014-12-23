@@ -23,6 +23,9 @@ class MyActor extends Actor{
       println(f);println(data.split(",").toList); println(f(data).toList)
     case f2:(List[String] => List[Any] ) =>
       println(f2); println(f2(lstData).toString())
+    case ft: FuncTask[Any,Any] =>
+      println(ft.func.toString()); val result = ft.func(lstData.iterator)
+      println(result.asInstanceOf[Iterator[_]].mkString("[",",","]"))
 	  case str:String => {
 		  log.info("received test String:" + str)
 	  	}

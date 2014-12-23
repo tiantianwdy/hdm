@@ -1,7 +1,7 @@
 package org.nicta.unsw.ml
 
-import org.nicta.wdy.hdm.Partitioner
 import scala.collection._
+import org.nicta.wdy.hdm.executor.Partitioner
 
 /**
  * Created by Dongyao.Wu on 2014/5/30.

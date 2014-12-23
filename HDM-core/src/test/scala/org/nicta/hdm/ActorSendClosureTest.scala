@@ -20,27 +20,41 @@ import org.nicta.wdy.hdm.ClosureCleaner
  */
 class ActorSendClosureTest {
 
+
+
+
   @Test
   def testMyActor() {
-    val f: String => Array[String] = _.split(""",""")
-    val f2: List[String] => List[Any] = _.flatMap(s => s.split(","))
+    val f: Iterator[String] => List[Array[String]] = _.map(s => s.split(""",""")).toList
+    val f2: Iterator[String] => Iterator[Double] = _.flatMap(s => s.split(""",""")).map(_.toDouble)
+
     val executor: ExecutorService = Executors.newFixedThreadPool(4)
     implicit val ec = ExecutionContext.fromExecutorService(executor)
     implicit val timeout = Timeout(5 seconds)
+
     val foo = Promise.successful("foo")
     val system = ActorSystem("scalaActorTest")
     val myActor = system.actorOf(Props[MyActor], name = "myActor")
-    ClosureCleaner.apply(f)
-    myActor ! 100
-    myActor ! "test text"
-    myActor ! "msg"
-    myActor ! f
-    myActor ! f2
+    // functional packing
+    ClosureCleaner.apply(f2)
+    val func = f2.asInstanceOf[Iterator[_] => _]
+
+//    myActor ! 100
+//    myActor ! "test text"
+//    myActor ! "msg"
+    myActor ! FuncTask(None,func)
     val f1: Future[String] = ask(myActor, "askMsg").mapTo[String]
     f1 pipeTo myActor
 
     Thread.sleep(2000)
     //  system.stop(myActor)
   }
+
+}
+
+
+case class FuncTask[T,U] (val context: Any, val func: Iterator[T] => U ) extends Serializable {
+
+
 
 }

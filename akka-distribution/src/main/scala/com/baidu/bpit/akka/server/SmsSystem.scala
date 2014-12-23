@@ -42,8 +42,8 @@ object SmsSystem {
   /**
    * 接收回调响应的超时时间
    */
-  implicit val timeout = Timeout(10 seconds)
-  implicit val maxWaitResponseTime = Duration(10, TimeUnit.SECONDS)
+  implicit val timeout = Timeout(120 seconds)
+  implicit val maxWaitResponseTime = Duration(120, TimeUnit.SECONDS)
 
   val MASTER_SYS_NAME = "masterSys"
   val SLAVE_SYS_NAME = "slaveSys"
@@ -191,6 +191,20 @@ object SmsSystem {
   }
 
   /**
+   *
+   * @param actorPath
+   * @param msg
+   * @return Future[Any]
+   */
+  def askAsync(actorPath: String, msg: Any) = {
+    if (system eq null) {
+      val conf = ConfigFactory.load()
+      system = ActorSystem("default", conf)
+    }
+    ask(system.actorSelection(actorPath), msg)
+  }
+
+  /**
    * 向本地ActorSystem中的actor发送消息，默认会使用本地rootPath下的actor
    * @param actorName actor名字，用于拼接actorPath, path=${rootPath}/${actorName}
    * @param msg 消息对象
@@ -223,7 +237,7 @@ object SmsSystem {
    */
   def addActor(msg: AddMsg) = {
     if ((system ne null) && !system.isTerminated && (rootActor ne null)) {
-      rootActor ! msg
+      system.actorSelection(rootPath)! msg
       s"${msg.path}/${msg.name}"
     } else throw new AkkaException("Uninitiated local actor system")
   }

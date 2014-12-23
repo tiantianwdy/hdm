@@ -17,9 +17,10 @@ import com.baidu.bpit.akka.messages.InitMsg
 class SmsSystemTest extends TestCase with TestConfig {
 
   def testStartSmsSystem() {
-    //    SmsSystem.startAsMaster(8998, false)
+    SmsSystem.startAsMaster(8998, false)
     //later starting up will cover the previous one
-    SmsSystem.startAsSlave("akka://smsSystem@172.22.218.167:15100", 15010, false)
+//    SmsSystem.startAsSlave("akka://smsSystem@172.22.218.167:15100", 15010, false)
+    SmsSystem.addActor("testActor", "localhost", "com.baidu.bpit.akka.MyClusterActor", null)
     Thread.sleep(10000)
   }
 
