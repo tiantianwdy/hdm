@@ -3,6 +3,7 @@ package org.nicta.wdy.hdm.model
 import org.nicta.wdy.hdm._
 import org.nicta.wdy.hdm.executor.{HDMContext, ClusterExecutorContext, Partitioner}
 import org.nicta.wdy.hdm.functions._
+import org.nicta.wdy.hdm.io.Path
 
 import scala.reflect.runtime.universe._
 import scala.concurrent.ExecutionContext
@@ -18,7 +19,7 @@ case class DFM[T: TypeTag, R: TypeTag](val children: Seq[_ <: HDM[_, T]],
                                        val func: ParallelFunction[T, R] = null,
                                        val blocks: Seq[String] = null,
                                        val distribution: Distribution = Horizontal,
-                                       val location: Location = Local,
+                                       val location: Path = Path(Path.HDM, HDMContext.clusterContextPath),
                                        val state: BlockState = Declared) extends HDM[T, R] {
 
   def this(elem: Array[_<:HDM[_,T]]){

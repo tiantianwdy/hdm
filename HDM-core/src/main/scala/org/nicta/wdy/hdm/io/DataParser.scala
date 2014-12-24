@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.io
 
+import org.nicta.wdy.hdm.model.DDM
 import org.nicta.wdy.hdm.storage.Block
 import akka.serialization.Serializer
 import java.io.IOException
@@ -58,6 +59,17 @@ class HDMParser extends DataParser {
 
 
 object DataParser{
+
+  def explainBlocks(path:Path): Seq[DDM[String]] = {
+    path.protocol match {
+      case "hdm://" => Seq(new DDM[String](id = path.name, location = path))
+      case "hdfs://" =>
+        HDFSUtils.getBlockLocations(path).map(p => new DDM[String](location = p))
+      case "file://" => Seq(new DDM[String](id = path.name, location = path))
+      //      case "mysql://" =>
+      case x => throw new IOException("Unsupported protocol:" + path.protocol)
+    }
+  }
 
   def readBlock[T](path:String)(implicit serializer:Serializer):Block[T] = readBlock(Path(path))
 

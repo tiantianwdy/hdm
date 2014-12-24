@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.storage
 
+import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.{DFM, HDM, DDM}
 import java.util.concurrent.ConcurrentHashMap
 
@@ -122,14 +123,16 @@ object HDMBlockManager{
   def apply():HDMBlockManager = defaultManager
 
   def loadOrCompute[T](refID: String):Seq[Block[T]] = {
-    val ref = defaultManager.getRef(refID)
+    val id = Path(refID).name
+    val ref = defaultManager.getRef(id)
     if (ref != null && ref.state == Computed)
       ref.blocks.map(bId => loadBlock[T](bId))
     else Seq.empty[Block[T]]
   }
 
   def loadBlock[T](bID:String):Block[T] ={
-    val bl = defaultManager.getBlock(bID)
+    val id = Path(bID).name
+    val bl = defaultManager.getBlock(id)
     if(bl ne null) bl.asInstanceOf[Block[T]]
     else {
       //compute the block

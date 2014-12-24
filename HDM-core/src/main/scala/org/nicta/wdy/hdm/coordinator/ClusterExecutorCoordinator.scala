@@ -124,9 +124,9 @@ class ClusterExecutorLeader() extends WorkActor with Scheduler{
                  else runRemoteTask(workerPath, task)
 
     future onComplete {
-      case Success(blks) =>
+      case Success(blkUrls) =>
         val ref = HDMBlockManager().getRef(task.taskId) match {
-          case dfm:DFM[I,R] => dfm.copy(blocks = blks, state = Computed)
+          case dfm:DFM[I,R] => dfm.copy(blocks = blkUrls, state = Computed)
           case ddm:DDM[R] => ddm.copy(state = Computed)
         }
         HDMBlockManager().addRef(ref)
@@ -211,17 +211,19 @@ class ClusterExecutorLeader() extends WorkActor with Scheduler{
   private def runTaskLocally [I:TypeTag, R:TypeTag](task: Task[I, R]): Future[Seq[String]] = {
     // prepare input data from cluster
     log.info(s"Preparing input data for task: [${(task.taskId, task.func)}] ")
-    val futureSeq = task.input.flatMap(_.blocks).filterNot(id => Path.isLocal(id)).map{remoteId =>
-       ioManager.askBlock(remoteId, remoteId)
-    }
+    val input = task.input.map(in => blockManager.getRef(in.id))// update the states of input blocks
+    val futureSeq = input.flatMap(_.blocks).filterNot(path => Path.isLocal(path)).map { path =>
+        val p = Path(path)
+        ioManager.askBlock(p.name, p.parent)
+      }
     if(futureSeq != null && !futureSeq.isEmpty)
       Future.sequence(futureSeq.asInstanceOf[Seq[Future[String]]]) map {ids =>
         log.info(s"Input data preparing finished, the task starts running: [${(task.taskId, task.func)}] ")
-        task.call().map(_.id)
+        task.call().map(_.toURL)
       }
     else Future {
       log.info(s"All data are at local, the task starts running: [${(task.taskId, task.func)}] ")
-      task.call().map(bl => bl.id)
+      task.call().map(bl => bl.toURL)
     }
   }
 
@@ -276,9 +278,9 @@ class ClusterExecutorFollower(leaderPath:String) extends  WorkActor {
     case AddTaskMsg(task) =>
       Future {
         //todo load remote input data of this task
-        task.call().map(bl => bl.id)
+        task.call().map(bl => bl.toURL)
       } onComplete {
-        case Success(blks) => sender ! blks
+        case Success(blkUrls) => sender ! blkUrls
         case Failure(t) => log.error(t.toString); sender ! Seq.empty[Seq[String]]
       }
 

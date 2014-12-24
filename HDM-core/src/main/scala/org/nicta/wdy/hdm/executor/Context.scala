@@ -38,7 +38,7 @@ object HDMContext extends  Context{
 
   val blockManager = HDMBlockManager()
 
-  val planer = DefaultPlaner
+  val planer = LocalPlaner
 
   val scheduler = new SimpleFIFOScheduler
 
@@ -49,7 +49,6 @@ object HDMContext extends  Context{
   val BLOCK_MANAGER_NAME:String =  "BlockManager"
 
   val JOB_RESULT_DISPATCHER:String = "ResultDispatcher"
-
 
   def clusterContextPath = leaderPath.get()
 
@@ -121,11 +120,11 @@ object HDMContext extends  Context{
 
 
   def newClusterId():String = {
-    clusterContextPath + UUID.randomUUID().toString
+    UUID.randomUUID().toString
   }
 
   def newLocalId():String = {
-    localContextPath + UUID.randomUUID().toString
+    UUID.randomUUID().toString
   }
 
 }

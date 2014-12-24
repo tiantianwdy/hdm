@@ -105,6 +105,7 @@
         <dependency>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-remote_2.10</artifactId>
+            <version>${akka.version}</version>
         </dependency>
         <dependency>
             <groupId>com.typesafe.akka</groupId>
@@ -135,7 +136,7 @@
             <artifactId>kafka_${scala.tools.version}</artifactId>
             <version>${kafk.version}</version>
         </dependency>
--->
+
         <dependency>
             <groupId>com.dyuproject.protostuff</groupId>
             <artifactId>protostuff-runtime</artifactId>
@@ -147,6 +148,8 @@
             <artifactId>protostuff-core</artifactId>
             <version>1.0.7</version>
         </dependency>
+-->
+
     </dependencies>
 
 </project>

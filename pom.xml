@@ -15,7 +15,7 @@
     <scala.version>2.10.2</scala.version>
     <scala.binary.version>2.10</scala.binary.version>
     <scala.tools.version>2.10</scala.tools.version>
-    <akka.version>2.2.0</akka.version>
+    <akka.version>2.3.8</akka.version>
     <kafk.version>0.8.1.1</kafk.version>
     <jackson.version>2.2.2</jackson.version>
     <slf4j.version>1.7.2</slf4j.version>
@@ -37,14 +37,14 @@
 
 <pluginRepositories>
     <pluginRepository>
-        <id>scm-baidu-public</id>
-        <url>http://maven.scm.baidu.com:8081/nexus/content/groups/public</url>
+        <id>maven-central</id>
+        <url>http://repo1.maven.org/maven2</url>
     </pluginRepository>
 
-    <pluginRepository>
+<!--    <pluginRepository>
         <id>scm-baidu-snapshots</id>
         <url>http://maven.scm.baidu.com:8081/nexus/content/groups/public-snapshots</url>
-    </pluginRepository>
+    </pluginRepository>-->
 
 </pluginRepositories>
 
@@ -57,11 +57,11 @@
             <scope>test</scope>
         </dependency>
 
-        <dependency>
+<!--        <dependency>
             <groupId>com.typesafe</groupId>
             <artifactId>config</artifactId>
-            <version>1.0.2</version>
-        </dependency>
+            <version>1.2.1</version>
+        </dependency>-->
 
         <dependency>
             <groupId>org.scala-lang</groupId>

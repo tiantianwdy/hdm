@@ -20,10 +20,10 @@ case class DDM[T: TypeTag](val id: String = HDMContext.newLocalId(),
                            val dependency: Dependency = OneToOne,
                            val func: ParallelFunction[Path, T] = null,
                            val distribution: Distribution = Horizontal,
-                           val location: Location = Local,
+                           val location: Path = Path(Path.HDM, HDMContext.localContextPath),
                            val state: BlockState = Declared) extends HDM[Path, T] {
 
-  val blocks: Seq[String] = Seq(this.id)
+  val blocks: Seq[String] = Seq(this.toURL)
 
   val children: Seq[HDM[_,Path]] = null
 

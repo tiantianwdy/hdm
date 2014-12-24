@@ -29,7 +29,7 @@ abstract class HDM[T:TypeTag, R:TypeTag] {
 
   val distribution: Distribution
 
-  val location: Location
+  val location: Path
 
   val state: BlockState
 
@@ -99,8 +99,14 @@ abstract class HDM[T:TypeTag, R:TypeTag] {
 
   def sample(size: Int = 10): Seq[String] = {
     // change to distributed version
-    blocks.map( id => HDMBlockManager().getBlock(id).data).flatten.take(size).map(_.toString)
+    val ddms = blocks.map( url =>
+      HDMBlockManager().getBlock(Path(url).name))
+    if(ddms != null && !ddms.isEmpty)
+      ddms.map(_.data).flatten.take(size).map(_.toString)
+    else Seq.empty[String]
   }
+
+  def toURL = location.toString + "/" + id
 
 
 
@@ -153,7 +159,7 @@ abstract class HDM[T:TypeTag, R:TypeTag] {
    s"class:[${super.toString}] \n"+
    s"id:$id \n"+
    s"dep:$dependency \n"+
-//   s"children:${children} \n"+
+   s"location:${location.toString} \n"+
    s"func:${func} \n" +
    "}"
  }
@@ -195,6 +201,10 @@ object HDM{
 
   def apply[T:TypeTag](elems: Array[T]): DDM[T] = {
     DDM(elems)
+  }
+
+  def apply(path: Path): DFM[Path, String] = {
+    DFM[Path,String](children = null, location = path)
   }
 
   def horizontal[T:TypeTag](elems: Array[T]*) : HDM[_,T] = {
