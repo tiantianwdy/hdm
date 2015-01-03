@@ -6,6 +6,7 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{CanAwait, ExecutionContext}
 import org.nicta.wdy.hdm.model.{DDM, Local, HDM, DFM}
 import org.nicta.wdy.hdm.executor.HDMContext
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
 /**
@@ -29,7 +30,7 @@ trait SerializableFunction[I,R] extends  Serializable{
  * @tparam I input type
  * @tparam R return type
  */
-abstract class DDMFunction_1[I,R :TypeTag]extends SerializableFunction[DDM[I], DDM[R]] {
+abstract class DDMFunction_1[I,R :ClassTag]extends SerializableFunction[DDM[I], DDM[R]] {
 
 }
 
@@ -49,7 +50,7 @@ abstract class IterableFunction_2[T,R] extends SerializableFunction[Iterator[T],
 
 
 
-class Union[T:TypeTag] extends HDMFunction_2[T,T]{
+class Union[T:ClassTag] extends HDMFunction_2[T,T]{
 
 
   override def apply(params: Seq[HDM[_,T]]): HDM[T,T] = {
@@ -57,7 +58,7 @@ class Union[T:TypeTag] extends HDMFunction_2[T,T]{
   }
 }
 
-abstract class DnCFunc[T,M,R:TypeTag] extends DDMFunction_1[T,R] with DnCSkeleton[HDM[_,T],HDM[T,M],HDM[M,R]] {
+abstract class DnCFunc[T,M,R:ClassTag] extends DDMFunction_1[T,R] with DnCSkeleton[HDM[_,T],HDM[T,M],HDM[M,R]] {
 
   import scala.concurrent._
 
@@ -88,7 +89,7 @@ abstract class DnCFunc[T,M,R:TypeTag] extends DDMFunction_1[T,R] with DnCSkeleto
 import scala.concurrent._
 
 
-class MapFunc[T,R:TypeTag](f: T=>R)  extends DDMFunction_1[T,R] {
+class MapFunc[T,R:ClassTag](f: T=>R)  extends DDMFunction_1[T,R] {
 
 
 
@@ -105,14 +106,14 @@ class MapFunc[T,R:TypeTag](f: T=>R)  extends DDMFunction_1[T,R] {
 }
 
 
-class ReduceFunc[T,R >:T :TypeTag](f: (R, R) => R)  extends DDMFunction_1[T,R] {
+class ReduceFunc[T,R >:T :ClassTag](f: (R, R) => R)  extends DDMFunction_1[T,R] {
 
   override def apply(params: Seq[DDM[T]]): DDM[R] = {
     DDM(Seq(params.flatMap(p => p.elems).reduce(f)))
   }
 }
 
-class FoldFunc[T,R :TypeTag](z:R)(f: (R, T) => R)  extends DDMFunction_1[T,R] {
+class FoldFunc[T,R :ClassTag](z:R)(f: (R, T) => R)  extends DDMFunction_1[T,R] {
 
   override def apply(params: Seq[DDM[T]]): DDM[R] = {
     DDM(Seq(params.flatMap(p => p.elems).foldLeft(z)(f)))
@@ -120,28 +121,28 @@ class FoldFunc[T,R :TypeTag](z:R)(f: (R, T) => R)  extends DDMFunction_1[T,R] {
 }
 
 
-class GroupByFunc[T:TypeTag,K :TypeTag](f: T => K) extends DDMFunction_1[T,(K,Seq[T])] {
+class GroupByFunc[T:ClassTag,K :ClassTag](f: T => K) extends DDMFunction_1[T,(K,Seq[T])] {
 
   override def apply(params: Seq[DDM[T]]): DDM[(K, Seq[T])] = {
     DDM(params.flatMap(p=> p.elems).groupBy(f).toSeq)
   }
 }
 
-class ReduceByKey[T:TypeTag, K :TypeTag](fk: T=> K, fr: (T, T) => T) extends DDMFunction_1[T,(K,T)]{
+class ReduceByKey[T:ClassTag, K :ClassTag](fk: T=> K, fr: (T, T) => T) extends DDMFunction_1[T,(K,T)]{
 
   override def apply(params: Seq[DDM[T]]): DDM[(K, T)] = {
     DDM(params.flatMap(p => p.elems).groupBy(fk).toSeq.map(d => (d._1, d._2.reduce(fr))))
   }
 }
 
-class GroupFoldByKey[T:TypeTag, K:TypeTag, R : TypeTag] (fk: T=> K, t: T=> R, fr: (R, R) => R) extends DDMFunction_1[T,(K,R)]{
+class GroupFoldByKey[T:ClassTag, K:ClassTag, R : ClassTag] (fk: T=> K, t: T=> R, fr: (R, R) => R) extends DDMFunction_1[T,(K,R)]{
 
   override def apply(params: Seq[DDM[T]]): DDM[(K, R)] = {
     DDM(params.flatMap(p => p.elems).groupBy(fk).mapValues(_.map(t).reduce(fr)).toSeq)
   }
 }
 
-class UnionFunc[T :TypeTag]()  extends DDMFunction_1[T,T] {
+class UnionFunc[T :ClassTag]()  extends DDMFunction_1[T,T] {
 
   override def apply(params: Seq[DDM[T]]): DDM[T] = {
     DDM(params.map(p => p.elems).flatten.seq)

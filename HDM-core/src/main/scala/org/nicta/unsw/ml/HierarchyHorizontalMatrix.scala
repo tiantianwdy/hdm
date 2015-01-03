@@ -119,11 +119,11 @@ class HierarchyHorizontalMatrix extends Matrix[Double] {
 
   def cSum = new HierarchyHorizontalMatrix(data.map(d => d._1 -> d._2.cSum()))
 
-  def take(part:Int , total:Int, partitioner:Partitioner) : HierarchyHorizontalMatrix = {
+  def take(part:Int , total:Int, partitioner:Partitioner[Int]) : HierarchyHorizontalMatrix = {
     map(_.take(part,total, partitioner))
   }
 
-  def take(parts:Seq[Int] , total:Int, partitioner:Partitioner) : HierarchyHorizontalMatrix = {
+  def take(parts:Seq[Int] , total:Int, partitioner:Partitioner[Int]) : HierarchyHorizontalMatrix = {
     map(_.take(parts,total, partitioner))
   }
 

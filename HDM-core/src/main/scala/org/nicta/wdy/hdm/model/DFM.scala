@@ -1,10 +1,11 @@
 package org.nicta.wdy.hdm.model
 
 import org.nicta.wdy.hdm._
-import org.nicta.wdy.hdm.executor.{HDMContext, ClusterExecutorContext, Partitioner}
+import org.nicta.wdy.hdm.executor.{KeepPartitioner, HDMContext, ClusterExecutorContext, Partitioner}
 import org.nicta.wdy.hdm.functions._
 import org.nicta.wdy.hdm.io.Path
 
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 import scala.concurrent.ExecutionContext
 import org.nicta.wdy.hdm.storage.{Declared, BlockState, BlockRef}
@@ -13,14 +14,20 @@ import java.util.UUID
 /**
  * Created by Tiantian on 2014/5/25.
  */
-case class DFM[T: TypeTag, R: TypeTag](val children: Seq[_ <: HDM[_, T]],
+case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
                                        val id: String = HDMContext.newClusterId(),
                                        val dependency: Dependency = OneToOne,
                                        val func: ParallelFunction[T, R] = null,
                                        val blocks: Seq[String] = null,
                                        val distribution: Distribution = Horizontal,
                                        val location: Path = Path(Path.HDM, HDMContext.clusterContextPath),
-                                       val state: BlockState = Declared) extends HDM[T, R] {
+                                       val state: BlockState = Declared,
+                                       var parallelism: Int = -1, // undefined
+                                       val keepPartition:Boolean = true,
+                                       val partitioner: Partitioner[R] = new KeepPartitioner[R](1)) extends HDM[T, R] {
+
+
+
 
   def this(elem: Array[_<:HDM[_,T]]){
     this(elem.toSeq)

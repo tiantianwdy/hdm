@@ -3,31 +3,36 @@ package org.nicta.wdy.hdm.executor
 /**
  * Created by Tiantian on 2014/5/26.
  */
-trait Partitioner {
+trait Partitioner[T] extends Serializable{
 
-  def split[T](data:Seq[T], num:Int, func: T => Int):Map[Int,Seq[T]]
+  var partitionNum:Int
+
+  val pFunc: T => Int
+
+  def split(data:Seq[T]):Map[Int,Seq[T]]
 
 }
 
 
-class RandomPartitioner extends  Partitioner {
+class RandomPartitioner[T](var partitionNum:Int, val pFunc: T => Int = null ) extends  Partitioner[T] {
 
-  override def split[T](data: Seq[T], num: Int, func: T => Int = null ): Map[Int,Seq[T]] = {
+  override def split(data: Seq[T]): Map[Int,Seq[T]] = {
 
-    val pData = data.grouped(num).toList
+    val pData = data.grouped(partitionNum).toList
     pData.map(seq => pData.indexOf(seq) -> seq).toMap
   }
 }
 
-class MappingPartitioner extends  Partitioner {
+class MappingPartitioner[T] (var partitionNum:Int, val pFunc: T => Int ) extends  Partitioner[T] {
 
-  override def split[T](data: Seq[T], num: Int, func: T => Int):  Map[Int,Seq[T]] = {
 
-    data.groupBy(func)
+
+  override def split(data: Seq[T]):  Map[Int,Seq[T]] = {
+    data.groupBy(d=> Math.abs(pFunc(d)) % partitionNum)
   }
 }
 
-class KeepPartitioner extends  Partitioner {
+class KeepPartitioner[T](var partitionNum:Int , val pFunc: T => Int = null) extends  Partitioner[T] {
 
-  override def split[T](data: Seq[T], num: Int, func: (T) => Int): Map[Int, Seq[T]] = ???
+  override def split(data: Seq[T]): Map[Int, Seq[T]] = ???
 }

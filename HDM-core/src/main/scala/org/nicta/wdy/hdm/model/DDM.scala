@@ -1,13 +1,13 @@
 package org.nicta.wdy.hdm.model
 
-import scala.reflect.runtime.universe._
+import scala.reflect.ClassTag
+import scala.reflect.runtime.universe.WeakTypeTag
 
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.functions.ParallelFunction
 import org.nicta.wdy.hdm.storage._
 import org.nicta.wdy.hdm.storage.Block
-import java.util.UUID
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{KeepPartitioner, Partitioner, HDMContext}
 
 /**
  * Created by Tiantian on 2014/5/25.
@@ -15,15 +15,35 @@ import org.nicta.wdy.hdm.executor.HDMContext
  * DDM: Distributed Data Matrix
  *
  */
-case class DDM[T: TypeTag](val id: String = HDMContext.newLocalId(),
+class DDM[T: ClassTag](     val id: String = HDMContext.newLocalId(),
                            val elems: Seq[T] = null,
                            val dependency: Dependency = OneToOne,
                            val func: ParallelFunction[Path, T] = null,
                            val distribution: Distribution = Horizontal,
                            val location: Path = Path(Path.HDM, HDMContext.localContextPath),
-                           val state: BlockState = Declared) extends HDM[Path, T] {
+                           val state: BlockState = Computed,
+                           var parallelism:Int = 1,
+                           val keepPartition:Boolean = true,
+                           val partitioner: Partitioner[T] = new KeepPartitioner[T](1)) extends HDM[Path, T] {
 
-  val blocks: Seq[String] = Seq(this.toURL)
+
+  def this(){
+   this(elems = null)
+  }
+
+  def copy(id: String = this.id,
+  dependency: Dependency = this.dependency,
+  func: ParallelFunction[Path, T] = this.func,
+  distribution: Distribution = this.distribution,
+  location: Path = this.location,
+  state: BlockState = this.state,
+  parallelism:Int = this.parallelism,
+  keepPartition:Boolean = this.keepPartition,
+  partitioner: Partitioner[T] = this.partitioner) ={
+    new DDM(id, null, dependency, func, distribution,location,state, parallelism, keepPartition, partitioner)
+  }
+
+  val blocks: Seq[String] = Seq(id)
 
   val children: Seq[HDM[_,Path]] = null
 
@@ -38,19 +58,32 @@ case class DDM[T: TypeTag](val id: String = HDMContext.newLocalId(),
 
 object DDM {
 
-  def apply[T: TypeTag](elems: Seq[T]): DDM[T] = {
-    val ddm = new DDM[T](state = Computed)
+  def apply[T: ClassTag](id:String, elems: Seq[T]): DDM[T] = {
+    val ddm = new DDM[T](id= id,
+      state = Computed,
+      location = Path(Path.HDM, HDMContext.localContextPath + "/" + id))
     HDMContext.addBlock(Block(ddm.id, elems))
     HDMContext.declareHdm(Seq(ddm))
     ddm
   }
 
-  def apply[T: TypeTag](elems: Seq[Seq[T]]): Seq[DDM[T]] = {
-    val (ddms, blocks) = elems.map{ seq =>
-      val d = DDM[T](state = Computed)
-      val bl = Block(d.id, seq)
-      (d, bl)
-    }.unzip
+  def apply[T: ClassTag](elems: Seq[T]): DDM[T] = {
+    val id = HDMContext.newLocalId()
+    this.apply(id,elems)
+  }
+
+  def apply[T: ClassTag](elems: Seq[Seq[T]]): Seq[DDM[T]] = {
+    val (ddms, blocks) =
+      elems.map{ seq =>
+        val id = HDMContext.newLocalId()
+        val d = synchronized { //need to be thread safe for reflection
+          new DDM[T](id= id,
+          state = Computed,
+          location = Path(Path.HDM, HDMContext.localContextPath + "/" + id))
+        }
+        val bl = Block(id, seq)
+        (d, bl)
+      }.unzip
     HDMBlockManager().addAll(blocks) //todo change to use HDMContext
     HDMContext.declareHdm(ddms)
     ddms

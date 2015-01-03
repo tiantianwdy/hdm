@@ -38,7 +38,7 @@ object HDMContext extends  Context{
 
   val blockManager = HDMBlockManager()
 
-  val planer = LocalPlaner
+  val planer = StaticPlaner
 
   val scheduler = new SimpleFIFOScheduler
 
@@ -89,10 +89,10 @@ object HDMContext extends  Context{
 
 
 
-  def explain(hdm:HDM[_, _]) = planer.plan(hdm)
+  def explain(hdm:HDM[_, _],parallelism:Int) = planer.plan(hdm, parallelism)
 
-  def compute(hdm:HDM[_, _]):Future[HDM[_,_]] =    {
-    addJob(hdm.id, explain(hdm))
+  def compute(hdm:HDM[_, _], parallelism:Int):Future[HDM[_,_]] =    {
+    addJob(hdm.id, explain(hdm, parallelism))
   }
 
   def declareHdm(hdms:Seq[HDM[_,_]]) = {

@@ -6,6 +6,7 @@ import java.util.concurrent.{BlockingQueue, LinkedBlockingQueue}
 import java.util.concurrent.atomic.AtomicBoolean
 import org.jboss.netty.util.internal.ConcurrentHashMap
 import scala.collection.mutable.ListBuffer
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, Computed, BlockManager}
 
@@ -26,7 +27,7 @@ trait Scheduler {
 
   def stop()
 
-  protected def scheduleTask [I:TypeTag, R:TypeTag](task:Task[I,R]):Promise[HDM[I,R]]
+  protected def scheduleTask [I:ClassTag, R:ClassTag](task:Task[I,R]):Promise[HDM[I,R]]
 
 }
 
@@ -42,7 +43,7 @@ class SimpleFIFOScheduler(implicit val executorService:ExecutionContext) extends
 
   val isRunning = new AtomicBoolean(false)
 
-  override protected def scheduleTask[I:TypeTag, R:TypeTag](task: Task[I, R]): Promise[HDM[I, R]] = {
+  override protected def scheduleTask[I:ClassTag, R:ClassTag](task: Task[I, R]): Promise[HDM[I, R]] = {
     val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
     // run job todo assign to remote node to execute this
     Future {

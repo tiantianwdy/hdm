@@ -217,13 +217,13 @@ class HorizontalSparseMatrix(val rowLength: Long) extends Matrix[Double] {
     new HierarchyHorizontalMatrix(Seq(this,m))
   }
 
-  def take(partition:Int , total:Int, partitioner:Partitioner): HorizontalSparseMatrix = {
+  def take(partition:Int , total:Int, partitioner:Partitioner[Int]): HorizontalSparseMatrix = {
     new HorizontalSparseMatrix(rLength(), data.map{
       ks => ks._1.hashCode % total -> ks
     }.groupBy(_._1).apply(partition).map(_._2))
   }
 
-  def take(partitions:Seq[Int] , total:Int, partitioner:Partitioner): HorizontalSparseMatrix = {
+  def take(partitions:Seq[Int] , total:Int, partitioner:Partitioner[Int]): HorizontalSparseMatrix = {
     new HorizontalSparseMatrix(rLength(), data.toList.map{
       ks => ks._1.hashCode % total -> ks
     }.filter(iks=> partitions.contains(iks._1)).map(_._2).toMap)

@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.concurrent.{TimeUnit, LinkedBlockingQueue, ConcurrentHashMap}
 
 import scala.collection.mutable.ListBuffer
+import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
@@ -13,13 +14,12 @@ import akka.util.Timeout
 
 import com.baidu.bpit.akka.actors.worker.WorkActor
 
-import org.nicta.wdy.hdm.executor.{Scheduler, Task}
+import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.model.{DDM, DFM, HDM}
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
-import org.nicta.wdy.hdm.io.{AkkaIOManager, Path}
+import org.nicta.wdy.hdm.io.{DataParser, AkkaIOManager, Path}
 import org.nicta.wdy.hdm.message._
-import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.functions.ParallelFunction
+import org.nicta.wdy.hdm.functions.{ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.message.AddTaskMsg
 import scala.util.Failure
 import org.nicta.wdy.hdm.message.AddJobMsg
@@ -27,16 +27,15 @@ import org.nicta.wdy.hdm.message.JoinMsg
 import org.nicta.wdy.hdm.model.DFM
 import scala.util.Success
 import org.nicta.wdy.hdm.message.LeaveMsg
-import org.nicta.wdy.hdm.executor.Task
 
 /**
  * Created by Tiantian on 2014/12/18.
  */
-class ClusterExecutorLeader() extends WorkActor with Scheduler{
+class ClusterExecutorLeader() extends WorkActor with Scheduler {
 
   import scala.collection.JavaConversions._
 
-  implicit val executorService:ExecutionContext = HDMContext.executionContext
+  implicit val executorService: ExecutionContext = HDMContext.executionContext
 
   val blockManager = HDMBlockManager()
 
@@ -45,11 +44,11 @@ class ClusterExecutorLeader() extends WorkActor with Scheduler{
   /**
    * maintain the state or free slots of each follower
    */
-  val followerMap:java.util.Map[String, AtomicInteger] = new ConcurrentHashMap[String, AtomicInteger]
+  val followerMap: java.util.Map[String, AtomicInteger] = new ConcurrentHashMap[String, AtomicInteger]
 
-  val appBuffer:java.util.Map[String, ListBuffer[Task[_,_]]] = new ConcurrentHashMap[String, ListBuffer[Task[_,_]]]()
+  val appBuffer: java.util.Map[String, ListBuffer[Task[_, _]]] = new ConcurrentHashMap[String, ListBuffer[Task[_, _]]]()
 
-  val taskQueue = new LinkedBlockingQueue[Task[_,_]]()
+  val taskQueue = new LinkedBlockingQueue[Task[_, _]]()
 
   val promiseMap = new ConcurrentHashMap[String, Promise[_]]()
 
@@ -62,7 +61,7 @@ class ClusterExecutorLeader() extends WorkActor with Scheduler{
   override def initParams(params: Any): Int = {
     super.initParams(params)
     followerMap.put(self.path.parent.toString, new AtomicInteger(HDMContext.CORES))
-    Future{
+    Future {
       start()
     }
     1
@@ -99,7 +98,7 @@ class ClusterExecutorLeader() extends WorkActor with Scheduler{
 
     // coordinating msg
     case JoinMsg(senderPath, state) =>
-      if(!followerMap.containsKey(senderPath))
+      if (!followerMap.containsKey(senderPath))
         followerMap.put(senderPath, new AtomicInteger(state))
       log.info(s"A executor has joined from [${senderPath}}] ")
 
@@ -116,26 +115,25 @@ class ClusterExecutorLeader() extends WorkActor with Scheduler{
     stop()
   }
 
-  override protected def scheduleTask[I:TypeTag, R:TypeTag](task: Task[I, R]): Promise[HDM[I, R]] = {
+  override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R]): Promise[HDM[I, R]] = {
     val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
-    // run job, assign to remote or local node to execute this task
-    val workerPath = findPreferredWorker(task)
-    val future = if(Path.isLocal(workerPath)) runTaskLocally(task)
-                 else runRemoteTask(workerPath, task)
+    if (task.func.isInstanceOf[ParUnionFunc[_]]) {
+      //copy input blocks directly
+      val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+      taskSucceeded(task, blks)
+    } else {
+      // run job, assign to remote or local node to execute this task
+      val workerPath = findPreferredWorker(task)
+      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskLocally(task)
+      else runRemoteTask(workerPath, task)
 
-    future onComplete {
-      case Success(blkUrls) =>
-        val ref = HDMBlockManager().getRef(task.taskId) match {
-          case dfm:DFM[I,R] => dfm.copy(blocks = blkUrls, state = Computed)
-          case ddm:DDM[R] => ddm.copy(state = Computed)
-        }
-        HDMBlockManager().addRef(ref)
-        promise.success(ref.asInstanceOf[HDM[I, R]])
-        triggerApp(task.appId)
-
-      case Failure(t) => println(t.toString)
+      future onComplete {
+        case Success(blkUrls) =>
+          taskSucceeded(task, blkUrls)
+        case Failure(t) => println(t.toString)
+      }
     }
-    log.info(s"A task has has been scheduled: [${task.taskId + "__" +  task.func.toString}}] ")
+    log.info(s"A task has been scheduled: [${task.taskId + "__" + task.func.toString}}] ")
     promise
   }
 
@@ -145,8 +143,9 @@ class ClusterExecutorLeader() extends WorkActor with Scheduler{
 
   override def start(): Unit = {
     isRunning.set(true)
-    while(isRunning.get){
+    while (isRunning.get) {
       val task = taskQueue.take()
+      log.info(s"A task has been scheduling: [${task.taskId + "__" + task.func.toString}}] ")
       scheduleTask(task)
     }
   }
@@ -156,48 +155,68 @@ class ClusterExecutorLeader() extends WorkActor with Scheduler{
     taskQueue.clear()
   }
 
-  override def addTask[I, R](task: Task[I, R]): Promise[HDM[I,R]] = {
-    val promise = Promise[HDM[I,R]]()
+  override def addTask[I, R](task: Task[I, R]): Promise[HDM[I, R]] = {
+    val promise = Promise[HDM[I, R]]()
     promiseMap.put(task.taskId, promise)
-    if(!appBuffer.containsKey(task.appId))
-      appBuffer.put(task.appId, new ListBuffer[Task[_,_]])
+    if (!appBuffer.containsKey(task.appId))
+      appBuffer.put(task.appId, new ListBuffer[Task[_, _]])
     val lst = appBuffer.get(task.appId)
     lst += task
-    triggerApp(task.appId)
+    triggerTasks(task.appId)
     promise
   }
 
   //todo move and implement at job compiler
-  override def submitJob(appId:String, hdms:Seq[HDM[_,_]]): Future[HDM[_,_]] = {
-    hdms.map{h =>
+  override def submitJob(appId: String, hdms: Seq[HDM[_, _]]): Future[HDM[_, _]] = {
+    hdms.map { h =>
       blockManager.addRef(h)
       val task = Task(appId = appId,
         taskId = h.id,
         input = h.children.asInstanceOf[Seq[HDM[_, h.inType.type]]],
-        func = h.func.asInstanceOf[ParallelFunction[h.inType.type, h.outType.type]])
+        func = h.func.asInstanceOf[ParallelFunction[h.inType.type, h.outType.type]],
+        partitioner = h.partitioner.asInstanceOf[Partitioner[h.outType.type ]])
       addTask(task)
     }.last.future
   }
 
+  private def taskSucceeded[I: ClassTag, R: ClassTag](task: Task[I, R], blks: Seq[String]): Unit = {
+    val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
+    val ref = HDMBlockManager().getRef(task.taskId) match {
+      case dfm: DFM[I, R] => dfm.copy(blocks = blks, state = Computed)
+      case ddm: DDM[R] => ddm.copy(state = Computed)
+    }
+    HDMBlockManager().addRef(ref)
+    if (!promise.isCompleted)
+      promise.success(ref.asInstanceOf[HDM[I, R]])
+    triggerTasks(task.appId)
+    log.info(s"A task is completed: [${task.taskId + "__" + task.func.toString}}] ")
+  }
 
 
-  private def triggerApp(appId:String) = {
-    if(appBuffer.containsKey(appId)){
+  private def triggerTasks(appId: String) = {
+    if (appBuffer.containsKey(appId)) {
       val seq = appBuffer.get(appId)
-      synchronized{
-        if(!seq.isEmpty) {
+      synchronized {
+        if (!seq.isEmpty) {
           //find tasks that all inputs have been computed
           val tasks = seq.filter(t =>
-            if(t.input eq null) false
-            else {
-              t.input.forall(in =>
-                HDMBlockManager().getRef(in.id).state.eq(Computed))
+            if (t.input eq null) false
+            else try {
+              t.input.forall{in =>
+                val hdm = HDMBlockManager().getRef(in.id)
+                if(hdm ne null)
+                  hdm.state.eq(Computed)
+                else false
+              }
+            } catch {
+              case ex: Throwable => log.error(ex, s"Got exception on ${t}"); false
+              case _ => false
             }
           )
-          if((tasks ne null) && !tasks.isEmpty){
+          if ((tasks ne null) && !tasks.isEmpty) {
             seq --= tasks
             tasks.foreach(taskQueue.put(_))
-            log.info(s"New tasks have has been triggered: [${tasks.map(t => (t.taskId, t.func))mkString(",")}}] ")
+            log.info(s"New tasks have has been triggered: [${tasks.map(t => (t.taskId, t.func)) mkString (",")}}] ")
           }
         }
       }
@@ -208,36 +227,47 @@ class ClusterExecutorLeader() extends WorkActor with Scheduler{
 
   // private methods for task scheduling
 
-  private def runTaskLocally [I:TypeTag, R:TypeTag](task: Task[I, R]): Future[Seq[String]] = {
+  private def runTaskLocally[I: ClassTag, R: ClassTag](task: Task[I, R]): Future[Seq[String]] = {
     // prepare input data from cluster
     log.info(s"Preparing input data for task: [${(task.taskId, task.func)}] ")
-    val input = task.input.map(in => blockManager.getRef(in.id))// update the states of input blocks
-    val futureSeq = input.flatMap(_.blocks).filterNot(path => Path.isLocal(path)).map { path =>
-        val p = Path(path)
-        ioManager.askBlock(p.name, p.parent)
+    val input = task.input.map(in => blockManager.getRef(in.id)) // update the states of input blocks
+    val updatedTask = task.copy(input = input.asInstanceOf[Seq[HDM[_, I]]])
+    val unComputed = input.flatMap(_.blocks).map(Path(_)).filterNot(p => blockManager.isCached(p.name))
+    val futureBlocks = unComputed.map(p => blockManager.getRef(p.name)).map { ddm =>
+      ddm.location.protocol match {
+        //todo replace with using data parsers
+        case Path.HDM =>
+          ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
+        case Path.HDFS => Future {
+          val bl = DataParser.readBlock(ddm.location)
+          blockManager.add(ddm.id, bl)
+          ddm.id
+        }
       }
-    if(futureSeq != null && !futureSeq.isEmpty)
-      Future.sequence(futureSeq.asInstanceOf[Seq[Future[String]]]) map {ids =>
+    }
+
+    if (futureBlocks != null && !futureBlocks.isEmpty)
+      Future.sequence(futureBlocks.asInstanceOf[Seq[Future[String]]]) map { ids =>
         log.info(s"Input data preparing finished, the task starts running: [${(task.taskId, task.func)}] ")
-        task.call().map(_.toURL)
+        updatedTask.call().map(_.toURL)
       }
     else Future {
       log.info(s"All data are at local, the task starts running: [${(task.taskId, task.func)}] ")
-      task.call().map(bl => bl.toURL)
+      updatedTask.call().map(bl => bl.toURL)
     }
   }
 
-  private def runRemoteTask [I:TypeTag, R:TypeTag](workerPath:String,  task: Task[I, R]): Future[Seq[String]] = {
+  private def runRemoteTask[I: ClassTag, R: ClassTag](workerPath: String, task: Task[I, R]): Future[Seq[String]] = {
     val future = (context.actorSelection(workerPath) ? AddTaskMsg(task)).mapTo[Seq[String]]
     future
   }
 
-  private def getAvailableWorks():Seq[Path] = {
+  private def getAvailableWorks(): Seq[Path] = {
 
     followerMap.filter(t => t._2.get() > 0).map(s => Path(s._1)).toSeq
   }
 
-  private def findPreferredWorker(task: Task[_,_]): String = {
+  private def findPreferredWorker(task: Task[_, _]): String = {
 
     val inputLocations = task.input.flatMap(hdm => HDMBlockManager().getRef(hdm.id).blocks).map(Path(_))
     val availableWorkers = getAvailableWorks()
@@ -247,7 +277,7 @@ class ClusterExecutorLeader() extends WorkActor with Scheduler{
     workerPath
   }
 
-  private def findClosestLocation(paths: Seq[Path], fromSet:Seq[Path]): String = {
+  private def findClosestLocation(paths: Seq[Path], fromSet: Seq[Path]): String = {
     //todo implement distance function
     followerMap.keys.head
   }
@@ -255,14 +285,20 @@ class ClusterExecutorLeader() extends WorkActor with Scheduler{
 
 }
 
+
 /**
+ *
+ *
+ *
+ *
+ *
  *
  * @param leaderPath
  */
-class ClusterExecutorFollower(leaderPath:String) extends  WorkActor {
+class ClusterExecutorFollower(leaderPath: String) extends WorkActor {
 
 
-  implicit val executorService:ExecutionContext = HDMContext.executionContext
+  implicit val executorService: ExecutionContext = HDMContext.executionContext
 
   override def initParams(params: Any): Int = {
     super.initParams(params)
@@ -276,10 +312,7 @@ class ClusterExecutorFollower(leaderPath:String) extends  WorkActor {
    */
   override def process: PartialFunction[Any, Unit] = {
     case AddTaskMsg(task) =>
-      Future {
-        //todo load remote input data of this task
-        task.call().map(bl => bl.toURL)
-      } onComplete {
+      ClusterExecutor.runTaskLocally(task) onComplete {
         case Success(blkUrls) => sender ! blkUrls
         case Failure(t) => log.error(t.toString); sender ! Seq.empty[Seq[String]]
       }
@@ -293,3 +326,45 @@ class ClusterExecutorFollower(leaderPath:String) extends  WorkActor {
   }
 
 }
+
+object ClusterExecutor {
+
+
+  val blockManager = HDMBlockManager()
+
+  val ioManager = new AkkaIOManager
+
+  def runTaskLocally[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[String]] = {
+    // prepare input data from cluster
+    println(s"Preparing input data for task: [${(task.taskId, task.func)}] ")
+    val input = task.input.map(in => blockManager.getRef(in.id)) // update the states of input blocks
+    val updatedTask = task.copy(input = input.asInstanceOf[Seq[HDM[_, I]]])
+    val unComputed = input.flatMap(_.blocks).map(Path(_)).filterNot(p => blockManager.isCached(p.name))
+    val futureBlocks = unComputed.map(p => blockManager.getRef(p.name)).map { ddm =>
+      ddm.location.protocol match {
+        //todo replace with using data parsers
+        case Path.HDM =>
+          ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
+        case Path.HDFS => Future {
+          val bl = DataParser.readBlock(ddm.location)
+          println(s"Output data size: ${bl.size} ")
+          blockManager.add(ddm.id, bl)
+          ddm.id
+        }
+      }
+    }
+
+    if (futureBlocks != null && !futureBlocks.isEmpty)
+      Future.sequence(futureBlocks.asInstanceOf[Seq[Future[String]]]) map { ids =>
+        println(s"Input data preparing finished, the task starts running: [${(updatedTask.taskId, updatedTask.func)}] ")
+        val ids = updatedTask.call().map(_.toURL)
+        println(s"Task completed, with output id: [${ids}] ")
+        ids
+      }
+    else Future {
+      println(s"All data are at local, the task starts running: [${(updatedTask.taskId, updatedTask.func)}] ")
+      updatedTask.call().map(bl => bl.toURL)
+    }
+  }
+}
+

@@ -1,30 +1,52 @@
 package org.nicta.wdy.hdm.functions
 
 import org.nicta.wdy.hdm.model.{DDM, Local, HDM, DFM}
-import scala.reflect.runtime.universe._
-import org.nicta.wdy.hdm.executor.Partitioner
+import org.nicta.wdy.hdm.io.Path
+import scala.reflect.runtime.universe.WeakTypeTag
+
 
 /**
  * Created by Tiantian on 2014/12/16.
  */
-abstract class ParallelFunction [I:TypeTag, R :TypeTag]extends SerializableFunction[Seq[I], Seq[R]]
+abstract class ParallelFunction [I:WeakTypeTag, R :WeakTypeTag] extends SerializableFunction[Seq[I], Seq[R]]
 
-class ParMapFunc [T:TypeTag,R:TypeTag](f: T=>R)  extends ParallelFunction[T,R] {
+
+class ParMapFunc [T:WeakTypeTag,R:WeakTypeTag](f: T=>R)  extends ParallelFunction[T,R] {
 
   override def apply(params: Seq[Seq[T]]): Seq[R] = {
     params.flatMap(t => t.map(f))
   }
 }
 
-class ParReduceFunc[T:TypeTag ,R >:T :TypeTag](f: (R, R) => R)  extends ParallelFunction[T,R] {
+class ParMapAllFunc [T:WeakTypeTag,R:WeakTypeTag](f: Seq[T]=>Seq[R])  extends ParallelFunction[T,R] {
 
   override def apply(params: Seq[Seq[T]]): Seq[R] = {
-    val res = params.flatten.reduce(f)
-    Seq(res)
+    params.flatMap(f).toSeq
   }
 }
 
-class ParFoldFunc[T:TypeTag, R:TypeTag](z:R)(f: (R, T) => R)  extends ParallelFunction[T,R] {
+
+class ParReduceFunc[T:WeakTypeTag ,R >:T :WeakTypeTag](f: (R, R) => R)  extends ParallelFunction[T, R] {
+
+  override def apply(params: Seq[Seq[T]]): Seq[R] = {
+    val res = params.map{s =>
+      var (cur, remain) = s.splitAt(1)
+      var pre = cur.reduce(f)
+      while(!remain.isEmpty && remain.size > 10000) {
+        val d = remain.splitAt(10000)
+        cur = d._1
+        remain = d._2
+        pre = cur.fold(pre)(f)
+        println(remain.size)
+      }
+      if(remain.size > 0) pre = remain.fold(pre)(f)
+      pre
+    }
+    res
+  }
+}
+
+class ParFoldFunc[T:WeakTypeTag, R:WeakTypeTag](z:R)(f: (R, T) => R)  extends ParallelFunction[T, R] {
 
 
   override def apply(params: Seq[Seq[T]]): Seq[R] = {
@@ -34,7 +56,7 @@ class ParFoldFunc[T:TypeTag, R:TypeTag](z:R)(f: (R, T) => R)  extends ParallelFu
 }
 
 
-class ParGroupByFunc[T: TypeTag, K: TypeTag](f: T => K) extends ParallelFunction[T,(K,Seq[T])] {
+class ParGroupByFunc[T: WeakTypeTag, K: WeakTypeTag](f: T => K) extends ParallelFunction[T,(K,Seq[T])] {
 
 
   override def apply(params: Seq[Seq[T]]): Seq[(K, Seq[T])] = {
@@ -43,7 +65,7 @@ class ParGroupByFunc[T: TypeTag, K: TypeTag](f: T => K) extends ParallelFunction
 
 }
 
-class ParReduceByKey[T:TypeTag, K :TypeTag](fk: T=> K, fr: (T, T) => T) extends ParallelFunction[T,(K,T)]{
+class ParReduceByKey[T:WeakTypeTag, K :WeakTypeTag](fk: T=> K, fr: (T, T) => T) extends ParallelFunction[T,(K,T)]{
 
 
   override def apply(params: Seq[Seq[T]]): Seq[(K, T)] = {
@@ -52,7 +74,7 @@ class ParReduceByKey[T:TypeTag, K :TypeTag](fk: T=> K, fr: (T, T) => T) extends 
 
 }
 
-class ParGroupFoldByKey[T:TypeTag, K:TypeTag, R : TypeTag] (fk: T=> K, t: T=> R, fr: (R, R) => R) extends ParallelFunction[T,(K,R)]{
+class ParGroupFoldByKey[T:WeakTypeTag, K:WeakTypeTag, R : WeakTypeTag] (fk: T=> K, t: T=> R, fr: (R, R) => R) extends ParallelFunction[T,(K,R)]{
 
 
   override def apply(params: Seq[Seq[T]]): Seq[(K, R)] = {
@@ -61,7 +83,7 @@ class ParGroupFoldByKey[T:TypeTag, K:TypeTag, R : TypeTag] (fk: T=> K, t: T=> R,
 
 }
 
-class ParUnionFunc[T: TypeTag]()  extends ParallelFunction[T,T] {
+class ParUnionFunc[T: WeakTypeTag]()  extends ParallelFunction[T,T] {
 
 
   override def apply(params: Seq[Seq[T]]): Seq[T] = {
@@ -69,4 +91,11 @@ class ParUnionFunc[T: TypeTag]()  extends ParallelFunction[T,T] {
   }
 
 
+}
+
+class FlattenFunc[T: WeakTypeTag] extends ParallelFunction[T,T]{
+
+  override def apply(params: Seq[Seq[T]]): Seq[T] = {
+    params.flatten
+  }
 }

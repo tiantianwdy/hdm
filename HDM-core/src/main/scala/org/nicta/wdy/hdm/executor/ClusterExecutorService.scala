@@ -1,12 +1,12 @@
 package org.nicta.wdy.hdm.executor
 
-import java.util.concurrent._
 import java.util
-import scala.concurrent.ExecutionContext
+import java.util.concurrent.{Executors, TimeUnit, ExecutorService, Callable, Future}
+
+import scala.concurrent.{ExecutionContext}
 import akka.actor.{ActorSystem, Actor}
 
 import org.nicta.wdy.hdm.coordinator.Coordinator
-import scala.concurrent
 import akka.util.Timeout
 import scala.concurrent.duration.{Duration, DurationInt}
 import com.typesafe.config.ConfigFactory
@@ -92,4 +92,5 @@ object ClusterExecutorContext {
   def apply(localExecutor: ExecutorService):ExecutionContext = {
     ExecutionContext.fromExecutorService(new AkkaClusterExecutor(localExecutor, ActorSystem("hdm", ConfigFactory.load())))
   }
+
 }

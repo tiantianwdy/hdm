@@ -86,7 +86,7 @@ object LinuxSystemMonitor {
     try {
       val token = new StringTokenizer(br.readLine())
       token.nextToken()
-      for (i <- 0 to tokenLength if (token.hasMoreTokens())) {
+      for (i <- 0 until tokenLength if (token.hasMoreTokens())) {
         cpuInfo.update(i, token.nextToken().toLong)
       }
     } finally {

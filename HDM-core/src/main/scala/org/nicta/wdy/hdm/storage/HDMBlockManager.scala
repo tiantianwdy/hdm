@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.storage
 
-import org.nicta.wdy.hdm.io.Path
+import org.nicta.wdy.hdm.io.{DataParser, Path}
 import org.nicta.wdy.hdm.model.{DFM, HDM, DDM}
 import java.util.concurrent.ConcurrentHashMap
 
@@ -36,6 +36,8 @@ trait HDMBlockManager {
   def remove(id: String)
 
   def removeAll(id: Seq[String])
+
+  def isCached(id:String):Boolean = ???
 
   def checkState(id:String, state:BlockState):Boolean
 
@@ -114,6 +116,9 @@ class DefaultHDMBlockManager extends HDMBlockManager{
     ids.map(blockRefMap.get(_))
   }
 
+  override def isCached(id: String): Boolean = {
+    blockCache.containsKey(id)
+  }
 }
 
 object HDMBlockManager{
@@ -126,13 +131,14 @@ object HDMBlockManager{
     val id = Path(refID).name
     val ref = defaultManager.getRef(id)
     if (ref != null && ref.state == Computed)
-      ref.blocks.map(bId => loadBlock[T](bId))
+      ref.blocks.map(url => loadBlock[T](url))
     else Seq.empty[Block[T]]
   }
 
-  def loadBlock[T](bID:String):Block[T] ={
-    val id = Path(bID).name
-    val bl = defaultManager.getBlock(id)
+  def loadBlock[T](url:String):Block[T] ={
+    val path = Path(url)
+//    val bl = defaultManager.getBlock(id)*/
+    val bl = DataParser.readBlock(path)
     if(bl ne null) bl.asInstanceOf[Block[T]]
     else {
       //compute the block

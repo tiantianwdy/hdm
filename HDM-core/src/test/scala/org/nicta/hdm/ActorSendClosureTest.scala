@@ -53,7 +53,7 @@ class ActorSendClosureTest {
 }
 
 
-case class FuncTask[T,U] (val context: Any, val func: Iterator[T] => U ) extends Serializable {
+case class FuncTask[T,U] (val context: Any, val func: Iterator[T] => U ) {
 
 
 

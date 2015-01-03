@@ -3,6 +3,8 @@ package org.nicta.wdy.hdm.coordinator
 import akka.pattern._
 
 import com.baidu.bpit.akka.actors.worker.WorkActor
+import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 import org.nicta.wdy.hdm.message._
 import java.util.concurrent.atomic.AtomicInteger
@@ -100,8 +102,11 @@ class BlockManagerFollower(val leaderPath: String) extends WorkActor {
     case AddBlockMsg(bl) =>
       blockManager.add(bl.id, bl)
       if(sender.path.toString != leaderPath){
-        val ref = DDM(id=bl.id, state = Computed)
-        context.actorSelection(leaderPath).tell(AddRefMsg(Seq(ref)), sender)
+        val id = HDMContext.newLocalId()
+        val ddm = new DDM(id= id,
+          state = Computed,
+          location = Path(Path.HDM, HDMContext.localContextPath + id))
+        context.actorSelection(leaderPath).tell(AddRefMsg(Seq(ddm)), sender)
       }
       log.info(s"A Block data has has been added: [${bl.id}] ")
 
