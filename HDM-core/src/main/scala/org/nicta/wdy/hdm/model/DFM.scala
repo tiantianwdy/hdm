@@ -14,13 +14,13 @@ import java.util.UUID
 /**
  * Created by Tiantian on 2014/5/25.
  */
-case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
+class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
                                        val id: String = HDMContext.newClusterId(),
                                        val dependency: Dependency = OneToOne,
                                        val func: ParallelFunction[T, R] = null,
                                        val blocks: Seq[String] = null,
                                        val distribution: Distribution = Horizontal,
-                                       val location: Path = Path(Path.HDM, HDMContext.clusterContextPath),
+                                       val location: Path = Path(HDMContext.clusterBlockPath),
                                        val state: BlockState = Declared,
                                        var parallelism: Int = -1, // undefined
                                        val keepPartition:Boolean = true,
@@ -33,30 +33,45 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
     this(elem.toSeq)
   }
 
+  def copy(id: String = this.id,
+           children: Seq[HDM[_, T]] = this.children,
+           dependency: Dependency = this.dependency,
+           func: ParallelFunction[T, R] = this.func,
+           blocks: Seq[String] = this.blocks,
+           distribution: Distribution = this.distribution,
+           location: Path = this.location,
+           state: BlockState = this.state,
+           parallelism: Int = this.parallelism,
+           keepPartition: Boolean = this.keepPartition,
+           partitioner: Partitioner[R] = this.partitioner):HDM[T,R] = {
 
-/*  override def reduce[A >: R](t: A)(f: (A, R) => A): HDM[R,A] = {
+    new DFM(children, id, dependency, func, blocks, distribution, location, state, parallelism, keepPartition, partitioner )
+  }
 
-    new DFM[R,A](Seq(this), NToOne, new ReduceFunc[R,A](f), dis, loc)
 
-/*    val newElems = elems.map { hdm =>
-      val nh = hdm.location match {
-        case Local =>
-          hdm.reduce(t)(f)
-        case Remote =>
-          // todo
-          // find remote hdm address
-          // send remote function and add wait events
-          hdm.reduce(t)(f)
-        case _ =>
-          hdm.reduce(t)(f)
+  /*  override def reduce[A >: R](t: A)(f: (A, R) => A): HDM[R,A] = {
+
+      new DFM[R,A](Seq(this), NToOne, new ReduceFunc[R,A](f), dis, loc)
+
+  /*    val newElems = elems.map { hdm =>
+        val nh = hdm.location match {
+          case Local =>
+            hdm.reduce(t)(f)
+          case Remote =>
+            // todo
+            // find remote hdm address
+            // send remote function and add wait events
+            hdm.reduce(t)(f)
+          case _ =>
+            hdm.reduce(t)(f)
+        }
+        nh.children.head
       }
-      nh.children.head
-    }
-    // after all the elements have been computed
-    newElems.reduce{ (h1,h2) =>
-      h1.union(h2)
-    }.reduce(t)(f)*/
-  }*/
+      // after all the elements have been computed
+      newElems.reduce{ (h1,h2) =>
+        h1.union(h2)
+      }.reduce(t)(f)*/
+    }*/
 
 /*  override def groupBy[K](f: (R) => K): HDM[R,(K, Seq[R])] = {
 
@@ -99,7 +114,5 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
 //  override def union[A <: R](h: HDM[_, A]): HDM[R, R] = {
 //    new DFM[R,R](Seq(this,h.asInstanceOf[HDM[_, R]]), NToOne, new UnionFunc[R] , dis, location)
 //  }
-
-
-}
+  }
 

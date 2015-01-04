@@ -1,9 +1,11 @@
 package org.nicta.wdy.hdm.io
 
+import com.baidu.bpit.akka.server.SmsSystem
+
 /**
  * Created by Tiantian on 2014/5/26.
  */
-class Path(val protocol:String, val absPath:String) extends Serializable {
+class Path(val protocol:String, val absPath:String, scope:String = "") extends Serializable {
 
 
   lazy val name = if (absPath.contains("/")) absPath.substring(absPath.lastIndexOf("/") + 1)
@@ -27,13 +29,15 @@ class Path(val protocol:String, val absPath:String) extends Serializable {
     absPath.drop(address.length)
   }
 
-  override def toString: String = protocol + absPath
+  override def toString: String = protocol + scope + absPath
 
 }
 
 object Path {
 
   val HDM = "hdm://"
+
+  val AKKA = "akka.tcp://"
 
   val FILE = "file://"
 
@@ -58,13 +62,55 @@ object Path {
 
     val tuple = if(idx >=0) path.splitAt(idx + 3)
                 else ("", path)
-    new Path(tuple._1, tuple._2)
+    val (scope, absPath) = if(tuple._2.contains("@")){
+      val i = tuple._2.indexOf("@")
+      tuple._2.splitAt(i+1)
+    } else ("", tuple._2)
+    new Path(tuple._1, absPath, scope)
   }
 
   def isLocal(path:String):Boolean = isLocal(Path(path))
 
   def isLocal(path: Path):Boolean = {
     //todo check local
-    true
+    if(path.address eq null) true
+    else path.address == Path(SmsSystem.rootPath).address
   }
+
+
+  def calculateDistance(src:Path, target:Path):Double = {
+    
+    if(src.address == target.address) 1
+    else {
+      val srcSeq = src.address.split("\\.|:|/")
+      val tarSeq = target.address.split("\\.|:|/")
+      val tarLen = tarSeq.length
+      var cur = 0
+      while(cur < srcSeq.size && srcSeq(cur)== tarSeq(cur)){
+        cur += 1
+      }
+      tarLen / (cur + 0.01D)
+    }
+  }
+
+  def calculateDistance(paths: Seq[Path], targetSet: Seq[Path]):Seq[Double] = {
+    paths.map{p => // for each path compute the distance vector of target Set
+      val vec = targetSet.map(t =>Path.calculateDistance(p, t) )
+      vec.sum // return total distance
+    }
+  }
+
+  /**
+   * find out cloest the path that has minimum distance to target Set
+   * @param paths
+   * @param targetSet
+   * @return
+   */
+  def findClosestLocation(paths: Seq[Path], targetSet: Seq[Path]): Path = {
+    val distanceVec = calculateDistance(paths, targetSet)
+    val minimum = distanceVec.min
+    paths(distanceVec.indexOf(minimum))
+  }
+
+
 }

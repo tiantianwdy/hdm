@@ -12,7 +12,7 @@ trait SchedulingMsg extends Serializable
 
 case class AddTaskMsg[I:ClassTag , R :ClassTag](task:Task[I, R]) extends SchedulingMsg
 
-case class TaskCompleteMsg(appId:String, taskId:String, state:Int) extends SchedulingMsg
+case class TaskCompleteMsg(appId:String, taskId:String, func:String, result:Seq[String]) extends SchedulingMsg
 
 case class AddJobMsg(appId:String, hdm:Seq[HDM[_,_]], resultReceiver:String)  extends SchedulingMsg
 

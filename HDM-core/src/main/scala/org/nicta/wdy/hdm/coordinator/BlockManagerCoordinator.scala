@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.coordinator
 
+import akka.actor.ActorPath
 import akka.pattern._
 
 import com.baidu.bpit.akka.actors.worker.WorkActor
@@ -9,7 +10,7 @@ import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 import org.nicta.wdy.hdm.message._
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.ConcurrentHashMap
-import org.nicta.wdy.hdm.model.DDM
+import org.nicta.wdy.hdm.model.{HDM, DDM}
 
 /**
  * Created by Tiantian on 2014/12/18.
@@ -19,13 +20,22 @@ class BlockManagerLeader extends WorkActor {
 
   val blockManager = HDMBlockManager()
 
-  val followerMap:java.util.Map[String, AtomicInteger] = new ConcurrentHashMap[String, AtomicInteger]
+  val followerMap: java.util.Map[String, AtomicInteger] = new ConcurrentHashMap[String, AtomicInteger]
 
   override def process: PartialFunction[Any, Unit] = {
 
     case AddRefMsg(refs) =>
-      blockManager.addAllRef(refs)
-      log.info(s"Block references have has been added: [${refs.map(_.id).mkString(",")}] ")
+      val senderPath = sender.path
+      val nRefs = refs.map { r =>
+        r match {
+        case ddm: DDM[_] =>
+          val fullPath = ActorPath.fromString(ddm.location.toString).toStringWithAddress(senderPath.address)
+          ddm.copy(location = Path(fullPath))
+        case x => r
+        }
+      }
+      blockManager.addAllRef(nRefs)
+      log.info(s"Block references have has been added: [${nRefs.map(r => (r.id, r.location.toString)).mkString(",")}] ")
 
     case RemoveRefMsg(id) =>
       blockManager.remove(id)
@@ -41,17 +51,17 @@ class BlockManagerLeader extends WorkActor {
 
     case QueryBlockMsg(id) =>
       val bl = blockManager.getBlock(id)
-      if(bl != null)
+      if (bl != null)
         sender ! BlockData(bl)
 
     case CheckStateMsg(id) =>
-      if(blockManager.getRef(id) != null){
+      if (blockManager.getRef(id) != null) {
         val reply = BlockStateMsg(id, blockManager.getRef(id).state)
         sender ! reply
       }
     // coordinating msg
     case JoinMsg(senderPath, state) =>
-      if(!followerMap.containsKey(senderPath))
+      if (!followerMap.containsKey(senderPath))
         followerMap.put(senderPath, new AtomicInteger(state))
       log.info(s"A block manager has joined from [${senderPath}}] ")
 
@@ -89,41 +99,41 @@ class BlockManagerFollower(val leaderPath: String) extends WorkActor {
 
     case AddRefMsg(refs) =>
       blockManager.addAllRef(refs)
-      if(sender.path.toString != leaderPath)
-        context.actorSelection(leaderPath).tell(AddRefMsg(refs), sender)
-      log.info(s"Block references have has been added: [${refs.map(_.id).mkString(",")}] ")
+      if (sender.path.toString != leaderPath)
+        context.actorSelection(leaderPath).tell(AddRefMsg(refs), self)
+      log.info(s"Block references have has been added: [${refs.map(r => (r.id, r.location.toString)).mkString(",")}] ")
 
     case RemoveRefMsg(id) =>
       blockManager.remove(id)
-      if(sender.path.toString != leaderPath)
-        context.actorSelection(leaderPath).tell(RemoveRefMsg(id), sender)
+      if (sender.path.toString != leaderPath)
+        context.actorSelection(leaderPath).tell(RemoveRefMsg(id), self)
       log.info(s"A Block reference has has been removed: [${id}] ")
 
     case AddBlockMsg(bl) =>
       blockManager.add(bl.id, bl)
-      if(sender.path.toString != leaderPath){
+      if (sender.path.toString != leaderPath) {
         val id = HDMContext.newLocalId()
-        val ddm = new DDM(id= id,
+        val ddm = new DDM(id = id,
           state = Computed,
-          location = Path(Path.HDM, HDMContext.localContextPath + id))
-        context.actorSelection(leaderPath).tell(AddRefMsg(Seq(ddm)), sender)
+          location = Path(HDMContext.localBlockPath + "/" + id))
+        context.actorSelection(leaderPath).tell(AddRefMsg(Seq(ddm)), self)
       }
       log.info(s"A Block data has has been added: [${bl.id}] ")
 
     case RemoveBlockMSg(id) =>
       blockManager.remove(id)
-      if(sender.path.toString != leaderPath)
-        context.actorSelection(leaderPath).tell(RemoveBlockMSg(id), sender)
+      if (sender.path.toString != leaderPath)
+        context.actorSelection(leaderPath).tell(RemoveBlockMSg(id), self)
       log.info(s"A Block data has has been removed: [${id}] ")
 
     case QueryBlockMsg(id) =>
       val bl = blockManager.getBlock(id)
-      if(bl != null)
+      if (bl != null)
         sender ! BlockData(bl)
       else context.actorSelection(leaderPath).tell(QueryBlockMsg(id), sender)
 
     case CheckStateMsg(id) =>
-      if(blockManager.getRef(id) != null){
+      if (blockManager.getRef(id) != null) {
         val reply = BlockStateMsg(id, blockManager.getRef(id).state)
         sender ! reply
       } else context.actorSelection(leaderPath).tell(CheckStateMsg(id), sender)

@@ -64,9 +64,12 @@ object LocalPlaner extends HDMPlaner{
  */
 class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) extends PhysicalPlanner {
 
-  def getStaticBlockUrls(hdm :HDM[_,_]):Seq[String] = {
-    val bn = hdm.parallelism
-    for (i <- 0 until bn) yield hdm.id + "_b" + i
+  def getStaticBlockUrls(hdm :HDM[_,_]):Seq[String] = hdm match {
+    case dfm: HDM[_,_] =>
+      val bn = hdm.parallelism
+      for (i <- 0 until bn) yield hdm.id + "_b" + i
+    case ddm:DDM[_] => ddm.blocks
+    case x => Seq.empty[String]
   }
 
   def getDynamicBlockUrls(hdm :HDM[_,_]):Seq[String] = {
@@ -81,14 +84,14 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
     case leafHdm:DFM[Path,String] if(input == null || input.isEmpty) =>
       val children = DataParser.explainBlocks(leafHdm.location)
       if(leafHdm.keepPartition) {
-        val mediator = children.map(ddm => DFM(id = leafHdm.id + "_b" +children.indexOf(ddm), children = Seq(ddm), func = new FlattenFunc[String](), parallelism = 1))
-        val newParent = DFM(id = leafHdm.id, children = mediator, func = new ParUnionFunc[String](), parallelism = mediator.size)
+        val mediator = children.map(ddm => new DFM(id = leafHdm.id + "_b" +children.indexOf(ddm), children = Seq(ddm), func = new FlattenFunc[String](), parallelism = 1))
+        val newParent = new DFM(id = leafHdm.id, children = mediator, func = new ParUnionFunc[String](), parallelism = mediator.size)
         children ++ mediator :+ newParent
       } else {
 //        val pNum = leafHdm.parallelism
         val inputs = children.grouped(defParallel) // todo change to group by location similarity
-        val mediator = inputs.map(seq => DFM(id = leafHdm.id + "_b" + inputs.indexOf(seq), children = seq, func = new ParUnionFunc[String](), parallelism = 1))
-        val newParent = DFM(id = leafHdm.id, children = mediator.toSeq, func = new ParUnionFunc[String](), parallelism = defParallel)
+        val mediator = inputs.map(seq => new DFM(id = leafHdm.id + "_b" + inputs.indexOf(seq), children = seq, func = new ParUnionFunc[String](), parallelism = 1))
+        val newParent = new DFM(id = leafHdm.id, children = mediator.toSeq, func = new ParUnionFunc[String](), parallelism = defParallel)
         children ++ mediator :+ newParent
       }
     case dfm:DFM[I,R] =>
@@ -108,7 +111,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
       }
       val newInput = inputArray.map(seq => seq.map(pid => new DDM[I](id = pid, location = null)))
       val pHdms = newInput.map(seq => dfm.copy(id = dfm.id + "_b" + newInput.indexOf(seq), children = seq.asInstanceOf[Seq[HDM[_, I]]], parallelism = 1))
-      val newParent = DFM(id = dfm.id, children = pHdms, func = new ParUnionFunc[R], dependency = dfm.dependency, partitioner = dfm.partitioner, parallelism = defParallel)
+      val newParent = new DFM(id = dfm.id, children = pHdms, func = new ParUnionFunc[R], dependency = dfm.dependency, partitioner = dfm.partitioner, parallelism = defParallel)
       pHdms :+ newParent
       /*
       val inputIds = input.map{h =>
@@ -172,14 +175,14 @@ object ClusterPlaner extends HDMPlaner { // need to be execute on cluster leader
         case leafHdm:DFM[Path,String] =>
           val children = DataParser.explainBlocks(leafHdm.location)
           if(leafHdm.keepPartition) {
-            val mediator = children.map(ddm => DFM(children = Seq(ddm), func = new ParUnionFunc[String]()))
-            val newParent = DFM(id = leafHdm.id, children = mediator, func = new ParUnionFunc[String]())
+            val mediator = children.map(ddm => new DFM(children = Seq(ddm), func = new ParUnionFunc[String]()))
+            val newParent = new DFM(id = leafHdm.id, children = mediator, func = new ParUnionFunc[String]())
             children ++ mediator :+ newParent
           } else {
             val pNum = leafHdm.partitioner.partitionNum
             val inputs = children.grouped(pNum) // todo change to group by location similarity
-            val mediator = inputs.map(seq => DFM(children = seq, func = new ParUnionFunc[String]()))
-            val newParent = DFM(id = leafHdm.id, children = mediator.toSeq, func = new ParUnionFunc[String]())
+            val mediator = inputs.map(seq => new DFM(children = seq, func = new ParUnionFunc[String]()))
+            val newParent = new DFM(id = leafHdm.id, children = mediator.toSeq, func = new ParUnionFunc[String]())
             children ++ mediator :+ newParent
           }
         case x => throw new Exception("unsupported hdm.")
@@ -196,11 +199,11 @@ object ClusterPlaner extends HDMPlaner { // need to be execute on cluster leader
             val pIds = for( subIndex <- 0 to pNum) yield pId + "_p" + subIndex
             HDMBlockManager().getRefs(pIds)
           }
-          DFM(id = pId, // create each partition DFM
+          new DFM(id = pId, // create each partition DFM
             children = pInput.asInstanceOf[Seq[HDM[_,hdm.inType.type ]]],
             func = hdm.func.asInstanceOf[ParallelFunction[hdm.inType.type, hdm.outType.type]])
         }
-        val newParent = DFM(id = hdm.id, children = pHdms, func = new ParUnionFunc[hdm.outType.type])
+        val newParent = new DFM(id = hdm.id, children = pHdms, func = new ParUnionFunc[hdm.outType.type])
         subHDMs ++ pHdms :+ newParent
       } else {
         subHDMs :+ hdm
@@ -218,7 +221,7 @@ object StaticPlaner extends HDMPlaner{
     val logicPlan = LocalPlaner.plan(hdm, maxParallelism)
     logicPlan.map{ h =>
       val input = Try {h.children.map(c => explainedMap.get(c.id)).asInstanceOf[Seq[HDM[_,h.inType.type]]]} getOrElse  Seq.empty[HDM[_,h.inType.type]]
-      val newHdms = planer.plan(input, h.asInstanceOf[HDM[h.inType.type, h.outType.type ]], maxParallelism)
+      val newHdms = planer.plan(input, h.asInstanceOf[HDM[h.inType.type, h.outType.type ]], h.parallelism)
       newHdms.foreach(nh => explainedMap.put(nh.id, nh))
       newHdms
     }

@@ -16,7 +16,7 @@ import akka.actor.Actor.Receive
 /**
  * Created by Tiantian on 2014/12/19.
  */
-class HDMLeaderTest extends ClusterTestSuite{
+class HDMLeaderTest extends ClusterTestSuite {
 
   val text =
     """
@@ -35,7 +35,7 @@ class HDMLeaderTest extends ClusterTestSuite{
     """.split("\\s+")
 
 
-  def testForDebugging{
+  def testForDebugging {
     HDMContext.startAsMaster(8999, testMasterConf)
     val rootPath = SmsSystem.rootPath
     println(rootPath)
@@ -56,7 +56,7 @@ class HDMLeaderTest extends ClusterTestSuite{
    *
    */
   @Test
-  def testLeaderStart(){
+  def testLeaderStart() {
     HDMContext.startAsMaster(8999, testMasterConf)
     val rootPath = SmsSystem.rootPath
     println(rootPath)
@@ -65,16 +65,17 @@ class HDMLeaderTest extends ClusterTestSuite{
   }
 
   @Test
-  def testLocalExecution(){
+  def testLocalExecution() {
     HDMContext.init()
     Thread.sleep(1500)
     val hdm = HDM.horizontal(text, text2)
-    val wordCount = hdm.map(w => (w,1)).groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+    val wordCount = hdm.map(w => (w, 1))
+      //.groupReduce(_._1, (t1, t2) => (t1._1, t1._2 + t2._2))
 
-   wordCount.compute(4) onComplete  {
+    wordCount.compute(4) onComplete {
       case Success(hdm) =>
         println("Job completed and received response:" + hdm)
-        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+        hdm.asInstanceOf[HDM[_, _]].sample().foreach(println(_))
       case Failure(t) =>
         println("Job failed because of: " + t)
         t.printStackTrace()
@@ -84,18 +85,18 @@ class HDMLeaderTest extends ClusterTestSuite{
   }
 
   @Test
-  def testHDFSExecution(): Unit ={
+  def testHDFSExecution(): Unit = {
     HDMContext.init()
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
     val hdm = HDM(path)
-    val wordCount = hdm.map(d=> (d, 1)).groupBy(_._1)
-      //.groupReduce(d => d._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+    val wordCount = hdm.map(d => (d.substring(0,3), 1)).groupBy(_._1)
+    //.groupReduce(d => d._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
 
-    wordCount.compute(4) onComplete  {
+    wordCount.compute(4) onComplete {
       case Success(hdm) =>
         println("Job completed and received response:" + hdm)
-        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+        hdm.asInstanceOf[HDM[_, _]].sample().foreach(println(_))
       case Failure(t) =>
         println("Job failed because of: " + t)
         t.printStackTrace()
@@ -106,7 +107,7 @@ class HDMLeaderTest extends ClusterTestSuite{
 
 
   @After
-  def after(){
+  def after() {
     HDMContext.shutdown()
   }
 }

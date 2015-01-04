@@ -50,9 +50,9 @@ object HDMContext extends  Context{
 
   val JOB_RESULT_DISPATCHER:String = "ResultDispatcher"
 
-  def clusterContextPath = leaderPath.get()
+  def clusterBlockPath = leaderPath.get() + "/" + BLOCK_MANAGER_NAME
 
-  def localContextPath = SmsSystem.rootPath
+  def localBlockPath = SmsSystem.rootPath + "/" + BLOCK_MANAGER_NAME
 
   def startAsMaster(port:Int = 8999, conf: Config = defaultConf){
 

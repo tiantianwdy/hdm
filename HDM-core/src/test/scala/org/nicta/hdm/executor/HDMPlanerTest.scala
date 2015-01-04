@@ -33,7 +33,7 @@ class HDMPlanerTest {
     val hdm = HDM.horizontal(text, text2)
     val wordCount = hdm.map(d=> (d,1))
       //.groupBy(_._1).map(t => (t._1, t._2.map(_._2))).reduce(("",Seq(0)))((t1,t2) => (t1._1, t1._2))
-    val hdms = StaticPlaner.plan(wordCount ,2)
+    val hdms = StaticPlaner.plan(wordCount ,1)
     hdms.foreach(println(_))
   }
 
