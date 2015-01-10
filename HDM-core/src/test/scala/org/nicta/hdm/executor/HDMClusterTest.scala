@@ -36,7 +36,7 @@ class HDMClusterTest extends ClusterTestSuite{
 
   @Before
   def beforeTest(): Unit ={
-    HDMContext.init()
+    HDMContext.init(cores = 0) // start master
   }
 
   @Test
@@ -88,11 +88,24 @@ class HDMClusterTest extends ClusterTestSuite{
 //        val hdm = HDM.horizontal(text, text2)
         val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
         val hdm = HDM(path)
-        val wordCount = hdm.map(w => (w.substring(0,3),1)).groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+        // test programs
+        val wordCount = hdm.map{ w =>
+            val as = w.split(",");
+            (as(0).substring(0,3), as(1).toInt)
+        }.groupReduce(t => t._1, (t1,t2) => (t1._1,t1._2 + t2._2) )
+          //.map(w => (w.split(","))).map(as => (as(0).substring(0,3),as(1).toInt)).groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
-        wordCount.compute(2) onComplete  {
+        val topK = hdm.map{ w =>
+          val as = w.split(",");
+          as(1).toInt
+        }.top(10)
+
+        val count = hdm.count()
+
+        val start = System.currentTimeMillis()
+        count.compute(4) onComplete  {
           case Success(hdm) =>
-            println("Job completed and received response:" + hdm)
+            println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
             hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
           case Failure(t) =>
             println("Job failed because of: " + t)

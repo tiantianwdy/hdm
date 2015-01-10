@@ -55,4 +55,23 @@ class PathTest {
     println(Path.isLocal(p))
 
   }
+
+  @Test
+  def testPathGroupByDistance = {
+    val srcs = Seq(
+      Path("hdfs://17.110.0.1:9001/user/spark/benchmark/1node/rankings/part-00001"),
+      Path("hdfs://189.0.0.10:9001/user/spark/benchmark/1node/rankings/part-00002"),
+      Path("hdfs://189.210.30.104:9001/user/spark/benchmark/1node/rankings/part-00002"),
+      Path("hdfs://127.10.1.2:9001/user/spark/benchmark/1node/rankings/part-00003"),
+      Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/part-00004"),
+      Path("hdfs://17.0.0.2:9001/user/spark/benchmark/1node/rankings/part-00005"),
+      Path("hdfs://17.110.0.1:9001/user/spark/benchmark/1node/rankings/part-00001"),
+      Path("hdfs://189.0.0.10:9001/user/spark/benchmark/1node/rankings/part-00002"),
+      Path("hdfs://189.210.30.104:9001/user/spark/benchmark/1node/rankings/part-00002"),
+      Path("hdfs://127.10.1.2:9001/user/spark/benchmark/1node/rankings/part-00003"),
+      Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/part-00004"),
+      Path("hdfs://17.0.0.2:9001/user/spark/benchmark/1node/rankings/part-00005")
+    )
+    Path.groupPathBySimilarity(srcs, 5) foreach(println(_))
+  }
 }

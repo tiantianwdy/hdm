@@ -14,7 +14,7 @@ import java.util.UUID
 /**
  * Created by Tiantian on 2014/5/25.
  */
-class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
+case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
                                        val id: String = HDMContext.newClusterId(),
                                        val dependency: Dependency = OneToOne,
                                        val func: ParallelFunction[T, R] = null,

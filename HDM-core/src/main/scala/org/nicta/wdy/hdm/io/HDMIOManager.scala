@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.io
 
+import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, Block, BlockRef}
 import scala.concurrent.{Promise, Future}
 import com.baidu.bpit.akka.server.SmsSystem
@@ -18,9 +19,9 @@ trait HDMIOManager {
 
   protected def loadFromRemote[T](id:String, path:String):Block[T]
 
-  protected def queryReceived(id:String, fromPath:String):Unit
+  def queryReceived(id:String, fromPath:String):Unit
 
-  protected def blockReceived (id:String, fromPath:String, srcBlock: Block[_]):Unit
+  def blockReceived (id:String, fromPath:String, srcBlock: Block[_]):Unit
 
 }
 
@@ -51,20 +52,20 @@ class AkkaIOManager extends HDMIOManager {
 
   override def askBlock(id: String, path: String): Future[String] = {
     val promise = Promise[String]
-    promiseMap.put(id,promise)
-    SmsSystem.forwardMsg(path, id)
+    promiseMap.put(id, promise)
+    HDMContext.queryBlock(id, path)
     promise.future
   }
 
-  override protected def blockReceived(id: String, fromPath: String, srcBlock: Block[_]): Unit = {
-    blockManager.add(id, srcBlock)
+  override def blockReceived(id: String, fromPath: String, srcBlock: Block[_]): Unit = {
+//    blockManager.add(id, srcBlock)
     val promise = promiseMap.get(id).asInstanceOf[Promise[String]]
     if(promise ne null)
       promise.success(id)
   }
 
 
-  override protected def queryReceived(id: String, fromPath: String): Unit = {
+  override def queryReceived(id: String, fromPath: String): Unit = {
     val block = HDMBlockManager().getBlock(id)
     sendBlock(id, fromPath, block)
   }

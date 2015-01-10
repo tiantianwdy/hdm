@@ -2,6 +2,8 @@ package org.nicta.wdy.hdm.io
 
 import com.baidu.bpit.akka.server.SmsSystem
 
+import scala.util.Try
+
 /**
  * Created by Tiantian on 2014/5/26.
  */
@@ -73,8 +75,8 @@ object Path {
 
   def isLocal(path: Path):Boolean = {
     //todo check local
-    if(path.address eq null) true
-    else path.address == Path(SmsSystem.rootPath).address
+    if(path.address == null || path.address.equals("")) true
+    else path.address == Path(SmsSystem.physicalRootPath).address
   }
 
 
@@ -110,6 +112,18 @@ object Path {
     val distanceVec = calculateDistance(paths, targetSet)
     val minimum = distanceVec.min
     paths(distanceVec.indexOf(minimum))
+  }
+
+  def groupPathBySimilarity(paths:Seq[Path], n:Int) = {
+    val avg = paths.size/n
+    paths.sortWith( (p1,p2) => path2Int(p1) < path2Int(p2)).grouped(avg.toInt).toSeq
+  }
+
+  def path2Int(p:Path):Int = {
+    Try {
+      val ipSegs = p.address.split("\\.|:|/").take(4).map(_.toInt)
+      (ipSegs(0) << 24) + (ipSegs(1) << 16) + (ipSegs(2) << 8) + ipSegs(1)
+    } getOrElse(0)
   }
 
 

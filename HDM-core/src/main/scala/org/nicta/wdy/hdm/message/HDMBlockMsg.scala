@@ -10,15 +10,17 @@ trait HDMBlockMsg extends Serializable
 
 case class AddRefMsg(refs: Seq[HDM[_,_]]) extends HDMBlockMsg
 
+case class SyncRefMsg(refs: Seq[HDM[_,_]]) extends HDMBlockMsg
+
 case class RemoveRefMsg(id: String) extends HDMBlockMsg
 
 case class AddBlockMsg(bl: Block[_]) extends HDMBlockMsg
 
 case class RemoveBlockMSg(id :String) extends HDMBlockMsg
 
-case class QueryBlockMsg (id:String) extends HDMBlockMsg
+case class QueryBlockMsg (id:String, location:String) extends HDMBlockMsg
 
-case class BlockData(bl:Block[_]) extends HDMBlockMsg
+case class BlockData(id:String, bl:Block[_]) extends HDMBlockMsg
 
 case class CheckStateMsg (id: String) extends HDMBlockMsg
 

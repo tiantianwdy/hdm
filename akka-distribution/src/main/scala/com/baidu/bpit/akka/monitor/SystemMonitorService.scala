@@ -40,7 +40,7 @@ object SystemMonitorService {
     val source = Source.fromFile("/proc/net/dev")
     try {
       val lines = source.getLines().toArray[String]
-      val values: Array[Long] = lines(4).split("[\\s:]+").map(
+      val values: Array[Long] = lines(1).split("[\\s:]+").map(
         _ match {
           case s: String if (s.matches("\\d+")) => s.toLong
           case _ => 0

@@ -46,7 +46,7 @@ class DDM[T: ClassTag](    val id: String = HDMContext.newLocalId(),
     new DDM(id, null, dependency, func, distribution, location, state, parallelism, keepPartition, partitioner)
   }
 
-  val blocks: Seq[String] = Seq(id)
+  val blocks: Seq[String] = Seq(Path(HDMContext.localBlockPath) + "/" +id)
 
   val children: Seq[HDM[_,Path]] = null
 

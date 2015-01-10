@@ -13,7 +13,7 @@ import org.apache.hadoop.fs.{FileSystem}
 import org.apache.hadoop.io.DataInputBuffer
 import org.apache.hadoop.mapred.LineRecordReader
 import org.junit.Test
-import org.nicta.wdy.hdm.executor.{HDMContext, ClusterPlaner}
+import org.nicta.wdy.hdm.executor.HDMContext
 
 import org.nicta.wdy.hdm.io.{DataParser, HDFSUtils, Path}
 import org.nicta.wdy.hdm.model.HDM

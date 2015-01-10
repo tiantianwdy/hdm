@@ -11,6 +11,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>HDM-core</artifactId>
+
     <properties>
         <mesos.version>0.13.0</mesos.version>
         <spark.version>0.9.1</spark.version>
@@ -24,6 +25,35 @@
         <PermGen>256m</PermGen>
         <MaxPermGen>1024m</MaxPermGen>
     </properties>
+
+    <profiles>
+        <profile>
+            <id>hdm-dev</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <properties>
+                <master.url>akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster</master.url>
+                <akka.host></akka.host>
+                <akka.port>10010</akka.port>
+                <log.appender>STDOUT</log.appender>
+                <log.error.appender>STDOUT</log.error.appender>
+                <log.filePattern>../logs/hdm-server.%d{yyyy-MM-dd}</log.filePattern>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>hdm-test</id>
+            <properties>
+                <master.url>akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster</master.url>
+                <akka.host></akka.host>
+                <akka.port>10010</akka.port>
+                <log.appender>FILE</log.appender>
+                <log.error.appender>FILE-ERROR</log.error.appender>
+                <log.filePattern>../logs/hdm-server.%d{yyyy-MM-dd}</log.filePattern>
+            </properties>
+        </profile>
+    </profiles>
 
     <build>
         <pluginManagement>
@@ -55,8 +85,31 @@
                 </plugin>
             </plugins>
         </pluginManagement>
+
         <sourceDirectory>src/main/scala</sourceDirectory>
         <testSourceDirectory>src/test/scala</testSourceDirectory>
+
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/*.conf</include>
+                    <include>**/*.xml</include>
+                </includes>
+            </resource>
+
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/*.conf</exclude>
+                    <exclude>**/*.xml</exclude>
+                </excludes>
+            </resource>
+
+        </resources>
+
         <plugins>
 
             <plugin>
@@ -87,9 +140,66 @@
                     <mainSourceDir>src/main/scala</mainSourceDir>
                     <testSourceDir>src/test/scala</testSourceDir>
                     <addScalacArgs>
-                        -Xlog-implicits|-feature|-deprecation|-language:postfixOps|-language:higherKinds
+                        -Xlog-implicits|-feature|-deprecation|-language:postfixOps|-language:higherKinds|-language:implicitConversions
                     </addScalacArgs>
                 </configuration>
+            </plugin>
+
+            <!-- packaging jar，configure manifest and main class -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>2.4</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <addClasspath>true</addClasspath>
+                            <classpathPrefix>lib/</classpathPrefix>
+                            <mainClass>org.nicta.wdy.hdm.server.HDMServer</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+
+            <!-- copy dependency jars to lib directory-->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>
+                                ${project.build.directory}/lib
+                            </outputDirectory>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <descriptors>
+                        <descriptor>src/main/resources/assembly.xml</descriptor>
+                    </descriptors>
+                    <finalName>hdm-core</finalName>
+                    <appendAssemblyId>false</appendAssemblyId>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
         </plugins>

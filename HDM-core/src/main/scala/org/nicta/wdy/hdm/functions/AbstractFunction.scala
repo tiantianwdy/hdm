@@ -18,9 +18,9 @@ import scala.reflect.runtime.universe._
  */
 trait SerializableFunction[I,R] extends  Serializable{
 
-  def apply(params: Seq[I]) : R
+  def apply(params: I) : R
 
-  def andThen[U](func: SerializableFunction[R,U]): SerializableFunction[I, U] = ???
+//  def andThen[U](func: SerializableFunction[R,U]): SerializableFunction[I, U] = ???
 }
 
 
@@ -30,7 +30,7 @@ trait SerializableFunction[I,R] extends  Serializable{
  * @tparam I input type
  * @tparam R return type
  */
-abstract class DDMFunction_1[I,R :ClassTag]extends SerializableFunction[DDM[I], DDM[R]] {
+abstract class DDMFunction_1[I,R :ClassTag]extends SerializableFunction[Seq[DDM[I]], DDM[R]] {
 
 }
 
@@ -39,11 +39,11 @@ abstract class DDMFunction_1[I,R :ClassTag]extends SerializableFunction[DDM[I], 
  * @tparam T input type
  * @tparam R return type
  */
-abstract class HDMFunction_2[T,R]extends SerializableFunction[HDM[_,T], HDM[T, R]]
+abstract class HDMFunction_2[T,R]extends SerializableFunction[Seq[HDM[_,T]], HDM[T, R]]
 
 abstract class IterableFunction_2[T,R] extends SerializableFunction[Iterator[T], Iterator[R]]   {
 
-  override def apply(params: Seq[Iterator[T]]): Iterator[R] = ???
+  override def apply(params: Iterator[T]): Iterator[R] = ???
 
 }
 

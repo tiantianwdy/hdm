@@ -24,7 +24,7 @@ class ParallelFunctionsTest {
     new ParMapFunc[String, Int]((d) => d match {
       case s:String  => s.length
       case _ => 0
-    }).apply(Seq(text)).foreach(println(_))
+    }).apply(text).foreach(println(_))
   }
 
   @Test
@@ -35,7 +35,7 @@ class ParallelFunctionsTest {
     }
 
     //    ddm.elems.groupBy(f).foreach(println(_))
-    val res = new ParGroupByFunc[String,String](f).apply(Seq(text))
+    val res = new ParGroupByFunc[String,String](f).apply(text)
     res.foreach(println(_))
   }
 
@@ -46,23 +46,23 @@ class ParallelFunctionsTest {
       case ss => ss
     }
 
-    val grouped = new ParGroupByFunc[String,String](f).apply(Seq(text))
-    val res = new ParReduceFunc[(String, Seq[String]), (String, Seq[String])]((s1,s2) => (s1._1, s1._2 ++ s2._2)).apply(Seq(grouped))
+    val grouped = new ParGroupByFunc[String,String](f).apply(text)
+    val res = new ParReduceFunc[(String, Seq[String]), (String, Seq[String])]((s1,s2) => (s1._1, s1._2 ++ s2._2)).apply(grouped)
     res.foreach(println(_))
   }
 
   @Test
   def testReduceByKeyFunc(){
-    val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(Seq(text))
-    val res = new ParReduceByKey[(String,Int), String](_._1, (s1,s2) => (s1._1, s1._2 + s2._2)).apply(Seq(mapped))
+    val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text)
+    val res = new ParReduceByKey[(String,Int), String](_._1, (s1,s2) => (s1._1, s1._2 + s2._2)).apply(mapped)
     res.foreach(println(_))
   }
 
   @Test
   def testGroupFoldByKey(){
 
-    val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(Seq(text))
-    val res = new ParGroupFoldByKey[(String,Int),String, Int](_._1, _._2, _+_).apply(Seq(mapped))
+    val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text)
+    val res = new ParGroupFoldByKey[(String,Int),String, Int](_._1, _._2, _+_).apply(mapped)
     res.foreach(println(_))
 
   }

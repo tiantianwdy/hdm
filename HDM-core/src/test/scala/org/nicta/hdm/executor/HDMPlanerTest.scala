@@ -3,7 +3,8 @@ package org.nicta.hdm.executor
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
 import org.junit.Test
-import org.nicta.wdy.hdm.executor.{StaticPlaner, HDMContext}
+import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.planing.StaticPlaner
 
 /**
  * Created by Tiantian on 2014/12/10.
@@ -41,10 +42,28 @@ class HDMPlanerTest {
   def testClusterPlanner(): Unit ={
     HDMContext.init()
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
-    val hdm = HDM(path)
-    val wordCount = hdm.map(d=> (d,1)).groupBy(_._1)
+    val hdm = HDM(path, false)
+    val wordCount = hdm.map{ w =>
+      val as = w.split(",");
+      (as(0).substring(0,3), as(1).toInt)
+    }.groupBy(_._1)
+      //hdm.map(d=> (d,1)).groupBy(_._1)
       //.map(t => (t._1, t._2.map(_._2))).reduce(("", Seq(0)))((t1,t2) => (t1._1, t1._2))
-    StaticPlaner.plan(wordCount, 2).foreach(println(_))
+    StaticPlaner.plan(wordCount, 4).foreach(println(_))
+
+  }
+
+  @Test
+  def testSortPlanner(): Unit ={
+    HDMContext.init()
+    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
+    val hdm = HDM(path)
+    val topk = hdm.map{ w =>
+      val as = w.split(",");
+      as(1).toInt
+    }.top(10)
+    //.count()
+    StaticPlaner.plan(topk, 4).foreach(println(_))
 
   }
 

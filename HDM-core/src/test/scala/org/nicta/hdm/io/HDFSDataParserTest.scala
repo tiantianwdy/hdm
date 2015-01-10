@@ -1,9 +1,10 @@
 package org.nicta.hdm.io
 
 import org.junit.{Before, After, Test}
-import org.nicta.wdy.hdm.executor.{StaticPlaner, ClusterPlaner, HDMContext}
+import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.{HdfsParser, DataParser, HDFSUtils, Path}
 import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.planing.StaticPlaner
 
 /**
  * Created by tiantian on 25/12/14.

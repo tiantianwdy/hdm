@@ -14,7 +14,7 @@ import akka.actor.ActorSelection.toScala
 import akka.pattern.ask
 import akka.remote.RemoteScope
 import akka.util.Timeout
-import com.baidu.bpit.akka.extensions.{RoutingExtension, ActorConfigProvider, RoutingExtensionProvider}
+import com.baidu.bpit.akka.extensions.{RemoteAddressExtension, RoutingExtension, ActorConfigProvider, RoutingExtensionProvider}
 import com.baidu.bpit.akka.configuration.ActorConfig
 import akka.remote.RemoteScope
 import com.baidu.bpit.akka.configuration.ActorConfig
@@ -339,6 +339,15 @@ object SmsSystem {
    */
   def rootPath = if (rootActorRef ne null) rootActorRef.path.toString
   else throw new AkkaException("Uninitiated local actor system")
+
+  def localAddress = RemoteAddressExtension(system).address
+
+  def physicalRootPath = {
+    if (rootActorRef ne null) {
+      rootActorRef.path.toStringWithAddress(localAddress)
+    }
+    else throw new AkkaException("Uninitiated local actor system")
+  }
 
   // monitor related methods
 

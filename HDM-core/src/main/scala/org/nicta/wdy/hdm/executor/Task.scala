@@ -17,7 +17,8 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
                      input:Seq[HDM[_, I]],
                      func:ParallelFunction[I,R],
                      keepPartition:Boolean = true,
-                     partitioner: Partitioner[R] = null)
+                     partitioner: Partitioner[R] = null,
+                     createTime:Long = System.currentTimeMillis())
                      extends Serializable with Callable[Seq[DDM[R]]]{
 
   final val inType = classTag[I]
@@ -29,7 +30,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
 //    val inputData = input.flatMap(b => HDMBlockManager.loadOrCompute[I](b.id).map(_.data))
     val inputData = input.flatMap(hdm => hdm.blocks.map(Path(_))).map(p => HDMBlockManager().getBlock(p.name).data.asInstanceOf[Seq[I]])
     //apply function
-    val data = func.apply(inputData)
+    val data = func.apply(inputData.flatten)
     //partition as seq of data
     val ddms = if(partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
       Seq(DDM[R](taskId, data))
