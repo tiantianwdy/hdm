@@ -46,7 +46,7 @@ object StaticPlaner extends HDMPlaner{
     val explainedMap  = new java.util.HashMap[String, HDM[_,_]]()// temporary map to save updated hdms
     val logicPlan = DefaultLocalPlaner.plan(hdm, maxParallelism)
     logicPlan.map{ h =>
-      val input = Try {h.children.map(c => explainedMap.get(c.id)).asInstanceOf[Seq[HDM[_,h.inType.type]]]} getOrElse  Seq.empty[HDM[_,h.inType.type]]
+      val input = Try {h.children.map(cld => explainedMap.get(cld.id)).asInstanceOf[Seq[HDM[_,h.inType.type]]]} getOrElse {Seq.empty[HDM[_,h.inType.type]]}
       val newHdms = planer.plan(input, h.asInstanceOf[HDM[h.inType.type, h.outType.type ]], h.parallelism)
       newHdms.foreach(nh => explainedMap.put(nh.id, nh))
       newHdms

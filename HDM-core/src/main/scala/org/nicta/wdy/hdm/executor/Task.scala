@@ -19,7 +19,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
                      keepPartition:Boolean = true,
                      partitioner: Partitioner[R] = null,
                      createTime:Long = System.currentTimeMillis())
-                     extends Serializable with Callable[Seq[DDM[R]]]{
+                     extends Serializable with Callable[Seq[DDM[_,R]]]{
 
   final val inType = classTag[I]
 

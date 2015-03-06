@@ -1,3 +1,4 @@
+/*
 package org.nicta.hdm.functions
 
 import org.junit.Test
@@ -73,3 +74,4 @@ class DDMFunctionTest {
   }
 
 }
+*/

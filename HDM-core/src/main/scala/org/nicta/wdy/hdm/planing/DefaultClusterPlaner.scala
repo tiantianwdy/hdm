@@ -24,7 +24,7 @@ object ClusterPlaner extends HDMPlaner { // need to be execute on cluster leader
 
     if(hdm.children == null || hdm.children.isEmpty){ //leaf nodes load data from data sources
       hdm match {
-        case ddm :DDM[_] =>
+        case ddm :DDM[_,_] =>
           Seq(ddm)
         case leafHdm:DFM[Path,String] =>
           val children = DataParser.explainBlocks(leafHdm.location)

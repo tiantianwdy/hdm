@@ -103,7 +103,7 @@ class HDMClusterTest extends ClusterTestSuite{
         val count = hdm.count()
 
         val start = System.currentTimeMillis()
-        count.compute(4) onComplete  {
+        wordCount.compute(4) onComplete  {
           case Success(hdm) =>
             println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
             hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))

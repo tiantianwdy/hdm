@@ -66,4 +66,16 @@ class ParallelFunctionsTest {
     res.foreach(println(_))
 
   }
+
+  @Test
+  def testFunctionComposition(): Unit ={
+
+    val mapF = new ParMapFunc[String,(String,Int)]((_, 1))
+    val groupByKeyF = new ParGroupFoldByKey[(String,Int),String, Int](_._1, _._2, _+_)
+    println("====== test AndThen =====")
+    val andThenF = mapF.andThen(groupByKeyF)
+    andThenF.apply(text).foreach(println(_))
+    println("====== test Composition =====")
+    groupByKeyF.compose(mapF).apply(text).foreach(println(_))
+  }
 }

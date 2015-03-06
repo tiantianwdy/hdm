@@ -23,8 +23,10 @@ object DefaultLocalPlaner extends LogicalPlaner{
 
 
   private def dftAccess(hdm:HDM[_,_], defParallel:Int, followingParallel:Int):Seq[HDM[_,_]]=  {
-    val nh = {if(hdm.parallelism < 1) hdm.withParallelism(defParallel)
-    else hdm}.withPartitionNum(followingParallel)
+    val nh = {
+      if(hdm.parallelism < 1) hdm.withParallelism(defParallel)
+      else hdm
+    }.withPartitionNum(followingParallel)
     if(hdm.children == null || hdm.children.isEmpty){
       Seq{nh}
     } else {

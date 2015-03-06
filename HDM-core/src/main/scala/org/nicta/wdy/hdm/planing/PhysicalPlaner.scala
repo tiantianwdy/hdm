@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.planing
 
-import org.nicta.wdy.hdm.functions.{ParUnionFunc, FlattenFunc}
+import org.nicta.wdy.hdm.functions.{ParallelFunction, NullFunc, ParUnionFunc, FlattenFunc}
 import org.nicta.wdy.hdm.io.{DataParser, Path}
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.storage.HDMBlockManager
@@ -34,7 +34,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
     case dfm: HDM[_,_] =>
       val bn = hdm.parallelism
       for (i <- 0 until bn) yield hdm.id + "_b" + i
-    case ddm:DDM[_] => ddm.blocks
+    case ddm:DDM[_,_] => ddm.blocks
     case x => Seq.empty[String]
   }
 
@@ -45,22 +45,24 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
   }
 
   override def plan[I: ClassTag, R: ClassTag](input: Seq[HDM[_, I]], target: HDM[I, R], defParallel:Int): Seq[HDM[_,_]] = target match {
-    case ddm: DDM[R] =>
+    case ddm: DDM[_,R] =>
       Seq(ddm)
-    case leafHdm:DFM[Path,String] if(input == null || input.isEmpty) =>
+    case leafHdm:DFM[_,String] if(input == null || input.isEmpty) =>
       val children = DataParser.explainBlocks(leafHdm.location)
       if(leafHdm.keepPartition) {
-        val mediator = children.map(ddm => new DFM(id = leafHdm.id + "_b" +children.indexOf(ddm), children = Seq(ddm), func = new FlattenFunc[String](), parallelism = 1))
-        val newParent = new DFM(id = leafHdm.id, children = mediator, func = new ParUnionFunc[String](), parallelism = mediator.size)
+        val func = target.func.asInstanceOf[ParallelFunction[String,R]]
+        val mediator = children.map(ddm => new DFM(id = leafHdm.id + "_b" +children.indexOf(ddm), children = Seq(ddm), dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner))
+        val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), parallelism = mediator.size)
         children ++ mediator :+ newParent
       } else {
         val paths = children.map(_.location)
         val blockMap = children.map(c => (c.location.toString, c)).toMap
         val groupPaths = Path.groupPathBySimilarity(paths, defParallel)
         val inputs = groupPaths.map(seq => seq.map(b => blockMap(b.toString)))
+        val func = target.func.asInstanceOf[ParallelFunction[String,R]]
 //        val inputs = children.grouped(defParallel) // todo change to group by location similarity
-        val mediator = inputs.map(seq => new DFM(id = leafHdm.id + "_b" + inputs.indexOf(seq), children = seq, func = new ParUnionFunc[String](), parallelism = 1))
-        val newParent = new DFM(id = leafHdm.id, children = mediator.toSeq, func = new ParUnionFunc[String](), parallelism = defParallel)
+        val mediator = inputs.map(seq => new DFM(id = leafHdm.id + "_b" + inputs.indexOf(seq), children = seq, dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner))
+        val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), dependency = target.dependency, parallelism = defParallel, partitioner = target.partitioner)
         children ++ mediator :+ newParent
       }
     case dfm:DFM[I,R] =>
@@ -78,9 +80,9 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
         }
         for(index <- 0 until groupedIds.size) inputArray(index % defParallel) ++= groupedIds(index)
       }
-      val newInput = inputArray.map(seq => seq.map(pid => new DDM[I](id = pid, location = null)))
+      val newInput = inputArray.map(seq => seq.map(pid => new DDM(id = pid, location = null, func = new NullFunc[I])))
       val pHdms = newInput.map(seq => dfm.copy(id = dfm.id + "_b" + newInput.indexOf(seq), children = seq.asInstanceOf[Seq[HDM[_, I]]], parallelism = 1))
-      val newParent = new DFM(id = dfm.id, children = pHdms, func = new ParUnionFunc[R], dependency = dfm.dependency, partitioner = dfm.partitioner, parallelism = defParallel)
+      val newParent = new DFM(id = dfm.id, children = pHdms.toIndexedSeq, func = new ParUnionFunc[R], dependency = dfm.dependency, partitioner = dfm.partitioner, parallelism = defParallel)
       pHdms :+ newParent
   }
 }

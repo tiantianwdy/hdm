@@ -6,6 +6,7 @@ import com.baidu.bpit.akka.server.SmsSystem
 import com.baidu.bpit.akka.messages.{AddMsg, Query}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.planing.FunctionFusion
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.util.{Success, Failure}
@@ -66,13 +67,13 @@ class HDMLeaderTest extends ClusterTestSuite {
 
   @Test
   def testLocalExecution() {
-    HDMContext.init()
-    Thread.sleep(1500)
+    HDMContext.init(leader = "localhost", cores = 4)
+    Thread.sleep(1000)
     val hdm = HDM.horizontal(text, text2)
     val wordCount = hdm.map(w => (w, 1))
       //.groupReduce(_._1, (t1, t2) => (t1._1, t1._2 + t2._2))
 
-    wordCount.compute(4) onComplete {
+    wordCount.compute(1) onComplete {
       case Success(hdm) =>
         println("Job completed and received response:" + hdm)
         hdm.asInstanceOf[HDM[_, _]].sample().foreach(println(_))
@@ -86,14 +87,21 @@ class HDMLeaderTest extends ClusterTestSuite {
 
   @Test
   def testHDFSExecution(): Unit = {
-    HDMContext.init()
+    HDMContext.init(leader = "localhost", cores = 4)
+
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
     val hdm = HDM(path)
-    val wordCount = hdm.map(d => (d.substring(0,3), 1)).groupBy(_._1)
+
+    val wordCount = hdm.map{ w =>
+      val as = w.split(",");
+      (as(0).substring(0,3), as(1).toInt)
+    }.groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+
+    // val wordCount = hdm.map(d => (d.substring(0,3), 1)).groupBy(_._1)
     //.groupReduce(d => d._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+    val wordCountOpt = new FunctionFusion().optimize(wordCount)
 
-
-    wordCount.compute(4) onComplete {
+    wordCountOpt.compute(4) onComplete {
       case Success(hdm) =>
         println("Job completed and received response:" + hdm)
         hdm.asInstanceOf[HDM[_, _]].sample().foreach(println(_))

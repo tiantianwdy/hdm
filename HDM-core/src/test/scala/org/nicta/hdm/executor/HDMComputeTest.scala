@@ -33,6 +33,7 @@ class HDMComputeTest {
     import ExecutionContext.Implicits.global
     import scala.util.{Success, Failure}
 
+    HDMContext.init()
     val hdm = HDM.horizontal(text, text2)
     val wordCount = hdm.map(w => (w,1)).groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
@@ -42,7 +43,7 @@ class HDMComputeTest {
     }
 //    val hdms = HDMContext.explain(wordCount)
 //    hdms.foreach(println(_))
-    HDMContext.init()
+
 //    Thread.sleep(1000)
   }
 

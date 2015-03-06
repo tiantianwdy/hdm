@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.model
 /**
  * Created by Tiantian on 2014/12/3.
  */
-trait Dependency
+trait Dependency extends Serializable
 
 case object OneToOne extends Dependency
 

@@ -33,7 +33,7 @@ class BlockManagerLeader extends WorkActor {
       val senderPath = sender.path
       val nRefs = refs.map { r =>
         r match {
-        case ddm: DDM[_] =>
+        case ddm: DDM[_,_] =>
           if(ddm.location.protocol == Path.AKKA){
             val fullPath = ActorPath.fromString(ddm.location.toString).toStringWithAddress(senderPath.address)
             ddm.copy(location = Path(fullPath))

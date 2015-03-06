@@ -54,6 +54,8 @@ class DefaultHDMBlockManager extends HDMBlockManager{
 
   val blockRefMap = new ConcurrentHashMap[String, HDM[_,_]]()
 
+//  val referenceCount = new ConcurrentHashMap[String, Int]()
+
   override def checkAllStates(ids: Seq[String], state: BlockState): Boolean = {
     getRefs(ids).forall(_.state == state)
   }
@@ -147,7 +149,7 @@ object HDMBlockManager{
     }
   }
 
-  def loadOrDeclare[T](br:DDM[T]) :Block[T] = {
+  def loadOrDeclare[T](br:DDM[_,T]) :Block[T] = {
     val bl = defaultManager.getBlock(br.id)
     if(bl ne null) bl.asInstanceOf[Block[T]]
     else {

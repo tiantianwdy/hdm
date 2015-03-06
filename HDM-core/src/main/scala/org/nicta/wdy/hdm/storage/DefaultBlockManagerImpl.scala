@@ -61,7 +61,7 @@ class DefaultBlockManagerImpl extends BlockManager{
 
   override def declare(br: HDM[_, _]): BlockRef = {
     val (tp, blocks) = br match {
-      case d:DDM[_] => ("DDM", Some(d))
+      case d:DDM[_,_] => ("DDM", Some(d))
       case d:DFM[_,_] => ("DFM", None)
       case _ => ("", None)
     }

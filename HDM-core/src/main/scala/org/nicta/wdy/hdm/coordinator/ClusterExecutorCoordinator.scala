@@ -205,8 +205,8 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
   private def taskSucceeded(appId:String, taskId:String, func:String, blks: Seq[String]): Unit = {
 
     val ref = HDMBlockManager().getRef(taskId) match {
-      case dfm: DFM[_, _] => dfm.copy(blocks = blks, state = Computed)
-      case ddm: DDM[_] => ddm.copy(state = Computed)
+      case dfm: DFM[_ , _] => dfm.copy(blocks = blks, state = Computed)
+      case ddm: DDM[_ , _] => ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
     HDMContext.declareHdm(Seq(ref))
@@ -343,6 +343,7 @@ object ClusterExecutor {
         //todo replace with using data parsers
         case Path.AKKA  =>
           ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
+          println(s"Asking block ${ddm.location.name} from ${ddm.location.parent}")
         case Path.HDFS => Future {
           val bl = DataParser.readBlock(ddm.location)
           println(s"Output data size: ${bl.size} ")

@@ -4,7 +4,7 @@ import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
 import org.junit.Test
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.planing.StaticPlaner
+import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
 
 /**
  * Created by Tiantian on 2014/12/10.
@@ -33,8 +33,9 @@ class HDMPlanerTest {
     HDMContext.init()
     val hdm = HDM.horizontal(text, text2)
     val wordCount = hdm.map(d=> (d,1))
-      //.groupBy(_._1).map(t => (t._1, t._2.map(_._2))).reduce(("",Seq(0)))((t1,t2) => (t1._1, t1._2))
-    val hdms = StaticPlaner.plan(wordCount ,1)
+      .groupBy(_._1).map(t => (t._1, t._2.map(_._2))).reduce(("",Seq(0)))((t1,t2) => (t1._1, t1._2))
+    val wordCountOpti = new FunctionFusion().optimize(wordCount)
+    val hdms = StaticPlaner.plan(wordCountOpti ,2)
     hdms.foreach(println(_))
   }
 
@@ -46,10 +47,14 @@ class HDMPlanerTest {
     val wordCount = hdm.map{ w =>
       val as = w.split(",");
       (as(0).substring(0,3), as(1).toInt)
-    }.groupBy(_._1)
+    }.groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+      //.groupBy(_._1)
       //hdm.map(d=> (d,1)).groupBy(_._1)
       //.map(t => (t._1, t._2.map(_._2))).reduce(("", Seq(0)))((t1,t2) => (t1._1, t1._2))
-    StaticPlaner.plan(wordCount, 4).foreach(println(_))
+
+    val wordCountOpti = new FunctionFusion().optimize(wordCount)
+
+    StaticPlaner.plan(wordCountOpti, 2).foreach(println(_))
 
   }
 

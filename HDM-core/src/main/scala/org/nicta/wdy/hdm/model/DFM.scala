@@ -33,6 +33,11 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
     this(elem.toSeq)
   }
 
+
+  override def andThen[U: ClassTag](hdm: HDM[R, U]): HDM[T, U] = {
+    new DFM(this.children, hdm.id, hdm.dependency, this.func.andThen(hdm.func), blocks, distribution, location, state, parallelism, hdm.keepPartition, hdm.partitioner )
+  }
+
   def copy(id: String = this.id,
            children: Seq[HDM[_, T]] = this.children,
            dependency: Dependency = this.dependency,

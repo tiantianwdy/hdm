@@ -140,8 +140,6 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   def shuffle(partitioner: Partitioner[R]):HDM[R,R]    = ???
 
-  def compute(parallelism:Int):Future[HDM[_, _]]  =  HDMContext.compute(this, parallelism)
-
   def collect():Future[Iterator[R]] = ???
 
   def withPartitioner(partitioner: Partitioner[R]):HDM[T,R] = ???
@@ -158,6 +156,10 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   def toURL = location.toString
 
+
+  def compute(parallelism:Int):Future[HDM[_, _]]  =  HDMContext.compute(this, parallelism)
+
+
   def copy(id: String = this.id,
            children:Seq[HDM[_, T]]= this.children,
            dependency: Dependency = this.dependency,
@@ -169,6 +171,9 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
            parallelism: Int = this.parallelism,
            keepPartition: Boolean = this.keepPartition,
            partitioner: Partitioner[R] = this.partitioner):HDM[T,R]
+
+
+  def andThen[U:ClassTag](hdm: HDM[R,U]):HDM[T,U]
 
 
   def sample(size: Int = 10): Seq[String] = {
@@ -276,12 +281,12 @@ object DoubleHDM {
  */
 object HDM{
 
-  def apply[T:ClassTag](elems: Array[T]): DDM[T] = {
+  def apply[T:ClassTag](elems: Array[T]): DDM[_,T] = {
     DDM(elems)
   }
 
-  def apply(path: Path, keepPartition: Boolean = true): DFM[Path, String] = {
-    new DFM[Path,String](children = null, location = path, keepPartition = keepPartition)
+  def apply(path: Path, keepPartition: Boolean = true): DFM[_, String] = {
+    new DFM(children = null, location = path, keepPartition = keepPartition, func = new NullFunc[String])
   }
 
   def horizontal[T:ClassTag](elems: Array[T]*) : HDM[_,T] = {

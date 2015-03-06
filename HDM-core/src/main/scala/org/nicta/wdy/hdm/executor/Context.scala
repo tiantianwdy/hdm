@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.executor
 
-import org.nicta.wdy.hdm.planing.StaticPlaner
+import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
 
 import scala.concurrent.{Promise, Future}
 import org.nicta.wdy.hdm.model.HDM
@@ -102,7 +102,12 @@ object HDMContext extends  Context{
 
 
 
-  def explain(hdm:HDM[_, _],parallelism:Int) = planer.plan(hdm, parallelism)
+  def explain(hdm:HDM[_, _],parallelism:Int) = {
+    val hdmOpt = new FunctionFusion().optimize(hdm)
+    planer.plan(hdmOpt, parallelism)
+//    val hdms = planer.plan(hdm, parallelism)
+//    hdmsOpt
+  }
 
   def compute(hdm:HDM[_, _], parallelism:Int):Future[HDM[_,_]] =    {
     addJob(hdm.id, explain(hdm, parallelism))

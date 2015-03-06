@@ -51,7 +51,7 @@ class SimpleFIFOScheduler(implicit val executorService:ExecutionContext) extends
       val blks = task.call().map(bl => bl.id)
       val ref = HDMBlockManager().getRef(task.taskId) match {
         case dfm:DFM[I,R] => dfm.copy(blocks = blks, state = Computed)
-        case ddm:DDM[R] => ddm.copy(state = Computed)
+        case ddm:DDM[_,R] => ddm.copy(state = Computed)
       }
       HDMBlockManager().addRef(ref)
       promise.success(ref.asInstanceOf[HDM[I, R]])

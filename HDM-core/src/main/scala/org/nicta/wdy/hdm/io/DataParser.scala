@@ -4,6 +4,7 @@ import java.nio.ByteBuffer
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, FileSystem}
+import org.nicta.wdy.hdm.functions.NullFunc
 import org.nicta.wdy.hdm.model.DDM
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, Block}
 import akka.serialization.Serializer
@@ -100,14 +101,14 @@ class HDMParser extends DataParser {
 
 object DataParser{
 
-  def explainBlocks(path:Path): Seq[DDM[String]] = {
+  def explainBlocks(path:Path): Seq[DDM[String,String]] = {
     path.protocol match {
       case "hdm://" =>
-        Seq(new DDM[String](id = path.name, location = path))
+        Seq(new DDM(id = path.name, location = path, func = new NullFunc[String]))
       case "hdfs://" =>
-        HDFSUtils.getBlockLocations(path).map(p => new DDM[String](location = p))
+        HDFSUtils.getBlockLocations(path).map(p => new DDM(location = p, func = new NullFunc[String]))
       case "file://" =>
-        Seq(new DDM[String](id = path.name, location = path))
+        Seq(new DDM(id = path.name, location = path, func = new NullFunc[String]))
       //      case "mysql://" =>
       case x => throw new IOException("Unsupported protocol:" + path.protocol)
     }

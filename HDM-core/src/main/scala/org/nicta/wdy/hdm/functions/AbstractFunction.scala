@@ -1,27 +1,10 @@
 package org.nicta.wdy.hdm.functions
 
-import org.nicta.wdy.hdm._
 import org.nicta.wdy.hdm.ParallelSkeletons.DnCSkeleton
-import scala.concurrent.duration.Duration
-import scala.concurrent.{CanAwait, ExecutionContext}
-import org.nicta.wdy.hdm.model.{DDM, Local, HDM, DFM}
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.model.{DDM, DFM, HDM}
+
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe._
 
-/**
- * Created by Tiantian on 2014/11/4.
- */
-/**
- *
- * @tparam R return type
- */
-trait SerializableFunction[I,R] extends  Serializable{
-
-  def apply(params: I) : R
-
-//  def andThen[U](func: SerializableFunction[R,U]): SerializableFunction[I, U] = ???
-}
 
 
 
@@ -30,8 +13,9 @@ trait SerializableFunction[I,R] extends  Serializable{
  * @tparam I input type
  * @tparam R return type
  */
-abstract class DDMFunction_1[I,R :ClassTag]extends SerializableFunction[Seq[DDM[I]], DDM[R]] {
+abstract class DDMFunction_1[I,R :ClassTag]extends SerializableFunction[Seq[DDM[_,I]], DDM[I,R]] {
 
+  override def apply(params: Seq[DDM[_, I]]): DDM[I, R] = ???
 }
 
 /**
@@ -60,8 +44,6 @@ class Union[T:ClassTag] extends HDMFunction_2[T,T]{
 
 abstract class DnCFunc[T,M,R:ClassTag] extends DDMFunction_1[T,R] with DnCSkeleton[HDM[_,T],HDM[T,M],HDM[M,R]] {
 
-  import scala.concurrent._
-
 
 // {
 //    val seq = params(0).elements.map{ hdm =>
@@ -82,30 +64,29 @@ abstract class DnCFunc[T,M,R:ClassTag] extends DDMFunction_1[T,R] with DnCSkelet
 //    futures.result(atMost).map(conquer).reduce(merge)
 //
 //  }
-  override def apply(params: Seq[DDM[T]]): DDM[R] = ???
+  override def apply(params: Seq[DDM[_,T]]): DDM[T,R] = ???
 }
 
 
-import scala.concurrent._
 
-
-class MapFunc[T,R:ClassTag](f: T=>R)  extends DDMFunction_1[T,R] {
-
-
-
-  override def apply(params: Seq[DDM[T]]): DDM[R] = {
-
-    DDM(params.map(p=> p.elems).flatMap(_.map(f)))
-  }
+//
+//class MapFunc[T,R:ClassTag](f: T=>R)  extends DDMFunction_1[T,R] {
+//
+//
+//
+//  override def apply(params: Seq[DDM[T]]): DDM[R] = {
+//
+//    DDM(params.map(p=> p.elems).flatMap(_.map(f)))
+//  }
   //  override val divide = (d:HDM[T]) => d.apply(f)
   //
   //  override val conquer: (HDM[R]) => HDM[R] = (d:HDM[R]) => d
   //
   //  override val merge: (HDM[R], HDM[R]) => HDM[R] = (d1, d2) => new Union().apply(Seq(d1,d2))
 
-}
+//}
 
-
+/*
 class ReduceFunc[T,R >:T :ClassTag](f: (R, R) => R)  extends DDMFunction_1[T,R] {
 
   override def apply(params: Seq[DDM[T]]): DDM[R] = {
@@ -148,7 +129,7 @@ class UnionFunc[T :ClassTag]()  extends DDMFunction_1[T,T] {
     DDM(params.map(p => p.elems).flatten.seq)
   }
 
-}
+}*/
 
 
 

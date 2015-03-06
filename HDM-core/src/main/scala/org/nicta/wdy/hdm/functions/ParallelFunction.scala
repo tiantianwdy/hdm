@@ -1,21 +1,33 @@
 package org.nicta.wdy.hdm.functions
 
-import org.nicta.wdy.hdm.model.{DDM, Local, HDM, DFM}
-import org.nicta.wdy.hdm.io.Path
+
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe.WeakTypeTag
+//import scala.reflect.runtime.universe.WeakTypeTag
 
 
 /**
- * Created by Tiantian on 2014/12/16.
+ * Created by Tiantian on 2014/12/4.
  */
-abstract class ParallelFunction [I:ClassTag, R :ClassTag] extends SerializableFunction[Seq[I], Seq[R]] {
 
 
-  def andThen[U:ClassTag](func: ParallelFunction[R, U]): ParallelFunction[I, U] = {
-    val f = (seq:Seq[I]) => func(this.apply(seq))
+/**
+ *
+ * @tparam T input type
+ * @tparam R return type
+ */
+abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFunction[Seq[T], Seq[R]] {
+
+
+  def andThen[U:ClassTag](func: ParallelFunction[R, U]): ParallelFunction[T, U] = {
+    val f = (seq:Seq[T]) => func(this.apply(seq))
     new ParMapAllFunc(f)
   }
+
+  def compose[I:ClassTag](func: ParallelFunction[I, T]): ParallelFunction[I, R] = {
+    val f = (seq:Seq[I]) => this.apply(func.apply(seq))
+    new ParMapAllFunc(f)
+  }
+
 }
 
 
@@ -89,6 +101,28 @@ class ParUnionFunc[T: ClassTag]()  extends ParallelFunction[T,T] {
 }
 
 class FlattenFunc[T: ClassTag] extends ParallelFunction[T,T]{
+
+  override def apply(params: Seq[T]): Seq[T] = {
+    params
+  }
+}
+
+class NullFunc[T: ClassTag] extends ParallelFunction[T,T]{
+
+  /**
+   * any function combined with null function would get itself.
+   * @param func
+   * @tparam U
+   * @return
+   */
+  override def andThen[U: ClassTag](func: ParallelFunction[T, U]): ParallelFunction[T, U] = {
+    func
+  }
+
+
+  override def compose[I: ClassTag](func: ParallelFunction[I, T]): ParallelFunction[I, T] = {
+    func
+  }
 
   override def apply(params: Seq[T]): Seq[T] = {
     params

@@ -42,8 +42,8 @@ object SmsSystem {
   /**
    * 接收回调响应的超时时间
    */
-  implicit val timeout = Timeout(120 seconds)
-  implicit val maxWaitResponseTime = Duration(120, TimeUnit.SECONDS)
+  implicit val timeout = Timeout(600 seconds)
+  implicit val maxWaitResponseTime = Duration(600, TimeUnit.SECONDS)
 
   val MASTER_SYS_NAME = "masterSys"
   val SLAVE_SYS_NAME = "slaveSys"
