@@ -14,7 +14,9 @@ case class AddTaskMsg[I:ClassTag , R :ClassTag](task:Task[I, R]) extends Schedul
 
 case class TaskCompleteMsg(appId:String, taskId:String, func:String, result:Seq[String]) extends SchedulingMsg
 
-case class AddJobMsg(appId:String, hdm:Seq[HDM[_,_]], resultReceiver:String)  extends SchedulingMsg
+case class AddHDMsMsg(appId:String, hdms:Seq[HDM[_,_]], resultReceiver:String) extends SchedulingMsg
+
+case class SubmitJobMsg(appId:String, hdm:HDM[_,_], resultReceiver:String, parallelism:Int) extends SchedulingMsg
 
 case class JobCompleteMsg(appId:String, state:Int, result:Any) extends SchedulingMsg
 

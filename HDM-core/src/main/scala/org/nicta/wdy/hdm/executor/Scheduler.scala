@@ -35,7 +35,7 @@ class SimpleFIFOScheduler(implicit val executorService:ExecutionContext) extends
 
   import scala.concurrent.JavaConversions._
 
-  val appBuffer:java.util.Map[String, ListBuffer[Task[_,_]]] = new ConcurrentHashMap[String, ListBuffer[Task[_,_]]]()
+  val taskBuffer:java.util.Map[String, ListBuffer[Task[_,_]]] = new ConcurrentHashMap[String, ListBuffer[Task[_,_]]]()
 
   val taskQueue = new LinkedBlockingQueue[Task[_,_]]()
 
@@ -80,9 +80,9 @@ class SimpleFIFOScheduler(implicit val executorService:ExecutionContext) extends
   override def addTask[I, R](task: Task[I, R]): Promise[HDM[I,R]] = {
     val promise = Promise[HDM[I,R]]()
     promiseMap.put(task.taskId, promise)
-    if(!appBuffer.containsKey(task.appId))
-      appBuffer.put(task.appId, new ListBuffer[Task[_,_]])
-    val lst = appBuffer.get(task.appId)
+    if(!taskBuffer.containsKey(task.appId))
+      taskBuffer.put(task.appId, new ListBuffer[Task[_,_]])
+    val lst = taskBuffer.get(task.appId)
     lst += task
     triggerApp(task.appId)
     promise
@@ -94,8 +94,8 @@ class SimpleFIFOScheduler(implicit val executorService:ExecutionContext) extends
 
 
   private def triggerApp(appId:String) = {
-    if(appBuffer.containsKey(appId)){
-      val seq = appBuffer.get(appId)
+    if(taskBuffer.containsKey(appId)){
+      val seq = taskBuffer.get(appId)
       synchronized{
         if(!seq.isEmpty) {
           //find tasks that all inputs have been computed

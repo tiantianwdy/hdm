@@ -110,7 +110,8 @@ object HDMContext extends  Context{
   }
 
   def compute(hdm:HDM[_, _], parallelism:Int):Future[HDM[_,_]] =    {
-    addJob(hdm.id, explain(hdm, parallelism))
+//    addJob(hdm.id, explain(hdm, parallelism))
+    submitJob(hdm.id, hdm, parallelism)
   }
 
   def declareHdm(hdms:Seq[HDM[_,_]]) = {
@@ -125,19 +126,41 @@ object HDMContext extends  Context{
     SmsSystem.forwardLocalMsg(BLOCK_MANAGER_NAME, QueryBlockMsg(id, location))
   }
 
+  def removeBlock(id:String): Unit = {
+    SmsSystem.forwardLocalMsg(BLOCK_MANAGER_NAME, RemoveBlockMsg(id))
+  }
+
+  def removeRef(id:String): Unit = {
+    SmsSystem.forwardLocalMsg(BLOCK_MANAGER_NAME, RemoveRefMsg(id))
+  }
+
   def addTask(task:Task[_,_]) = {
     SmsSystem.askAsync(leaderPath.get()+ "/"+CLUSTER_EXECUTOR_NAME, AddTaskMsg(task))
   }
 
-  def addJob(appId:String, hdms:Seq[HDM[_,_]]): Future[HDM[_,_]] = {
+  @Deprecated
+  def submitTasks(appId:String, hdms:Seq[HDM[_,_]]): Future[HDM[_,_]] = {
     val rootPath =  SmsSystem.rootPath
     HDMContext.declareHdm(hdms)
-    val p = SmsSystem.askLocalMsg(JOB_RESULT_DISPATCHER, AddJobMsg(appId, hdms, rootPath + "/"+JOB_RESULT_DISPATCHER)) match {
+    val promise = SmsSystem.askLocalMsg(JOB_RESULT_DISPATCHER, AddHDMsMsg(appId, hdms, rootPath + "/"+JOB_RESULT_DISPATCHER)) match {
       case Some(promise) => promise.asInstanceOf[Promise[HDM[_,_]]]
       case none => null
     }
-    SmsSystem.askAsync(leaderPath.get()+ "/"+CLUSTER_EXECUTOR_NAME, AddJobMsg(appId, hdms, rootPath + "/"+JOB_RESULT_DISPATCHER))
-    if(p ne null) p.future
+    SmsSystem.askAsync(leaderPath.get()+ "/"+CLUSTER_EXECUTOR_NAME, AddHDMsMsg(appId, hdms, rootPath + "/"+JOB_RESULT_DISPATCHER))
+
+    if(promise ne null) promise.future
+    else throw new Exception("add job dispatcher failed.")
+  }
+
+  def submitJob(appId:String, hdm:HDM[_,_], parallel:Int): Future[HDM[_,_]] = {
+    val rootPath =  SmsSystem.rootPath
+    HDMContext.declareHdm(Seq(hdm))
+    val promise = SmsSystem.askLocalMsg(JOB_RESULT_DISPATCHER, AddHDMsMsg(appId, Seq(hdm), rootPath + "/"+JOB_RESULT_DISPATCHER)) match {
+      case Some(promise) => promise.asInstanceOf[Promise[HDM[_,_]]]
+      case none => null
+    }
+    SmsSystem.askAsync(leaderPath.get()+ "/"+CLUSTER_EXECUTOR_NAME, SubmitJobMsg(appId, hdm, rootPath + "/"+JOB_RESULT_DISPATCHER, parallel))
+    if(promise ne null) promise.future
     else throw new Exception("add job dispatcher failed.")
   }
 

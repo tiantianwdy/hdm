@@ -33,7 +33,9 @@ trait HDMBlockManager {
 
   def addAll(blocks:Seq[Block[_]])
 
-  def remove(id: String)
+  def removeRef(id: String)
+
+  def removeBlock(id:String)
 
   def removeAll(id: Seq[String])
 
@@ -54,7 +56,6 @@ class DefaultHDMBlockManager extends HDMBlockManager{
 
   val blockRefMap = new ConcurrentHashMap[String, HDM[_,_]]()
 
-//  val referenceCount = new ConcurrentHashMap[String, Int]()
 
   override def checkAllStates(ids: Seq[String], state: BlockState): Boolean = {
     getRefs(ids).forall(_.state == state)
@@ -65,12 +66,17 @@ class DefaultHDMBlockManager extends HDMBlockManager{
   }
 
   override def removeAll(ids: Seq[String]): Unit = {
-    ids.foreach(remove(_))
+    ids.foreach(removeRef(_))
   }
 
-  override def remove(id: String): Unit = {
+  override def removeRef(id: String): Unit = {
     blockCache.remove(id)
     blockRefMap.remove(id)
+  }
+
+
+  override def removeBlock(id: String): Unit = {
+    blockCache.remove(id)
   }
 
   override def addAll(blocks: Map[String, Block[_]]): Unit = {

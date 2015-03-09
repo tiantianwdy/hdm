@@ -27,7 +27,7 @@ import org.nicta.wdy.hdm.message._
 import org.nicta.wdy.hdm.functions.{ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.message.AddTaskMsg
 import scala.util.Failure
-import org.nicta.wdy.hdm.message.AddJobMsg
+import org.nicta.wdy.hdm.message.AddHDMsMsg
 import org.nicta.wdy.hdm.message.JoinMsg
 import org.nicta.wdy.hdm.model.DFM
 import scala.util.Success
@@ -46,10 +46,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
 
   val ioManager = new AkkaIOManager
 
-  /**
-   * maintain the state or free slots of each follower
-   */
-  val followerMap: java.util.Map[String, AtomicInteger] = new ConcurrentHashMap[String, AtomicInteger]
+  val appManager = new AppManager
 
   val appBuffer: java.util.Map[String, ListBuffer[Task[_, _]]] = new ConcurrentHashMap[String, ListBuffer[Task[_, _]]]()
 
@@ -57,10 +54,15 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
 
   val promiseMap = new ConcurrentHashMap[String, Promise[_]]()
 
+  /**
+   * maintain the state or free slots of each follower
+   */
+  val followerMap: java.util.Map[String, AtomicInteger] = new ConcurrentHashMap[String, AtomicInteger]
+
   val isRunning = new AtomicBoolean(false)
 
 
-  implicit val timeout = Timeout(10L, TimeUnit.MINUTES)
+  implicit val timeout = Timeout(5L, TimeUnit.MINUTES)
 
 
   override def initParams(params: Any): Int = {
@@ -86,7 +88,8 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
       }
       log.info(s"A task has been added from [${sender.path}}]; id: ${task.taskId}} ")
 
-    case AddJobMsg(appId, hdms, resultHandler) =>
+     //deprecated
+    case AddHDMsMsg(appId, hdms, resultHandler) =>
       val senderPath = sender.path
       val fullPath = ActorPath.fromString(resultHandler).toStringWithAddress(senderPath.address)
       submitJob(appId, hdms) onComplete {
@@ -94,6 +97,8 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
           val resActor = context.actorSelection(fullPath)
           resActor ! JobCompleteMsg(appId, 1, hdm)
           //clean resources for execution
+          val app = appManager.getApp(appId)
+          val hdms = app.plan.foreach(hdm => HDMContext.removeBlock(hdm.id))
           appBuffer.remove(appId)
           log.info(s"A job has completed successfully. result has been send to [${resultHandler}}]; appId: ${appId}} ")
         case Failure(t) =>
@@ -101,6 +106,26 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
           log.info(s"A job has failed. result has been send to [${resultHandler}}]; appId: ${appId}} ")
       }
       log.info(s"A job has been added from [${sender.path}}]; id: ${appId}} ")
+
+    case SubmitJobMsg(appId, hdm, resultHandler, parallel) =>
+      val senderPath = sender.path
+      val fullPath = ActorPath.fromString(resultHandler).toStringWithAddress(senderPath.address)
+      jobReceived(appId, hdm, parallel) onComplete {
+        case Success(hdm) =>
+          val resActor = context.actorSelection(fullPath)
+          resActor ! JobCompleteMsg(appId, 1, hdm)
+          //clean resources for execution
+          val app = appManager.getApp(appId)
+          val hdms = app.plan.foreach(hdm => HDMContext.removeBlock(hdm.id))
+          appBuffer.remove(appId)
+          log.info(s"A job has completed successfully. result has been send to [${resultHandler}}]; appId: ${appId}} ")
+        case Failure(t) =>
+          context.actorSelection(resultHandler) ! JobCompleteMsg(appId, 1, t.toString)
+          log.info(s"A job has failed. result has been send to [${resultHandler}}]; appId: ${appId}} ")
+      }
+      log.info(s"A job has been added from [${sender.path}}]; id: ${appId}} ")
+
+
 
     case TaskCompleteMsg(appId, taskId, func, result) =>
       log.info(s"received a task completed msg: ${taskId + "_" + func}")
@@ -134,7 +159,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {
       //copy input blocks directly
 //      val blks = task.input.map(h => blockManager.getRef(h.id))
-      taskSucceeded(task.appId, task.taskId,task. func.toString, blks)
+      taskSucceeded(task.appId, task.taskId, task.func.toString, blks)
     } else {
       // run job, assign to remote or local node to execute this task
       val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
@@ -189,6 +214,13 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
     promise
   }
 
+  def jobReceived(appId:String, hdm:HDM[_,_], parallelism:Int): Future[HDM[_, _]] = {
+    appManager.addApp(appId, hdm)
+    val plan = HDMContext.explain(hdm, parallelism)
+    appManager.addPlan(appId, plan)
+    submitJob(appId, plan)
+  }
+
   //todo move and implement at job compiler
   override def submitJob(appId: String, hdms: Seq[HDM[_, _]]): Future[HDM[_, _]] = {
     hdms.map { h =>
@@ -201,6 +233,8 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
       addTask(task)
     }.last.future
   }
+
+
 
   private def taskSucceeded(appId:String, taskId:String, func:String, blks: Seq[String]): Unit = {
 
@@ -342,8 +376,8 @@ object ClusterExecutor {
       ddm.location.protocol match {
         //todo replace with using data parsers
         case Path.AKKA  =>
-          ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
           println(s"Asking block ${ddm.location.name} from ${ddm.location.parent}")
+          ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
         case Path.HDFS => Future {
           val bl = DataParser.readBlock(ddm.location)
           println(s"Output data size: ${bl.size} ")
@@ -354,7 +388,7 @@ object ClusterExecutor {
     }
 
     if (futureBlocks != null && !futureBlocks.isEmpty)
-      Future.sequence(futureBlocks.asInstanceOf[Seq[Future[String]]]) map { in =>
+      Future.sequence(futureBlocks) map { in =>
         println(s"Input data preparing finished, the task starts running: [${(task.taskId, task.func)}] ")
         val ids = task.call().map(_.toURL)
         println(s"Task completed, with output id: [${ids}] ")

@@ -16,7 +16,7 @@ case class RemoveRefMsg(id: String) extends HDMBlockMsg
 
 case class AddBlockMsg(bl: Block[_]) extends HDMBlockMsg
 
-case class RemoveBlockMSg(id :String) extends HDMBlockMsg
+case class RemoveBlockMsg(id :String) extends HDMBlockMsg
 
 case class QueryBlockMsg (id:String, location:String) extends HDMBlockMsg
 

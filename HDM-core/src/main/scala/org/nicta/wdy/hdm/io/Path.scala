@@ -13,7 +13,7 @@ class Path(val protocol:String, val absPath:String, scope:String = "") extends S
   lazy val name = if (absPath.contains("/")) absPath.substring(absPath.lastIndexOf("/") + 1)
                   else absPath
 
-  lazy val parent = this.toString.dropRight(name.length)
+  lazy val parent = this.toString.dropRight(name.length + 1)
 
   lazy val address :String = {
     if(absPath.startsWith("/")) "localhost"

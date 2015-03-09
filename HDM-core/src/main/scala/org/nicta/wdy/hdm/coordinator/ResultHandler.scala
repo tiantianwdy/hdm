@@ -4,7 +4,7 @@ import akka.actor.Actor
 import akka.actor.Actor.Receive
 import java.util.concurrent.ConcurrentHashMap
 import scala.concurrent.Promise
-import org.nicta.wdy.hdm.message.{JobCompleteMsg, AddJobMsg}
+import org.nicta.wdy.hdm.message.{JobCompleteMsg, AddHDMsMsg}
 import org.nicta.wdy.hdm.model.HDM
 
 /**
@@ -16,7 +16,7 @@ class ResultHandler extends Actor{
 
   override def receive: Receive = {
 
-    case AddJobMsg(appId, _, _ ) =>
+    case AddHDMsMsg(appId, _, _ ) =>
       val promise = Promise[HDM[_,_]]()
       promiseMap.put(appId, promise)
       sender ! promise
