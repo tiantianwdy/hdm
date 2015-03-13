@@ -1,14 +1,18 @@
 package org.nicta.wdy.hdm.io
 
 import java.nio.ByteBuffer
+import java.util.concurrent.TimeUnit
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, FileSystem}
 import org.nicta.wdy.hdm.functions.NullFunc
-import org.nicta.wdy.hdm.model.DDM
+import org.nicta.wdy.hdm.model.{HDM, DDM}
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, Block}
 import akka.serialization.Serializer
 import java.io.IOException
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 
 /**
  * Created by Tiantian on 2014/12/1.
@@ -101,6 +105,8 @@ class HDMParser extends DataParser {
 
 object DataParser{
 
+  implicit val maxWaitResponseTime = Duration(600, TimeUnit.SECONDS)
+
   def explainBlocks(path:Path): Seq[DDM[String,String]] = {
     path.protocol match {
       case "hdm://" =>
@@ -122,6 +128,34 @@ object DataParser{
 //    case "file://" => new FileParser().readBlock(path)
 //    case "mysql://" => new MysqlParser().readBlock(path)
     case _ => throw new IOException("Unsupported data protocol:" + path.protocol)
+  }
+  
+  def readBlock(in:HDM[_,_], removeFromCache:Boolean):Block[_] = {
+    if (!HDMBlockManager().isCached(in.id)) {
+      in.location.protocol match {
+        case Path.AKKA =>
+          //todo replace with using data parsers
+          println(s"Asking block ${in.location.name} from ${in.location.parent}")
+          val await = HDMIOManager().askBlock(in.location.name, in.location.parent) // this is only for hdm
+          Await.result[String](await, maxWaitResponseTime) match {
+            case id: String =>
+              val resp = HDMBlockManager().getBlock(id)
+              if(removeFromCache) HDMBlockManager().removeBlock(id)
+              resp
+            case _ => throw new RuntimeException(s"Failed to get data from ${in.location.name}")
+          }
+
+        case Path.HDFS =>
+          val bl = DataParser.readBlock(in.location)
+          println(s"Read data size: ${bl.size} ")
+          bl
+      }
+    } else {
+      println(s"input data are at local: [${in.id}] ")
+      val resp = HDMBlockManager().getBlock(in.id)
+      if(removeFromCache) HDMBlockManager().removeBlock(in.id)
+      resp
+    }
   }
 
   def writeBlock(path:String, bl:Block[_]):Unit = writeBlock(Path(path), bl)

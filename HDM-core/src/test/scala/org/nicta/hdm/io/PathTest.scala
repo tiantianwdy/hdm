@@ -4,10 +4,51 @@ import org.junit.Test
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.Path
 
+import scala.collection.mutable.ListBuffer
+
 /**
  * Created by tiantian on 4/01/15.
  */
 class PathTest {
+
+  val datasource = Seq(
+    Path("hdfs://17.110.0.1:9001/user/spark/benchmark/1node/rankings/part-00001"),
+    Path("hdfs://189.0.0.10:9001/user/spark/benchmark/1node/rankings/part-00002"),
+    Path("hdfs://189.210.30.104:9001/user/spark/benchmark/1node/rankings/part-00002"),
+    Path("hdfs://127.10.1.2:9001/user/spark/benchmark/1node/rankings/part-00003"),
+    Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/part-00004"),
+    Path("hdfs://17.0.0.2:9001/user/spark/benchmark/1node/rankings/part-00005"),
+    Path("hdfs://17.110.0.1:9001/user/spark/benchmark/1node/rankings/part-00001"),
+    Path("hdfs://189.0.0.10:9001/user/spark/benchmark/1node/rankings/part-00002"),
+    Path("hdfs://189.210.30.104:9001/user/spark/benchmark/1node/rankings/part-00002"),
+    Path("hdfs://127.10.1.2:9001/user/spark/benchmark/1node/rankings/part-00003"),
+    Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/part-00004"),
+    Path("hdfs://17.0.0.2:9001/user/spark/benchmark/1node/rankings/part-00005")
+  )
+
+  val nodes = Seq(
+    //      Path("akka.tcp://10.10.0.100:8999/user/smsMaster"),
+    //      Path("akka.tcp://masterSys@10.10.0.100:8999/user/smsMaster"),
+//    Path("akka.tcp://slaveSys@10.10.0.1:10010/user/smsMaster"),
+//    Path("akka.tcp://slaveSys@10.10.0.1:10020/user/smsMaster"),
+    Path("akka.tcp://slaveSys@10.20.0.2:10020/user/smsMaster"),
+    Path("akka.tcp://slaveSys@10.20.0.2:8999/user/smsMaster"),
+    Path("akka.tcp://slaveSys@10.10.10.1:10020/user/smsMaster"),
+    Path("akka.tcp://slaveSys@10.10.10.2:10020/user/smsMaster")
+  )
+
+  def generatePath(group:Int = 2, groupSize:Int = 27) = {
+
+    val paths = ListBuffer.empty[Path]
+    for{
+      g <- 0 until group
+      n <- 1 to groupSize
+    } {
+//      paths  += Path(s"hdfs://10.${(g +1) * 10}.0.${(Math.random()*255).toInt}:9001/user/spark/benchmark/1node/rankings/part-0000${g*groupSize + n}}")
+      paths += Path(s"10.${(g +1) * 10}.0.${(Math.random()*255).toInt}:50010")
+    }
+    paths
+  }
 
 
 
@@ -27,16 +68,7 @@ class PathTest {
 
   @Test
   def testFindOutClosestPath(): Unit ={
-    val srcs = Seq(
-      Path("akka.tcp://127.0.0.1:8999/user/smsMaster"),
-      Path("akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster"),
-      Path("akka.tcp://slaveSys@127.0.0.1:10010/user/smsMaster"),
-      Path("akka.tcp://slaveSys@127.0.0.1:10020/user/smsMaster"),
-      Path("akka.tcp://slaveSys@127.0.0.2:10020/user/smsMaster"),
-      Path("akka.tcp://slaveSys@127.0.0.2:8999/user/smsMaster"),
-      Path("akka.tcp://slaveSys@127.0.10.1:10020/user/smsMaster"),
-      Path("akka.tcp://slaveSys@127.0.10.2:10020/user/smsMaster")
-    )
+
     val targets = Seq(
       Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/part-00001"),
       Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/part-00002"),
@@ -44,8 +76,8 @@ class PathTest {
       Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/part-00004"),
       Path("hdfs://127.0.0.2:9001/user/spark/benchmark/1node/rankings/part-00005")
     )
-    Path.calculateDistance(srcs, targets) foreach (println(_))
-    println(Path.findClosestLocation(srcs, targets))
+    Path.calculateDistance(nodes, targets) foreach (println(_))
+    println(Path.findClosestLocation(nodes, targets))
   }
 
   @Test
@@ -58,20 +90,11 @@ class PathTest {
 
   @Test
   def testPathGroupByDistance = {
-    val srcs = Seq(
-      Path("hdfs://17.110.0.1:9001/user/spark/benchmark/1node/rankings/part-00001"),
-      Path("hdfs://189.0.0.10:9001/user/spark/benchmark/1node/rankings/part-00002"),
-      Path("hdfs://189.210.30.104:9001/user/spark/benchmark/1node/rankings/part-00002"),
-      Path("hdfs://127.10.1.2:9001/user/spark/benchmark/1node/rankings/part-00003"),
-      Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/part-00004"),
-      Path("hdfs://17.0.0.2:9001/user/spark/benchmark/1node/rankings/part-00005"),
-      Path("hdfs://17.110.0.1:9001/user/spark/benchmark/1node/rankings/part-00001"),
-      Path("hdfs://189.0.0.10:9001/user/spark/benchmark/1node/rankings/part-00002"),
-      Path("hdfs://189.210.30.104:9001/user/spark/benchmark/1node/rankings/part-00002"),
-      Path("hdfs://127.10.1.2:9001/user/spark/benchmark/1node/rankings/part-00003"),
-      Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/part-00004"),
-      Path("hdfs://17.0.0.2:9001/user/spark/benchmark/1node/rankings/part-00005")
-    )
-    Path.groupPathBySimilarity(srcs, 5) foreach(println(_))
+    val paths = generatePath().toSeq
+    val grouped = Path.groupPathBySimilarity(paths, 8)
+    grouped foreach{p =>
+      println(Path.findClosestLocation(nodes, p))
+      println(p)
+    }
   }
 }

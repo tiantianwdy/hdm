@@ -171,7 +171,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
         Thread.sleep(100)
       }
       log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "__" + task.func.toString}}] ")
-      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskLocally(updatedTask)
+      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskSynconized(updatedTask)
       else runRemoteTask(workerPath, updatedTask)
 
       future onComplete {
@@ -229,6 +229,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
         taskId = h.id,
         input = h.children.asInstanceOf[Seq[HDM[_, h.inType.type]]],
         func = h.func.asInstanceOf[ParallelFunction[h.inType.type, h.outType.type]],
+        dep = h.dependency,
         partitioner = h.partitioner.asInstanceOf[Partitioner[h.outType.type ]])
       addTask(task)
     }.last.future
@@ -339,7 +340,7 @@ class ClusterExecutorFollower(leaderPath: String) extends WorkActor {
     case AddTaskMsg(task) =>
       log.info(s"received a task: ${task.taskId + "_" + task.func}")
       val startTime = System.currentTimeMillis()
-      ClusterExecutor.runTaskLocally(task) onComplete {
+      ClusterExecutor.runTaskSynconized(task) onComplete {
         case Success(blkUrls) =>
           context.actorSelection(leaderPath) ! TaskCompleteMsg(task.appId, task.taskId, task.func.toString, blkUrls)
           log.info(s"A task has been completed in ${System.currentTimeMillis() - startTime} ms : ${task.taskId + "_" + task.func}")
@@ -365,6 +366,12 @@ object ClusterExecutor {
 
   val ioManager = HDMIOManager()
 
+  def runTaskSynconized[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[String]] = {
+    Future {
+      task.call().map(bl => bl.toURL)
+    }
+  }
+
   def runTaskLocally[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[String]] = {
     // prepare input data from cluster
     println(s"Preparing input data for task: [${(task.taskId, task.func)}] ")
@@ -374,8 +381,8 @@ object ClusterExecutor {
     val unComputed = input.filterNot(ddm => blockManager.isCached(ddm.id))
     val futureBlocks = unComputed.map { ddm =>
       ddm.location.protocol match {
-        //todo replace with using data parsers
         case Path.AKKA  =>
+          //todo replace with using data parsers
           println(s"Asking block ${ddm.location.name} from ${ddm.location.parent}")
           ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
         case Path.HDFS => Future {

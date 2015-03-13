@@ -35,6 +35,7 @@ class TaskTest extends ClusterTestSuite {
         val task = Task(appId = h.id,
           taskId = h.id,
           input = h.children.asInstanceOf[Seq[HDM[_, h.inType.type]]],
+          dep = h.dependency,
           func = h.func.asInstanceOf[ParallelFunction[h.inType.type, h.outType.type]])
         ClusterExecutor.runTaskLocally(task)
         curNum += 1

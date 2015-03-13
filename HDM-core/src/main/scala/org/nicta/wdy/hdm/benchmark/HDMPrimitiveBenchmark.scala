@@ -29,7 +29,7 @@ class HDMPrimitiveBenchmark(val context:String) {
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
          println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-       //        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+         hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
        case Failure(t) =>
          println("Job failed because of: " + t)
          t.printStackTrace()
@@ -49,7 +49,7 @@ class HDMPrimitiveBenchmark(val context:String) {
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
          println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-       //        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+         hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
        case Failure(t) =>
          println("Job failed because of: " + t)
          t.printStackTrace()
@@ -69,7 +69,7 @@ class HDMPrimitiveBenchmark(val context:String) {
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
          println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-       //        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+         hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
        case Failure(t) =>
          println("Job failed because of: " + t)
          t.printStackTrace()
@@ -88,7 +88,7 @@ class HDMPrimitiveBenchmark(val context:String) {
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
          println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-       //        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+         hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
        case Failure(t) =>
          println("Job failed because of: " + t)
          t.printStackTrace()
@@ -118,7 +118,7 @@ class HDMPrimitiveBenchmark(val context:String) {
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
          println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-       //        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+         hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
        case Failure(t) =>
          println("Job failed because of: " + t)
          t.printStackTrace()
@@ -139,7 +139,7 @@ class HDMPrimitiveBenchmark(val context:String) {
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
          println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-       //        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+         hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
        case Failure(t) =>
          println("Job failed because of: " + t)
          t.printStackTrace()

@@ -63,7 +63,7 @@ class BlockManagerLeader extends WorkActor {
       blockManager.removeBlock(id)
       val senderPath = sender.path
       val ref = blockManager.getRef(id)
-      if (ref ne null) {
+      if (ref != null && ref.blocks != null) {
         val locations = ref.blocks
         for (location <- locations.toSeq) {
           val path = Path(location)

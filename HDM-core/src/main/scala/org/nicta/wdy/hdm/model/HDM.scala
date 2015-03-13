@@ -285,7 +285,7 @@ object HDM{
     DDM(elems)
   }
 
-  def apply(path: Path, keepPartition: Boolean = true): DFM[_, String] = {
+  def apply(path: Path, keepPartition: Boolean = false): DFM[_, String] = {
     new DFM(children = null, location = path, keepPartition = keepPartition, func = new NullFunc[String])
   }
 

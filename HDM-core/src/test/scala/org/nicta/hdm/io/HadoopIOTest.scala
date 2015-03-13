@@ -44,12 +44,13 @@ class HadoopIOTest {
       println(s.getPath.getName)
       if(s.isFile){
         val fileStatus = fs.getFileStatus(s.getPath)
+        println("file path: " + fileStatus.getPath)
         val blockLocations = fs.getFileBlockLocations(fileStatus, 0 , fileStatus.getLen)
         println("block size: " + fileStatus.getBlockSize)
         val loc = blockLocations.head
         val names = loc.getNames
         println("location:" + names(0))
-        if(num < 10){
+        if(num < 0){
           num +=1
           val buffer = ByteBuffer.allocate(s.getBlockSize.toInt)
 //          val buffer = new Array[Byte](s.getBlockSize.toInt)

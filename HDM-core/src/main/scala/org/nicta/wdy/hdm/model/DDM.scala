@@ -33,7 +33,14 @@ class DDM[T: ClassTag, R:ClassTag](   val id: String = HDMContext.newLocalId(),
 
 
   override def andThen[U: ClassTag](hdm: HDM[R, U]): HDM[T, U] = {
-    new DDM(hdm.id, null, hdm.dependency, this.func.andThen(hdm.func), distribution, location, state, parallelism, hdm.keepPartition, hdm.partitioner)
+    new DDM(hdm.id,
+      null,
+      hdm.dependency,
+      this.func.andThen(hdm.func),
+      distribution, location,
+      state, parallelism,
+      this.keepPartition && hdm.keepPartition,
+      hdm.partitioner)
   }
 
   def copy(id: String = this.id,
