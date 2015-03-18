@@ -11,6 +11,7 @@ import org.nicta.wdy.hdm.storage.{HDMBlockManager, Block}
 import akka.serialization.Serializer
 import java.io.IOException
 
+import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
@@ -112,7 +113,7 @@ object DataParser{
       case "hdm://" =>
         Seq(new DDM(id = path.name, location = path, func = new NullFunc[String]))
       case "hdfs://" =>
-        HDFSUtils.getBlockLocations(path).map(p => new DDM(location = p, func = new NullFunc[String]))
+        HDFSUtils.getBlockLocations(path).map(p => new DDM(location = p._1, preferLocation = p._2, func = new NullFunc[String]))
       case "file://" =>
         Seq(new DDM(id = path.name, location = path, func = new NullFunc[String]))
       //      case "mysql://" =>

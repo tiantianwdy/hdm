@@ -4,6 +4,7 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.concurrent.{TimeUnit, LinkedBlockingQueue, ConcurrentHashMap}
 
 import akka.actor.ActorPath
+import com.baidu.bpit.akka.monitor.SystemMonitorService
 import com.baidu.bpit.akka.server.SmsSystem
 import org.apache.commons.logging.LogFactory
 import org.slf4j.{LoggerFactory, Logger}
@@ -300,9 +301,17 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
     followerMap.filter(t => t._2.get() > 0).map(s => Path(s._1)).toSeq
   }
 
-  private def findPreferredWorker(task: Task[_, _]): String = {
 
-    val inputLocations = task.input.flatMap(hdm => HDMBlockManager().getRef(hdm.id).blocks).map(Path(_))
+  private def findPreferredWorker(task: Task[_, _]): String = try {
+
+//    val inputLocations = task.input.flatMap(hdm => HDMBlockManager().getRef(hdm.id).blocks).map(Path(_))
+    val inputLocations = task.input.flatMap{ hdm =>
+      val nhdm = HDMBlockManager().getRef(hdm.id)
+        if(nhdm.preferLocation == null)
+        nhdm.blocks.map(Path(_))
+      else Seq(nhdm.preferLocation)
+    }
+    log.info(s"Block prefered input locations:${inputLocations.mkString(",")}")
     val availableWorkers = getAvailableWorks()
     //find closest worker which has positive slot in flower map
     if(availableWorkers.size > 0){
@@ -310,6 +319,8 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
       followerMap.get(workerPath).decrementAndGet() // reduce slots of worker
       workerPath
     } else ""
+  } catch {
+    case e:Throwable => log.error(e, s"failed to find worker for task:${task.taskId}"); ""
   }
 
 }
@@ -399,6 +410,8 @@ object ClusterExecutor {
         println(s"Input data preparing finished, the task starts running: [${(task.taskId, task.func)}] ")
         val ids = task.call().map(_.toURL)
         println(s"Task completed, with output id: [${ids}] ")
+        val jvmMem = SystemMonitorService.getJVMMemInfo
+        println("JVM free mem-space:" + (jvmMem(2) - jvmMem(1) + jvmMem(0)))
         ids
       }
     else Future {

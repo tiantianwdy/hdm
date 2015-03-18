@@ -1,6 +1,7 @@
 package org.nicta.wdy.hdm.io
 
 import com.baidu.bpit.akka.server.SmsSystem
+import org.nicta.wdy.hdm.model.DDM
 
 import scala.util.Try
 
@@ -19,7 +20,7 @@ class Path(val protocol:String, val absPath:String, scope:String = "") extends S
     if(absPath.startsWith("/")) "localhost"
     else if(absPath.contains("/")) {
       absPath.substring(0, absPath.indexOf("/"))
-    } else ""
+    } else absPath
   }
 
   lazy val (host, port) = {
@@ -119,11 +120,20 @@ object Path {
     paths.sortWith( (p1,p2) => path2Int(p1) < path2Int(p2)).grouped(avg.toInt).toSeq
   }
 
-  def path2Int(p:Path):Int = {
+  def groupDDMByLocation(ddms:Seq[DDM[String,String]], n:Int) = {
+    val avg = ddms.size/n
+    ddms.sortWith( (p1,p2) => path2Int(p1.preferLocation) < path2Int(p2.preferLocation)).grouped(avg.toInt).toSeq
+  }
+
+  def path2Int(p:Path):Long = {
     Try {
-      val ipSegs = p.address.split("\\.|:|/").take(4).map(_.toInt)
-      (ipSegs(0) << 24) + (ipSegs(1) << 16) + (ipSegs(2) << 8) + ipSegs(1)
+      val ipSegs = p.address.split("\\.|:|/").take(4).map(_.toLong)
+      (ipSegs(0) << 24) + (ipSegs(1) << 16) + (ipSegs(2) << 8) + ipSegs(3)
     } getOrElse(0)
+  }
+
+  def path2Int(p:String):Long = {
+    path2Int(Path(p))
   }
 
 

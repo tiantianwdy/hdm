@@ -16,7 +16,7 @@ object HDFSUtils {
    * @param path
    * @return blocks under this path
    */
-  def getBlockLocations(path: Path):Seq[Path] = {
+  def getBlockLocations(path: Path):Array[(Path, Path)] = {
     val conf = new Configuration()
 //    val uri = URI.create(path.protocol + path.address)
     conf.set("fs.default.name", path.protocol + path.address)
@@ -25,7 +25,10 @@ object HDFSUtils {
 
     //todo check whether this path can involve the block index
     val fStatus = fs.listStatus(new HPath(path.relativePath))
-    fStatus.map(s => Path(s.getPath.toString))
+    fStatus.map { s =>
+      val blockLocations = fs.getFileBlockLocations(s, 0, s.getLen).head.getNames
+      (Path(s.getPath.toString), Path(blockLocations(0)))
+    }
 
   }
 

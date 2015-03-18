@@ -2,7 +2,7 @@ package org.nicta.hdm.io
 
 import org.junit.Test
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.io.Path
+import org.nicta.wdy.hdm.io.{DataParser, Path}
 
 import scala.collection.mutable.ListBuffer
 
@@ -91,10 +91,35 @@ class PathTest {
   @Test
   def testPathGroupByDistance = {
     val paths = generatePath().toSeq
-    val grouped = Path.groupPathBySimilarity(paths, 8)
-    grouped foreach{p =>
-      println(Path.findClosestLocation(nodes, p))
-      println(p)
+    val grouped = Path.groupPathBySimilarity(paths, 15)
+    grouped foreach{ seq =>
+      println("group:")
+      seq.foreach(p => print(s"path: ${p} , " +
+        s" Value: ${Path.path2Int(p)} ; "))
+      println("")
     }
+//    grouped foreach{p =>
+//      println(Path.findClosestLocation(nodes, p))
+//      println(p)
+//    }
+  }
+
+  @Test
+  def testPathSort(): Unit ={
+    val paths = generatePath().toSeq
+    paths.foreach(p =>
+      println(s"path:${p}, " +
+        s"value:${Path.path2Int(p)}"))
+  }
+
+  @Test
+  def testDDMGroupByLocation() = {
+    val path = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/"
+    val ddms = DataParser.explainBlocks(Path(path))
+    val grouped = Path.groupDDMByLocation(ddms, 4)
+    grouped foreach{ddm =>
+      println(ddm.map(_.location))
+    }
+
   }
 }

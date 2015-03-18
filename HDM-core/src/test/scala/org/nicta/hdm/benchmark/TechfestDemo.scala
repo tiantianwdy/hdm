@@ -35,13 +35,14 @@ class TechfestDemo {
   def testHDFSExecution(): Unit = {
     HDMContext.init(leader = "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
     Thread.sleep(1000)
-    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings")
+    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
     val hdm = HDM(path, false)
 
     val wordCount = hdm.map{ w =>
       val as = w.split(",");
       (as(0).substring(0,3), as(1).toInt)
-    }.groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+    }.groupBy(_._1).map(t => (t._1, t._2.map(_._2).reduce(_+_)))
+      //.groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
 
     wordCount.compute(4) onComplete {
@@ -60,13 +61,16 @@ class TechfestDemo {
   @Test
   def testBenchMark(): Unit ={
     val context = "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster"
-    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings"
+    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     val parallelism = 4
-    val len = 10
+    val len = 3
     val benchmark = new HDMPrimitiveBenchmark(context)
     HDMContext.init(leader = "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
     Thread.sleep(1500)
-    benchmark.testGroupReduce(data,len, parallelism)
+//    benchmark.testGroupBy(data,len, parallelism)
+//    benchmark.testGroupByReduce(data,len, parallelism)
+//    benchmark.testReduceByKey(data,len, parallelism)
+    benchmark.testMap(data,len, parallelism)
     Thread.sleep(50000000)
   }
 

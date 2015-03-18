@@ -55,12 +55,15 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
         val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), parallelism = mediator.size)
         children ++ mediator :+ newParent
       } else {
-        val paths = children.map(_.location)
-        val blockMap = children.map(c => (c.location.toString, c)).toMap
-        val groupPaths = Path.groupPathBySimilarity(paths, defParallel)
-        val inputs = groupPaths.map(seq => seq.map(b => blockMap(b.toString)))
+//        val blockLocations = children.map(hdm => Path(hdm.blocks.head))
+//        val blockMap = children.map(c => (c.location.toString, c)).toMap
+//        val groupPaths = Path.groupPathBySimilarity(blockLocations, defParallel)
+//        val inputs = groupPaths.map(seq => seq.map(b => blockMap(b.toString)))
+
+        // group by location similarity
+        val inputs = Path.groupDDMByLocation(children, defParallel)
         val func = target.func.asInstanceOf[ParallelFunction[String,R]]
-//        val inputs = children.grouped(defParallel) // todo change to group by location similarity
+
         val mediator = inputs.map(seq => new DFM(id = leafHdm.id + "_b" + inputs.indexOf(seq), children = seq, dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner))
         val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), dependency = target.dependency, parallelism = defParallel, partitioner = target.partitioner)
         children ++ mediator :+ newParent

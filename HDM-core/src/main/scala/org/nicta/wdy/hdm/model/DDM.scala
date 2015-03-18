@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.model
 
+import scala.collection.mutable.{Buffer, ListBuffer}
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe.WeakTypeTag
 
@@ -15,16 +16,19 @@ import org.nicta.wdy.hdm.executor.{KeepPartitioner, Partitioner, HDMContext}
  * DDM: Distributed Data Matrix
  *
  */
-class DDM[T: ClassTag, R:ClassTag](   val id: String = HDMContext.newLocalId(),
+class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
                            val elems: Seq[T] = null,
                            val dependency: Dependency = OneToOne,
                            val func: ParallelFunction[T, R] = null,
                            val distribution: Distribution = Horizontal,
                            val location: Path = Path(HDMContext.localBlockPath),
+                           val preferLocation:Path = null,
                            val state: BlockState = Computed,
                            var parallelism:Int = 1,
                            val keepPartition:Boolean = true,
                            val partitioner: Partitioner[R] = new KeepPartitioner[R](1)) extends HDM[T, R] {
+
+
 
 
   def this(){
@@ -37,7 +41,7 @@ class DDM[T: ClassTag, R:ClassTag](   val id: String = HDMContext.newLocalId(),
       null,
       hdm.dependency,
       this.func.andThen(hdm.func),
-      distribution, location,
+      distribution, location, null,
       state, parallelism,
       this.keepPartition && hdm.keepPartition,
       hdm.partitioner)
@@ -50,14 +54,16 @@ class DDM[T: ClassTag, R:ClassTag](   val id: String = HDMContext.newLocalId(),
            blocks: Seq[String] = null,
            distribution: Distribution = this.distribution,
            location: Path = this.location,
+           preferLocation:Path = this.preferLocation,
            state: BlockState = this.state,
            parallelism: Int = this.parallelism,
            keepPartition: Boolean = this.keepPartition,
            partitioner: Partitioner[R] = this.partitioner):HDM[T, R] = {
-    new DDM(id, null, dependency, func, distribution, location, state, parallelism, keepPartition, partitioner)
+    new DDM(id, null, dependency, func, distribution, location, preferLocation, state, parallelism, keepPartition, partitioner)
   }
 
-  val blocks: Seq[String] = Seq(Path(HDMContext.localBlockPath) + "/" +id)
+  val blocks: Buffer[String] = Buffer(Path(HDMContext.localBlockPath) + "/" +id)
+
 
   val children: Seq[HDM[_,T]] = null
 
@@ -88,7 +94,7 @@ object DDM {
   }
 
   def apply[T: ClassTag](elems: Seq[Seq[T]]): Seq[DDM[T, T]] = {
-    val (ddms, blocks) =
+    val (ddms, blocks:Seq[Block[T]]) =
       elems.map { seq =>
         val id = HDMContext.newLocalId()
         val d = synchronized {

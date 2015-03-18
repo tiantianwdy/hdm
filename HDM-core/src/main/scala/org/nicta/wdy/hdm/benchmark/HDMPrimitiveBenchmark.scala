@@ -125,7 +125,7 @@ class HDMPrimitiveBenchmark(val context:String) {
      }
    }
 
-   def testGroupReduce(dataPath:String, keyLen:Int = 3, parallelism:Int = 4): Unit ={
+   def testReduceByKey(dataPath:String, keyLen:Int = 3, parallelism:Int = 4): Unit ={
      val path = Path(dataPath)
      val hdm = HDM(path)
 
@@ -135,6 +135,7 @@ class HDMPrimitiveBenchmark(val context:String) {
        if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
        else (as(0), as(1).toInt)
      }.groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+
 
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
@@ -146,6 +147,28 @@ class HDMPrimitiveBenchmark(val context:String) {
      }
 
    }
+
+  def testGroupByReduce(dataPath:String, keyLen:Int = 3, parallelism:Int = 4): Unit ={
+    val path = Path(dataPath)
+    val hdm = HDM(path)
+
+    val start = System.currentTimeMillis()
+    val wordCount = hdm.map{ w =>
+      val as = w.split(",");
+      if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
+      else (as(0), as(1).toInt)
+    }.groupBy(_._1).map(t => (t._1, t._2.map(_._2).reduce(_+_)))
+
+    wordCount.compute(parallelism) onComplete  {
+      case Success(hdm) =>
+        println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
+        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+      case Failure(t) =>
+        println("Job failed because of: " + t)
+        t.printStackTrace()
+    }
+
+  }
 
  }
 

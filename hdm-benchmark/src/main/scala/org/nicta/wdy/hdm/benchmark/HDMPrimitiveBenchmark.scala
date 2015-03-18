@@ -31,12 +31,14 @@ object HDMBenchmark {
         benchmark.testMap(data, len, parallelism)
       case "groupBy" =>
         benchmark.testGroupBy(data, len, parallelism)
+      case "reduceByKey" =>
+        benchmark.testReduceByKey(data, len, parallelism)
       case "groupReduce" =>
-        benchmark.testGroupReduce(data, len, parallelism)
+        benchmark.testGroupByReduce(data, len, parallelism)
       case "top" =>
         benchmark.testTop(data, len, parallelism)
-      case "count" =>
-        benchmark.testCount(data, parallelism)
+      case "mapCount" =>
+        benchmark.testMapCount(data, parallelism)
       case "select" =>
         benchmark.testMapSelect()
       case x =>
