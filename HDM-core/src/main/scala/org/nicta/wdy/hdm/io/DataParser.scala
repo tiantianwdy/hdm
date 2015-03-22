@@ -138,11 +138,11 @@ object DataParser{
           //todo replace with using data parsers
           println(s"Asking block ${in.location.name} from ${in.location.parent}")
           val await = HDMIOManager().askBlock(in.location.name, in.location.parent) // this is only for hdm
-          Await.result[String](await, maxWaitResponseTime) match {
-            case id: String =>
-              val resp = HDMBlockManager().getBlock(id)
-              if(removeFromCache) HDMBlockManager().removeBlock(id)
-              resp
+          Await.result[Block[_]](await, maxWaitResponseTime) match {
+            case data: Block[_] => data
+//              val resp = HDMBlockManager().getBlock(id)
+//              if(removeFromCache) HDMBlockManager().removeBlock(id)
+//              resp
             case _ => throw new RuntimeException(s"Failed to get data from ${in.location.name}")
           }
 

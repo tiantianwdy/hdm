@@ -34,7 +34,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
     if(dep == OneToOne || dep == OneToN)
       runSequenceTask()
     else
-      runSequenceTask()
+      runShuffleTask()
   } catch {
     case e : Throwable =>
       e.printStackTrace()
@@ -61,17 +61,17 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
     def runSequenceTask():Seq[DDM[_,R]] = {
       //load input data
       val data = input.map { in =>
-        val inputData = if (!HDMBlockManager().isCached(in.id)) {
+        /*val inputData = if (!HDMBlockManager().isCached(in.id)) {
           in.location.protocol match {
             case Path.AKKA =>
               //todo replace with using data parsers
               println(s"Asking block ${in.location.name} from ${in.location.parent}")
               val await = HDMIOManager().askBlock(in.location.name, in.location.parent) // this is only for hdm
-              Await.result[String](await, maxWaitResponseTime) match {
-                case id: String =>
-                  val resp = HDMBlockManager().getBlock(id)
-                  HDMBlockManager().removeBlock(id)
-                  resp
+              Await.result[Block[_]](await, maxWaitResponseTime) match {
+                case data: Block[_] =>
+//                  val resp = HDMBlockManager().getBlock(id)
+//                  HDMBlockManager().removeBlock(id)
+                  data
                 case _ => throw new RuntimeException(s"Failed to get data from ${in.location.name}")
               }
 
@@ -85,7 +85,8 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
           val resp = HDMBlockManager().getBlock(in.id)
           //        HDMBlockManager().removeBlock(in.id)
           resp
-        }
+        }*/
+        val inputData = DataParser.readBlock(in, true)
         //apply function
         println(s"Input data preparing finished, the task starts running: [${(taskId, func)}] ")
         func.apply(inputData.data.asInstanceOf[Seq[I]])
@@ -105,10 +106,11 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
     }
 
 
-    def runConcurrent = try {
+    def runWithInput(blks:Seq[Block[_]]) = try {
       //load input data
-      //    val inputData = input.flatMap(b => HDMBlockManager.loadOrCompute[I](b.id).map(_.data))
-      val inputData = input.flatMap(hdm => hdm.blocks.map(Path(_))).map(p => HDMBlockManager().getBlock(p.name).data.asInstanceOf[Seq[I]])
+//      val inputData = input.flatMap(b => HDMBlockManager.loadOrCompute[I](b.id).map(_.data))
+//      val inputData = input.flatMap(hdm => hdm.blocks.map(Path(_))).map(p => HDMBlockManager().getBlock(p.name).data.asInstanceOf[Seq[I]])
+      val inputData = blks.map(_.data.asInstanceOf[Seq[I]])
       //apply function
       val data = func.apply(inputData.flatten)
       //partition as seq of data

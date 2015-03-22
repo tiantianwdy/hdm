@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.executor
 import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
 
 import scala.concurrent.{Promise, Future}
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.{PairHDM, HDM}
 import org.nicta.wdy.hdm.functions.{ParallelFunction, DDMFunction_1, SerializableFunction}
 import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
 import java.util.concurrent.atomic.AtomicReference
@@ -13,6 +13,8 @@ import com.typesafe.config.Config
 import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.message._
 import java.util.UUID
+
+import scala.reflect.ClassTag
 
 /**
  * Created by Tiantian on 2014/11/4.
@@ -175,6 +177,17 @@ object HDMContext extends  Context{
 
   def newLocalId():String = {
     UUID.randomUUID().toString
+  }
+
+  /**
+   *
+   * @param hdm
+   * @tparam K
+   * @tparam V
+   * @return
+   */
+  implicit def hdmToKVHDM[K:ClassTag, V: ClassTag](hdm:HDM[_, (K,V)] ): PairHDM[K,V] = {
+    new PairHDM[K,V](hdm)
   }
 
 }

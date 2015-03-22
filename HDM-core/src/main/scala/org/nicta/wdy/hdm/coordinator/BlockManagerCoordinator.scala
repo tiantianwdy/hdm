@@ -174,7 +174,7 @@ class BlockManagerFollower(val leaderPath: String) extends WorkActor {
       else context.actorSelection(location).tell(QueryBlockMsg(id, location), self) //find from remote
 
     case BlockData(id, bl) =>
-      blockManager.add(id, bl)
+//      blockManager.add(id, bl)
       HDMIOManager().blockReceived(id,sender().path.toString, bl)
       log.info(s"A Block data has has been received: [${id}] ")
 

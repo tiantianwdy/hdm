@@ -21,7 +21,7 @@ import akka.util.Timeout
 import com.baidu.bpit.akka.actors.worker.WorkActor
 
 import org.nicta.wdy.hdm.executor._
-import org.nicta.wdy.hdm.model.{DDM, DFM, HDM}
+import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 import org.nicta.wdy.hdm.io.{HDMIOManager, DataParser, AkkaIOManager, Path}
 import org.nicta.wdy.hdm.message._
@@ -30,7 +30,6 @@ import org.nicta.wdy.hdm.message.AddTaskMsg
 import scala.util.Failure
 import org.nicta.wdy.hdm.message.AddHDMsMsg
 import org.nicta.wdy.hdm.message.JoinMsg
-import org.nicta.wdy.hdm.model.DFM
 import scala.util.Success
 import org.nicta.wdy.hdm.message.LeaveMsg
 
@@ -354,7 +353,10 @@ class ClusterExecutorFollower(leaderPath: String) extends WorkActor {
       ClusterExecutor.runTaskSynconized(task) onComplete {
         case Success(blkUrls) =>
           context.actorSelection(leaderPath) ! TaskCompleteMsg(task.appId, task.taskId, task.func.toString, blkUrls)
+          val jvmMem = SystemMonitorService.getJVMMemInfo
+          val freeMem = jvmMem(2) - jvmMem(1) + jvmMem(0)
           log.info(s"A task has been completed in ${System.currentTimeMillis() - startTime} ms : ${task.taskId + "_" + task.func}")
+          log.info(s"JVM freeMem size: ${freeMem}")
         case Failure(t) => log.error(t.toString); sender ! Seq.empty[Seq[String]]
       }
 
@@ -378,46 +380,51 @@ object ClusterExecutor {
   val ioManager = HDMIOManager()
 
   def runTaskSynconized[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[String]] = {
+    if(task.dep == OneToOne || task.dep == OneToN)
     Future {
       task.call().map(bl => bl.toURL)
     }
+    else runTaskAsync(task)
   }
 
-  def runTaskLocally[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[String]] = {
+  def runTaskAsync[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[String]] = {
     // prepare input data from cluster
     println(s"Preparing input data for task: [${(task.taskId, task.func)}] ")
     val input = task.input
       //.map(in => blockManager.getRef(in.id)) // update the states of input blocks
 //    val updatedTask = task.copy(input = input.asInstanceOf[Seq[HDM[_, I]]])
-    val unComputed = input.filterNot(ddm => blockManager.isCached(ddm.id))
-    val futureBlocks = unComputed.map { ddm =>
-      ddm.location.protocol match {
-        case Path.AKKA  =>
-          //todo replace with using data parsers
-          println(s"Asking block ${ddm.location.name} from ${ddm.location.parent}")
-          ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
-        case Path.HDFS => Future {
-          val bl = DataParser.readBlock(ddm.location)
-          println(s"Output data size: ${bl.size} ")
-          blockManager.add(ddm.id, bl)
-          ddm.id
+//    val remoteBlocks = input.filterNot(ddm => blockManager.isCached(ddm.id))
+    val futureBlocks = input.map { ddm =>
+      if (!blockManager.isCached(ddm.id)) {
+        ddm.location.protocol match {
+          case Path.AKKA =>
+            //todo replace with using data parsers
+            println(s"Asking block ${ddm.location.name} from ${ddm.location.parent}")
+            ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
+          case Path.HDFS => Future {
+            val bl = DataParser.readBlock(ddm.location)
+            println(s"Output data size: ${bl.size} ")
+            //          blockManager.add(ddm.id, bl)
+            //          ddm.id
+            bl
+          }
         }
+      } else Future {
+        blockManager.getBlock(ddm.id)
       }
     }
 
-    if (futureBlocks != null && !futureBlocks.isEmpty)
+//    if (futureBlocks != null && !futureBlocks.isEmpty)
       Future.sequence(futureBlocks) map { in =>
         println(s"Input data preparing finished, the task starts running: [${(task.taskId, task.func)}] ")
-        val ids = task.call().map(_.toURL)
+        val ids = task.runWithInput(in).map(_.toURL)
         println(s"Task completed, with output id: [${ids}] ")
-        val jvmMem = SystemMonitorService.getJVMMemInfo
-        println("JVM free mem-space:" + (jvmMem(2) - jvmMem(1) + jvmMem(0)))
         ids
       }
-    else Future {
+/*    else Future {
       println(s"All data are at local, the task starts running: [${(task.taskId, task.func)}] ")
       task.call().map(bl => bl.toURL)
-    }
+    }*/
   }
 }
 

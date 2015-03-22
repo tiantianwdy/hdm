@@ -67,10 +67,10 @@ class TechfestDemo {
     val benchmark = new HDMPrimitiveBenchmark(context)
     HDMContext.init(leader = "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
     Thread.sleep(1500)
-//    benchmark.testGroupBy(data,len, parallelism)
+    benchmark.testGroupBy(data,len, parallelism)
 //    benchmark.testGroupByReduce(data,len, parallelism)
 //    benchmark.testReduceByKey(data,len, parallelism)
-    benchmark.testMap(data,len, parallelism)
+//    benchmark.testMap(data,len, parallelism)
     Thread.sleep(50000000)
   }
 

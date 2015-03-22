@@ -1,6 +1,7 @@
 package org.nicta.wdy.hdm.benchmark
 
 import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.HDMContext.hdmToKVHDM
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
 
@@ -134,7 +135,8 @@ class HDMPrimitiveBenchmark(val context:String) {
        val as = w.split(",");
        if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
        else (as(0), as(1).toInt)
-     }.groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+     }.reduceByKey((t1,t2) => t1 + t2)
+       //.groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
 
      wordCount.compute(parallelism) onComplete  {

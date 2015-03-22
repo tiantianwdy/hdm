@@ -1,14 +1,17 @@
 package org.nicta.wdy.hdm.model
 
+import org.nicta.wdy.hdm.executor.{KeepPartitioner, MappingPartitioner}
+import org.nicta.wdy.hdm.functions.ParMapAllFunc
+
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 
 /**
  * Created by Tiantian on 2014/12/11.
  */
-class PairHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,V)]){
+class PairHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,V)]) extends Serializable{
 
-  def mapValue[R:TypeTag](f: V => R):HDM[(K,V), (K,R)] = {
+  def mapValues[R:TypeTag](f: V => R):HDM[(K,V), (K,R)] = {
     self.map(t => (t._1, f(t._2)))
   }
 
@@ -17,7 +20,18 @@ class PairHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,V)]){
   }
 
   def reduceByKey(f: (V,V)=> V): HDM[_, (K,V)] = {
-    self.groupReduce(_._1, (d1,d2) => (d1._1,f(d1._2,d2._2))).map(_._2)
+    val pFunc = (t:(K, V)) => t._1.hashCode()
+    val mapAll = (elems:Seq[(K,V)]) => {
+      elems.groupBy(_._1).mapValues(_.map(_._2).reduce(f)).toSeq
+    }
+    val parallel = new DFM[(K,V), (K,V)](children = Seq(self), dependency = OneToN, func = new ParMapAllFunc(mapAll), distribution = self.distribution, location = self.location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
+    val aggregate = (elems:Seq[(K,V)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(f)).toSeq
+    new DFM[(K, V),(K, V)](children = Seq(parallel), dependency = NToOne, func = new ParMapAllFunc(aggregate), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
+
+  }
+
+  def findByKey(f: K => Boolean): HDM[_, (K,V)] = {
+    self
   }
 
   def swap():HDM[(K,V), (V,K)] ={

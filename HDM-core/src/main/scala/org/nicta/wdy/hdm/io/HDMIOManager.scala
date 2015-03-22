@@ -11,7 +11,7 @@ import java.util.concurrent.ConcurrentHashMap
  */
 trait HDMIOManager {
 
-  def askBlock(id:String, path:String):Future[String]
+  def askBlock(id:String, path:String):Future[Block[_]]
 
   def sendBlock(id:String, path:String, bl: Block[_]):Unit
 
@@ -50,8 +50,8 @@ class AkkaIOManager extends HDMIOManager {
     SmsSystem.forwardMsg(path, bl)
   }
 
-  override def askBlock(id: String, path: String): Future[String] = {
-    val promise = Promise[String]
+  override def askBlock(id: String, path: String): Future[Block[_]] = {
+    val promise = Promise[Block[_]]
     promiseMap.put(id, promise)
     HDMContext.queryBlock(id, path)
     promise.future
@@ -59,9 +59,9 @@ class AkkaIOManager extends HDMIOManager {
 
   override def blockReceived(id: String, fromPath: String, srcBlock: Block[_]): Unit = {
 //    blockManager.add(id, srcBlock)
-    val promise = promiseMap.get(id).asInstanceOf[Promise[String]]
+    val promise = promiseMap.get(id).asInstanceOf[Promise[Block[_]]]
     if(promise ne null)
-      promise.success(id)
+      promise.success(srcBlock)
   }
 
 
