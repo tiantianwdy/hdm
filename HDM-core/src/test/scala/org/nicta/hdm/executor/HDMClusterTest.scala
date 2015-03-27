@@ -36,7 +36,7 @@ class HDMClusterTest extends ClusterTestSuite{
 
   @Before
   def beforeTest(): Unit ={
-    HDMContext.init(cores = 0) // start master
+    HDMContext.init(slots = 0) // start master
   }
 
   @Test

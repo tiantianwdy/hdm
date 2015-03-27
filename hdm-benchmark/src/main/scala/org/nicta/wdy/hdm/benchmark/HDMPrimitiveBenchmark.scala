@@ -23,7 +23,7 @@ object HDMBenchmark {
     val parallelism = args(3).toInt
     val len = if(args.size >= 5) args(4).toInt else 3
     val benchmark = new HDMPrimitiveBenchmark(context)
-    HDMContext.init(leader = context, cores = 0)//not allow local running
+    HDMContext.init(leader = context, slots = 0)//not allow local running
     Thread.sleep(100)
 
     testTag match {

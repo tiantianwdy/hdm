@@ -30,7 +30,7 @@ class BlockCoordinatorTest extends ClusterTestSuite {
 
 
   def beforeTest(): Unit = {
-    HDMContext.init(cores = 0) // start master
+    HDMContext.init(slots = 0) // start master
   }
 
   @Test

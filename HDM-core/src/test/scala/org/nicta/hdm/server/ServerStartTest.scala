@@ -44,7 +44,7 @@ object JobRunningTest{
   import ExecutionContext.Implicits.global
 
   def main(args:Array[String]): Unit ={
-    HDMContext.init(leader ="akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster", cores=0)
+    HDMContext.init(leader ="akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster", slots =0)
     Thread.sleep(1000)
     //        val hdm = HDM.horizontal(text, text2)
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")

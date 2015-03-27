@@ -9,7 +9,7 @@ import org.nicta.wdy.hdm.storage.BlockRef
  *
  * implemented as a cycle buffer with size factor
  */
-class BufferedDDMIterator[+A](val factor:Int = 3, protected val blockRefs: Seq[BlockRef]) extends BufferedIterator[A]{
+class BufferedBlockIterator[+A](val factor:Int = 3, protected val blockRefs: Seq[BlockRef]) extends BufferedIterator[A]{
 
   def init() = ??? // read the first buffer segment
 

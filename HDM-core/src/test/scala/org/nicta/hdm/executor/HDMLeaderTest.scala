@@ -67,7 +67,7 @@ class HDMLeaderTest extends ClusterTestSuite {
 
   @Test
   def testLocalExecution() {
-    HDMContext.init(leader = "localhost", cores = 4)
+    HDMContext.init(leader = "localhost", slots = 4)
     Thread.sleep(1000)
     val hdm = HDM.horizontal(text, text2)
     val wordCount = hdm.map(w => (w, 1))
@@ -87,7 +87,7 @@ class HDMLeaderTest extends ClusterTestSuite {
 
   @Test
   def testHDFSExecution(): Unit = {
-    HDMContext.init(leader = "localhost", cores = 4)
+    HDMContext.init(leader = "localhost", slots = 4)
 
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
     val hdm = HDM(path)

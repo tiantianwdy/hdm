@@ -12,7 +12,7 @@ import org.slf4j.{LoggerFactory, Logger}
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{Await, ExecutionContext, Future, Promise}
 import scala.util.{Failure, Success}
 
 import akka.pattern.{ask, pipe}
@@ -338,7 +338,7 @@ class ClusterExecutorFollower(leaderPath: String) extends WorkActor {
 
   override def initParams(params: Any): Int = {
     super.initParams(params)
-    context.actorSelection(leaderPath) ! JoinMsg(self.path.toString, HDMContext.CORES)
+    context.actorSelection(leaderPath) ! JoinMsg(self.path.toString, HDMContext.slot.get())
     1
   }
 
@@ -380,14 +380,19 @@ object ClusterExecutor {
   val ioManager = HDMIOManager()
 
   def runTaskSynconized[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[String]] = {
-    if(task.dep == OneToOne || task.dep == OneToN)
-    Future {
-      task.call().map(bl => bl.toURL)
-    }
-    else runTaskAsync(task)
+    if (task.dep == OneToOne || task.dep == OneToN)
+      Future {
+//        task.call().map(bl => bl.toURL)
+        task.runTaskIteratively().map(bl => bl.toURL)
+      }
+    else
+      Future {
+        task.runTaskIteratively().map(bl => bl.toURL)
+      }
+//      runTaskConcurrently(task)
   }
 
-  def runTaskAsync[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[String]] = {
+  def runTaskConcurrently[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[String]] = {
     // prepare input data from cluster
     println(s"Preparing input data for task: [${(task.taskId, task.func)}] ")
     val input = task.input
@@ -398,7 +403,7 @@ object ClusterExecutor {
       if (!blockManager.isCached(ddm.id)) {
         ddm.location.protocol match {
           case Path.AKKA =>
-            //todo replace with using data parsers
+            //todo replace with using data parsers readAsync
             println(s"Asking block ${ddm.location.name} from ${ddm.location.parent}")
             ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
           case Path.HDFS => Future {
@@ -414,17 +419,16 @@ object ClusterExecutor {
       }
     }
 
-//    if (futureBlocks != null && !futureBlocks.isEmpty)
       Future.sequence(futureBlocks) map { in =>
         println(s"Input data preparing finished, the task starts running: [${(task.taskId, task.func)}] ")
         val ids = task.runWithInput(in).map(_.toURL)
         println(s"Task completed, with output id: [${ids}] ")
         ids
       }
-/*    else Future {
-      println(s"All data are at local, the task starts running: [${(task.taskId, task.func)}] ")
-      task.call().map(bl => bl.toURL)
-    }*/
+
   }
+  
+
+    
 }
 

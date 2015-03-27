@@ -1,6 +1,7 @@
 package org.nicta.wdy.hdm.functions
 
 
+import scala.collection.mutable
 import scala.reflect.ClassTag
 //import scala.reflect.runtime.universe.WeakTypeTag
 
@@ -28,6 +29,9 @@ abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFu
     new ParMapAllFunc(f)
   }
 
+
+  def Aggregate(params:Seq[T], res:Seq[R]): Seq[R] = ???
+
 }
 
 
@@ -36,12 +40,20 @@ class ParMapFunc [T:ClassTag,R:ClassTag](f: T=>R)  extends ParallelFunction[T,R]
   override def apply(params: Seq[T]): Seq[R] = {
     params.map(f)
   }
+
+  override def Aggregate(params: Seq[T], res: Seq[R]): Seq[R] = {
+    params.map(f) ++ res
+  }
 }
 
 class ParMapAllFunc [T:ClassTag,R:ClassTag](f: Seq[T]=>Seq[R])  extends ParallelFunction[T,R] {
 
   override def apply(params: Seq[T]): Seq[R] = {
     f(params)
+  }
+
+  override def Aggregate(params: Seq[T], res: Seq[R]): Seq[R] = {
+    f(params) ++ res
   }
 }
 
@@ -51,6 +63,10 @@ class ParReduceFunc[T:ClassTag ,R >:T :ClassTag](f: (R, R) => R)  extends Parall
   override def apply(params: Seq[T]): Seq[R] = {
     Seq(params.reduce(f))
   }
+
+  override def Aggregate(params: Seq[T], res: Seq[R]): Seq[R] = {
+    Seq(params.fold(res.reduce(f))(f))
+  }
 }
 
 class ParFoldFunc[T:ClassTag, R:ClassTag](z:R)(f: (R, T) => R)  extends ParallelFunction[T, R] {
@@ -58,6 +74,10 @@ class ParFoldFunc[T:ClassTag, R:ClassTag](z:R)(f: (R, T) => R)  extends Parallel
 
   override def apply(params: Seq[T]): Seq[R] = {
     Seq(params.foldLeft(z)(f))
+  }
+
+  override def Aggregate(params: Seq[T], res: Seq[R]): Seq[R] = {
+    Seq(params.foldLeft(res.head)(f))
   }
 
 }
@@ -70,6 +90,18 @@ class ParGroupByFunc[T: ClassTag, K: ClassTag](f: T => K) extends ParallelFuncti
     params.groupBy(f).toSeq
   }
 
+  override def Aggregate(params: Seq[T], res: Seq[(K, Seq[T])]): Seq[(K, Seq[T])] = {
+    val temp = mutable.HashMap.empty[K,Seq[T]] ++= res //todo change to use AppendOnlyMap
+    params.groupBy(f) foreach{ tup =>
+      if(temp.contains(tup._1)){
+        val v = temp.apply(tup._1)
+        temp.update(tup._1, v ++ tup._2)
+      } else {
+        temp += tup
+      }
+    }
+    temp.toSeq
+  }
 }
 
 class ParReduceByKey[T:ClassTag, K :ClassTag](fk: T=> K, fr: (T, T) => T) extends ParallelFunction[T,(K,T)]{
@@ -79,6 +111,18 @@ class ParReduceByKey[T:ClassTag, K :ClassTag](fk: T=> K, fr: (T, T) => T) extend
     params.groupBy(fk).toSeq.map(d => (d._1, d._2.reduce(fr)))
   }
 
+  override def Aggregate(params: Seq[T], res: Seq[(K, T)]): Seq[(K, T)] = {
+    val tempMap = mutable.HashMap.empty[K,T] ++= res
+    params.groupBy(fk).toSeq.map(d => (d._1, d._2.reduce(fr))) foreach { tup =>
+      if(tempMap.contains(tup._1)){
+        val v = tempMap.apply(tup._1)
+        tempMap.update(tup._1, fr(v, tup._2))
+      } else {
+        tempMap += tup
+      }
+    }
+    tempMap.toSeq
+  }
 }
 
 class ParGroupFoldByKey[T:ClassTag, K:ClassTag, R : ClassTag] (fk: T=> K, t: T=> R, fr: (R, R) => R) extends ParallelFunction[T,(K,R)]{
@@ -97,7 +141,9 @@ class ParUnionFunc[T: ClassTag]()  extends ParallelFunction[T,T] {
     params
   }
 
-
+  override def Aggregate(params: Seq[T], res: Seq[T]): Seq[T] = {
+    params ++ res
+  }
 }
 
 class FlattenFunc[T: ClassTag] extends ParallelFunction[T,T]{
@@ -105,6 +151,11 @@ class FlattenFunc[T: ClassTag] extends ParallelFunction[T,T]{
   override def apply(params: Seq[T]): Seq[T] = {
     params
   }
+
+  override def Aggregate(params: Seq[T], res: Seq[T]): Seq[T] = {
+    params ++ res
+  }
+
 }
 
 class NullFunc[T: ClassTag] extends ParallelFunction[T,T]{
@@ -127,6 +178,11 @@ class NullFunc[T: ClassTag] extends ParallelFunction[T,T]{
   override def apply(params: Seq[T]): Seq[T] = {
     params
   }
+
+  override def Aggregate(params: Seq[T], res: Seq[T]): Seq[T] = {
+    params ++ res
+  }
+
 }
 
 object ParallelFunction {

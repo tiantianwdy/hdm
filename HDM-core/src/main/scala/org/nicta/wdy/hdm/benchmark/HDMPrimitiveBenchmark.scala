@@ -15,7 +15,7 @@ import scala.util.{Failure, Success}
 class HDMPrimitiveBenchmark(val context:String) {
 
    def init(context:String, localCores:Int = 0): Unit ={
-     HDMContext.init(leader = context, cores = localCores)
+     HDMContext.init(leader = context, slots = localCores)
      Thread.sleep(100)
    }
 

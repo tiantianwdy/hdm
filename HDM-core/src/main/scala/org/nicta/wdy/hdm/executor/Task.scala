@@ -1,9 +1,12 @@
 package org.nicta.wdy.hdm.executor
 
+import java.util.concurrent.atomic.AtomicBoolean
+
 import org.nicta.wdy.hdm.io.{HDMIOManager, DataParser, Path}
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.functions.{ParallelFunction, DDMFunction_1, SerializableFunction}
-import java.util.concurrent.{TimeUnit, Callable}
+import java.util.concurrent.{LinkedBlockingDeque, TimeUnit, Callable}
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.duration.Duration
 import scala.concurrent._
 import scala.reflect.{ClassTag, classTag}
@@ -126,5 +129,32 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
         e.printStackTrace()
         throw e
     }
+
+  def runTaskIteratively()(implicit executionContext: ExecutionContext): Seq[DDM[_,_]] = {
+    println(s"Preparing input data for task: [${(taskId, func)}] ")
+    val iter = input.iterator
+    var res = Seq.empty[R]
+    val inputFinished = new AtomicBoolean(false)
+    val inputQueue = new LinkedBlockingDeque[Block[_]]
+    Future{
+      while(iter.hasNext) {
+        val block = DataParser.readBlock(iter.next(), true)
+        inputQueue.offer(block)
+      }
+      inputFinished.set(true)
+    }
+
+    while(!inputFinished.get()){
+        val block = inputQueue.take()
+        res = func.Aggregate(block.data.asInstanceOf[Seq[I]], res)
+      }
+    val ddms = if(partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
+      Seq(DDM[R](taskId, res))
+    } else {
+      partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
+    }
+    ddms
+
+  }
 
 }
