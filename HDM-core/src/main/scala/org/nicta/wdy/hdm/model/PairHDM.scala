@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.model
 
 import org.nicta.wdy.hdm.executor.{KeepPartitioner, MappingPartitioner}
-import org.nicta.wdy.hdm.functions.ParMapAllFunc
+import org.nicta.wdy.hdm.functions.{ParMergeByKey, ParMapAllFunc}
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
@@ -24,9 +24,9 @@ class PairHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,V)]) extends Serializable{
     val mapAll = (elems:Seq[(K,V)]) => {
       elems.groupBy(_._1).mapValues(_.map(_._2).reduce(f)).toSeq
     }
-    val parallel = new DFM[(K,V), (K,V)](children = Seq(self), dependency = OneToN, func = new ParMapAllFunc(mapAll), distribution = self.distribution, location = self.location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
-    val aggregate = (elems:Seq[(K,V)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(f)).toSeq
-    new DFM[(K, V),(K, V)](children = Seq(parallel), dependency = NToOne, func = new ParMapAllFunc(aggregate), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
+    val parallel = new DFM[(K,V), (K,V)](children = Seq(self), dependency = OneToN, func = new ParMergeByKey(f), distribution = self.distribution, location = self.location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
+//    val aggregate = (elems:Seq[(K,V)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(f)).toSeq
+    new DFM[(K, V),(K, V)](children = Seq(parallel), dependency = NToOne, func = new ParMergeByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
 
   }
 

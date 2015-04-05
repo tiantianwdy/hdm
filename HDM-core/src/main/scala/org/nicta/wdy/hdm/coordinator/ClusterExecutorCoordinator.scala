@@ -382,8 +382,8 @@ object ClusterExecutor {
   def runTaskSynconized[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[String]] = {
     if (task.dep == OneToOne || task.dep == OneToN)
       Future {
-//        task.call().map(bl => bl.toURL)
-        task.runTaskIteratively().map(bl => bl.toURL)
+        task.call().map(bl => bl.toURL)
+//        task.runTaskIteratively().map(bl => bl.toURL)
       }
     else
       Future {
@@ -408,7 +408,6 @@ object ClusterExecutor {
             ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
           case Path.HDFS => Future {
             val bl = DataParser.readBlock(ddm.location)
-            println(s"Output data size: ${bl.size} ")
             //          blockManager.add(ddm.id, bl)
             //          ddm.id
             bl

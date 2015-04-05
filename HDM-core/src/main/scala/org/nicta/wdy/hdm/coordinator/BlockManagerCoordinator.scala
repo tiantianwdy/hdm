@@ -45,7 +45,7 @@ class BlockManagerLeader extends WorkActor {
       for (follower <- followerMap.toSeq){
         if(follower._1 != senderPath.toString) context.actorSelection(follower._1) ! SyncRefMsg(refs)
       }
-      log.info(s"Block references have has been added: [${nRefs.map(r => (r.id, r.location.toString)).mkString(",")}] ")
+      log.debug(s"Block references have has been added: [${nRefs.map(r => (r.id, r.location.toString)).mkString(",")}] ")
 
     case RemoveRefMsg(id) =>
       blockManager.removeRef(id)
@@ -53,11 +53,11 @@ class BlockManagerLeader extends WorkActor {
       for (follower <- followerMap.toSeq){
         if(follower._1 != senderPath.toString) context.actorSelection(follower._1) ! RemoveRefMsg(id)
       }
-      log.info(s"A Block reference has has been removed: [${id}] ")
+      log.debug(s"A Block reference has has been removed: [${id}] ")
 
     case AddBlockMsg(bl) =>
       blockManager.add(bl.id, bl)
-      log.info(s"A Block data has has been added: [${bl.id}] ")
+      log.debug(s"A Block data has has been added: [${bl.id}] ")
 
     case RemoveBlockMsg(id) =>
       blockManager.removeBlock(id)
@@ -73,7 +73,7 @@ class BlockManagerLeader extends WorkActor {
             context.actorSelection(path.parent) ! RemoveBlockMsg(path.name)
           }
         }
-        log.info(s"A Block data has has been removed: [${id}] ")
+        log.debug(s"A Block data has has been removed: [${id}] ")
       } else {
         log.warning(s"Cannot find reference of block: [${id}] ")
       }
@@ -87,7 +87,7 @@ class BlockManagerLeader extends WorkActor {
     case BlockData(id, bl) =>
       blockManager.add(id, bl)
       ioManager.blockReceived(id,sender().path.toString, bl)
-      log.info(s"A Block data has has been received: [${id}] ")
+      log.debug(s"A Block data has has been received: [${id}] ")
 
     case CheckStateMsg(id) =>
       if (blockManager.getRef(id) != null) {
@@ -137,17 +137,17 @@ class BlockManagerFollower(val leaderPath: String) extends WorkActor {
       blockManager.addAllRef(refs)
       if (sender.path.toString != leaderPath)
         context.actorSelection(leaderPath).tell(AddRefMsg(refs), self)
-      log.info(s"Block references have has been added: [${refs.map(r => (r.id, r.location.toString)).mkString(",")}] ")
+      log.debug(s"Block references have has been added: [${refs.map(r => (r.id, r.location.toString)).mkString(",")}] ")
 
     case SyncRefMsg(refs) =>
       blockManager.addAllRef(refs)
-      log.info(s"Block references have has been synchonized: [${refs.map(r => (r.id, r.location.toString)).mkString(",")}] ")
+      log.debug(s"Block references have has been synchonized: [${refs.map(r => (r.id, r.location.toString)).mkString(",")}] ")
 
     case RemoveRefMsg(id) =>
       blockManager.removeRef(id)
       if (sender.path.toString != leaderPath)
         context.actorSelection(leaderPath).tell(RemoveRefMsg(id), self)
-      log.info(s"A Block reference has has been removed: [${id}] ")
+      log.debug(s"A Block reference has has been removed: [${id}] ")
 
     case AddBlockMsg(bl) =>
       blockManager.add(bl.id, bl)
@@ -158,14 +158,14 @@ class BlockManagerFollower(val leaderPath: String) extends WorkActor {
           location = Path(HDMContext.localBlockPath + "/" + id))
         context.actorSelection(leaderPath).tell(AddRefMsg(Seq(ddm)), self)
       }
-      log.info(s"A Block data has has been added: [${bl.id}] ")
+      log.debug(s"A Block data has has been added: [${bl.id}] ")
 
     case RemoveBlockMsg(id) =>
       blockManager.removeBlock(id)
       if (sender.path.toString != leaderPath)
         println(s"receve a remove block msg from ${sender.path.toString}, leader path is ${leaderPath}")
 //        context.actorSelection(leaderPath).tell(RemoveBlockMsg(id), self)
-      log.info(s"A Block data has has been removed: [${id}] ")
+      log.debug(s"A Block data has has been removed: [${id}] ")
 
     case QueryBlockMsg(id, location) =>
       val bl = blockManager.getBlock(id) //find from cache
@@ -176,7 +176,7 @@ class BlockManagerFollower(val leaderPath: String) extends WorkActor {
     case BlockData(id, bl) =>
 //      blockManager.add(id, bl)
       HDMIOManager().blockReceived(id,sender().path.toString, bl)
-      log.info(s"A Block data has has been received: [${id}] ")
+      log.debug(s"A Block data has has been received: [${id}] ")
 
     case CheckStateMsg(id) =>
       if (blockManager.getRef(id) != null) {

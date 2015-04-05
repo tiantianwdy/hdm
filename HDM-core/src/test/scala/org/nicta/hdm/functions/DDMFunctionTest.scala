@@ -1,4 +1,4 @@
-/*
+
 package org.nicta.hdm.functions
 
 import org.junit.Test
@@ -23,10 +23,10 @@ class DDMFunctionTest {
   @Test
   def testMapFunc(){
      val ddm = HDM(text)
-     new MapFunc[String, Int]((d) => d match {
+     new ParMapFunc[String, Int]((d) => d match {
        case s:String  => s.length
        case _ => 0
-     }).apply(Seq(ddm)).sample(10).foreach(println(_))
+     }).apply(text.toSeq).foreach(println(_))
   }
 
   @Test
@@ -38,8 +38,8 @@ class DDMFunctionTest {
     }
 
 //    ddm.elems.groupBy(f).foreach(println(_))
-    val res = new GroupByFunc[String,String](f).apply(Seq(ddm))
-    res.sample().foreach(println(_))
+    val res = new ParGroupByFunc[String,String](f).apply(text.toSeq)
+    res.foreach(println(_))
   }
 
   @Test
@@ -50,28 +50,28 @@ class DDMFunctionTest {
     }
     val ddm = HDM(text)
 
-    val grouped = new GroupByFunc[String,String](f).apply(Seq(ddm))
-    val res = new ReduceFunc[(String, Seq[String]), (String, Seq[String])]((s1,s2) => (s1._1, s1._2 ++ s2._2)).apply(Seq(grouped))
-    res.sample().foreach(println(_))
+    val grouped = new ParGroupByFunc[String,String](f).apply(text.toSeq)
+    val res = new ParReduceFunc[(String, Seq[String]), (String, Seq[String])]((s1,s2) => (s1._1, s1._2 ++ s2._2)).apply(grouped)
+    res.foreach(println(_))
   }
 
   @Test
   def testReduceByKeyFunc(){
     val ddm = HDM(text)
-    val mapped = new MapFunc[String,(String,Int)]((_, 1)).apply(Seq(ddm))
-    val res = new ReduceByKey[(String,Int), String](_._1, (s1,s2) => (s1._1, s1._2 + s2._2)).apply(Seq(mapped))
-    res.sample().foreach(println(_))
+    val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text.toSeq)
+    val res = new ParReduceByKey[(String,Int), String](_._1, (s1,s2) => (s1._1, s1._2 + s2._2)).apply(mapped)
+    res.foreach(println(_))
   }
 
   @Test
   def testGroupFoldByKey(){
 
     val ddm = HDM(text)
-    val mapped = new MapFunc[String,(String,Int)]((_, 1)).apply(Seq(ddm))
-    val res = new GroupFoldByKey[(String,Int),String, Int](_._1, _._2, _+_).apply(Seq(mapped))
-    res.sample().foreach(println(_))
+    val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text.toSeq)
+    val res = new ParGroupFoldByKey[(String,Int),String, Int](_._1, _._2, _+_).apply(mapped)
+    res.foreach(println(_))
 
   }
 
 }
-*/
+

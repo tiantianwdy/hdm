@@ -18,7 +18,7 @@ import org.nicta.wdy.hdm.executor.{KeepPartitioner, Partitioner, HDMContext}
  */
 class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
                            val elems: Seq[T] = null,
-                           val dependency: Dependency = OneToOne,
+                           val dependency: DataDependency = OneToOne,
                            val func: ParallelFunction[T, R] = null,
                            val distribution: Distribution = Horizontal,
                            val location: Path = Path(HDMContext.localBlockPath),
@@ -49,7 +49,7 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
 
   def copy(id: String = this.id,
            children:Seq[HDM[_, T]] = null,
-           dependency: Dependency = this.dependency,
+           dependency: DataDependency = this.dependency,
            func: ParallelFunction[T, R] = this.func,
            blocks: Seq[String] = null,
            distribution: Distribution = this.distribution,

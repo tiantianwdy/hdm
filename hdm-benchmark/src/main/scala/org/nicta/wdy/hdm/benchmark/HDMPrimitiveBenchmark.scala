@@ -17,11 +17,12 @@ object HDMBenchmark {
 
   def main(args:Array[String]): Unit ={
     println("Cmd format: [masterPath] [dataPath] [testTag] [parallelism] [param]")
+    println(args.mkString)
     val context = args(0)
     val data = args(1)
     val testTag = args(2)
     val parallelism = args(3).toInt
-    val len = if(args.size >= 5) args(4).toInt else 3
+    val len = if(args.length >= 5) args(4).toInt else 3
     val benchmark = new HDMPrimitiveBenchmark(context)
     HDMContext.init(leader = context, slots = 0)//not allow local running
     Thread.sleep(100)

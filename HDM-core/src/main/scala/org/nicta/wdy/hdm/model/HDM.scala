@@ -26,7 +26,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   val children: Seq[_<:HDM[_, T]]
 
-  val dependency: Dependency
+  val dependency: DataDependency
 
   val func: ParallelFunction[T,R]
 
@@ -73,7 +73,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
     val pFunc = (t:R) => f(t).hashCode()
     val parallel = new DFM[R,R](children = Seq(this), dependency = OneToN, func = new NullFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
-
+//    val parallel = this.copy(dependency = OneToN, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
     new DFM[R,(K, Seq[R])](children = Seq(parallel), dependency = NToOne, func = new ParGroupByFunc(f), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, Seq[R])](1))
 
 
@@ -101,8 +101,8 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
     ClosureCleaner(r)
     val pFunc = (t:(K, R)) => t._1.hashCode()
     val parallel = new DFM[R,(K, R)](children = Seq(this), dependency = OneToN, func = new ParReduceByKey(f, r), distribution = distribution, location = location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
-    val groupReduce = (elems:Seq[(K,R)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(r)).toSeq
-    new DFM[(K, R),(K, R)](children = Seq(parallel), dependency = NToOne, func = new ParMapAllFunc(groupReduce), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, R)](1))
+//    val groupReduce = (elems:Seq[(K,R)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(r)).toSeq
+    new DFM[(K, R),(K, R)](children = Seq(parallel), dependency = NToOne, func = new ParMergeByKey(r), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, R)](1))
 
   }
 
@@ -200,7 +200,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   def copy(id: String = this.id,
            children:Seq[HDM[_, T]]= this.children,
-           dependency: Dependency = this.dependency,
+           dependency: DataDependency = this.dependency,
            func: ParallelFunction[T, R] = this.func,
            blocks: Seq[String] = null,
            distribution: Distribution = this.distribution,

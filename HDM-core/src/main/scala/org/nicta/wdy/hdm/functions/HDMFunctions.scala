@@ -1,14 +1,14 @@
 package org.nicta.wdy.hdm.functions
 
 import org.nicta.wdy.hdm.executor.Partitioner
-import org.nicta.wdy.hdm.model.Dependency
+import org.nicta.wdy.hdm.model.DataDependency
 
 /**
  * Created by tiantian on 8/01/15.
  */
 trait HDMFunctions {
 
-  val denpendency: Dependency
+  val denpendency: DataDependency
 
   val func: ParallelFunction[_,_]
 

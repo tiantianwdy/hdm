@@ -16,7 +16,7 @@ import java.util.UUID
  */
 case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
                                        val id: String = HDMContext.newClusterId(),
-                                       val dependency: Dependency = OneToOne,
+                                       val dependency: DataDependency = OneToOne,
                                        val func: ParallelFunction[T, R] = null,
                                        val blocks: Seq[String] = null,
                                        val distribution: Distribution = Horizontal,
@@ -36,9 +36,13 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
 
 
   override def andThen[U: ClassTag](hdm: HDM[R, U]): HDM[T, U] = {
+    val dep = if(this.dependency == NToOne && hdm.dependency == OneToN) NToN
+              else if (this.dependency == NToOne && hdm.dependency == OneToOne) NToOne
+              else if (this.dependency == OneToOne && hdm.dependency == OneToN) OneToN
+              else OneToOne
     new DFM(this.children,
       hdm.id,
-      hdm.dependency,
+      dep,
       this.func.andThen(hdm.func),
       blocks, distribution, location, null,
       state, parallelism,
@@ -49,7 +53,7 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
 
   def copy(id: String = this.id,
            children: Seq[HDM[_, T]] = this.children,
-           dependency: Dependency = this.dependency,
+           dependency: DataDependency = this.dependency,
            func: ParallelFunction[T, R] = this.func,
            blocks: Seq[String] = this.blocks,
            distribution: Distribution = this.distribution,

@@ -112,7 +112,7 @@ class HDMPrimitiveBenchmark(val context:String) {
 
      val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
-       val as = w.split(",");
+       val as = w.split(",")
        if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
        else (as(0), as(1).toInt)
      }.groupBy(_._1)
@@ -132,11 +132,12 @@ class HDMPrimitiveBenchmark(val context:String) {
 
      val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
-       val as = w.split(",");
+       val as = w.split(",")
        if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
        else (as(0), as(1).toInt)
-     }.reduceByKey((t1,t2) => t1 + t2)
-       //.groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+     }
+       .reduceByKey((t1,t2) => t1 + t2)
+//       .groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
 
      wordCount.compute(parallelism) onComplete  {
@@ -156,9 +157,9 @@ class HDMPrimitiveBenchmark(val context:String) {
 
     val start = System.currentTimeMillis()
     val wordCount = hdm.map{ w =>
-      val as = w.split(",");
+      val as = w.split(",")
       if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
-      else (as(0), as(1).toInt)
+      else (as(0), 1)
     }.groupBy(_._1).map(t => (t._1, t._2.map(_._2).reduce(_+_)))
 
     wordCount.compute(parallelism) onComplete  {
