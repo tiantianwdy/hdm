@@ -61,7 +61,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
 //        val inputs = groupPaths.map(seq => seq.map(b => blockMap(b.toString)))
 
         // group by location similarity
-        val inputs = Path.groupDDMByLocation(children, defParallel)
+        val inputs = Path.groupDDMByBoundary(children, defParallel)
         val func = target.func.asInstanceOf[ParallelFunction[String,R]]
 
         val mediator = inputs.map(seq => new DFM(id = leafHdm.id + "_b" + inputs.indexOf(seq), children = seq, dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner))

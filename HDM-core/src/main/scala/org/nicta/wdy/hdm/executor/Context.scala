@@ -49,7 +49,7 @@ object HDMContext extends  Context{
 
   val planer = StaticPlaner
 
-  val scheduler = new SimpleFIFOScheduler
+//  val scheduler = new SimpleFIFOScheduler
 
   val leaderPath: AtomicReference[String] = new AtomicReference[String]()
 

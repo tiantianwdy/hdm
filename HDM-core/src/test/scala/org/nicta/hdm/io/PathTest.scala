@@ -2,7 +2,9 @@ package org.nicta.hdm.io
 
 import org.junit.Test
 import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.functions.NullFunc
 import org.nicta.wdy.hdm.io.{DataParser, Path}
+import org.nicta.wdy.hdm.model.DDM
 
 import scala.collection.mutable.ListBuffer
 
@@ -37,7 +39,7 @@ class PathTest {
     Path("akka.tcp://slaveSys@10.10.10.2:10020/user/smsMaster")
   )
 
-  def generatePath(group:Int = 2, groupSize:Int = 27) = {
+  def generatePath(group:Int = 2, groupSize:Int = 57) = {
 
     val paths = ListBuffer.empty[Path]
     for{
@@ -105,6 +107,23 @@ class PathTest {
   }
 
   @Test
+  def testPathGroupByBoundary = {
+    val paths = generatePath().toSeq
+    val grouped = Path.groupPathByBoundary(paths, 8)
+    println(s"total group:${grouped.size}")
+    grouped foreach{ seq =>
+      println(s"group size:${seq.size}")
+      seq.foreach(p => print(s"path: ${p} , " +
+        s" Value: ${Path.path2Int(p)} ; "))
+      println("")
+    }
+    //    grouped foreach{p =>
+    //      println(Path.findClosestLocation(nodes, p))
+    //      println(p)
+    //    }
+  }
+
+  @Test
   def testPathSort(): Unit ={
     val paths = generatePath().toSeq
     paths.foreach(p =>
@@ -114,11 +133,18 @@ class PathTest {
 
   @Test
   def testDDMGroupByLocation() = {
-    val path = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/"
-    val ddms = DataParser.explainBlocks(Path(path))
-    val grouped = Path.groupDDMByLocation(ddms, 4)
+    HDMContext.init()
+//    val path = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/"
+//    val ddms = DataParser.explainBlocks(Path(path))
+    val ddms = generatePath().map(path => new DDM(location = path, preferLocation = path, func = new NullFunc[String]))
+    val grouped = Path.groupDDMByBoundary(ddms, 32)
+//    val grouped = Path.groupDDMByLocation(ddms, 4)
+    println(s"total group:${grouped.size}")
     grouped foreach{ddm =>
-      println(ddm.map(_.location))
+      println(s"group size:${ddm.size}")
+      ddm.foreach(p => print(s"path: ${p.preferLocation} , " +
+        s" Value: ${Path.path2Int(p.preferLocation)} ; "))
+      println("")
     }
 
   }

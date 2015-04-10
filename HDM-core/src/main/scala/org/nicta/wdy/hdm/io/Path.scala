@@ -2,8 +2,10 @@ package org.nicta.wdy.hdm.io
 
 import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.model.DDM
+import org.nicta.wdy.hdm.planing.Utils
 
 import scala.util.Try
+import scala.collection.mutable.Buffer
 
 /**
  * Created by Tiantian on 2014/5/26.
@@ -121,8 +123,58 @@ object Path {
   }
 
   def groupDDMByLocation(ddms:Seq[DDM[String,String]], n:Int) = {
-    val avg = ddms.size/n
-    ddms.sortWith( (p1,p2) => path2Int(p1.preferLocation) < path2Int(p2.preferLocation)).grouped(avg.toInt).toSeq
+//    val avg = ddms.size/n
+//    ddms.sortWith( (p1,p2) => path2Int(p1.preferLocation) < path2Int(p2.preferLocation)).grouped(avg.toInt).toSeq
+    val ddmMap = ddms.map(d => (d.preferLocation -> d)).toMap
+    val paths = ddms.map(_.preferLocation)
+    val grouped = groupPathBySimilarity(paths, n)
+    grouped.map{seq =>
+      seq.map(p => ddmMap(p))
+    }
+  }
+
+  def groupPathByBoundary(paths:Seq[Path], n:Int) = {
+    val sorted = paths.sortWith( (p1,p2) => path2Int(p1) < path2Int(p2)).iterator
+    val boundery = 256 << 8 + 256
+    val ddmBuffer = Buffer.empty[Buffer[Path]]
+    var buffer = Buffer.empty[Path]
+    val total = paths.size.toFloat
+
+    if(sorted.hasNext){
+      var cur = sorted.next()
+      buffer += cur
+      while (sorted.hasNext) {
+        val next = sorted.next()
+        if ((path2Int(next) - path2Int(cur)) >= boundery ){
+          ddmBuffer += buffer
+          buffer = Buffer.empty[Path] += next
+        } else {
+          buffer += next
+        }
+        cur = next
+      }
+      ddmBuffer += buffer
+    }
+    // subGrouping in each bounded group
+    val distribution = ddmBuffer.map(seq => Math.round( (seq.size/total) * n))
+    val finalRes = Buffer.empty[Buffer[Path]]
+    for{
+      i <- 0 until ddmBuffer.size
+    }{
+      val seq = ddmBuffer(i)
+      val groupSize = distribution(i)
+      finalRes ++= (Utils.orderKeepingGroup(seq, groupSize))
+    }
+    finalRes
+  }
+
+  def groupDDMByBoundary(ddms:Seq[DDM[String,String]], n:Int) ={
+    val ddmMap = ddms.map(d => (d.preferLocation -> d)).toMap
+    val paths = ddms.map(_.preferLocation)
+    val grouped = groupPathByBoundary(paths, n)
+    grouped.map{seq =>
+      seq.map(p => ddmMap(p))
+    }
   }
 
   def path2Int(p:Path):Long = {

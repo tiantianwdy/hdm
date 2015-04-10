@@ -17,7 +17,7 @@ object HDMBenchmark {
 
   def main(args:Array[String]): Unit ={
     println("Cmd format: [masterPath] [dataPath] [testTag] [parallelism] [param]")
-    println(args.mkString)
+    println(s"params length:${args.length}" + args.mkString)
     val context = args(0)
     val data = args(1)
     val testTag = args(2)

@@ -237,7 +237,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
 
 
 
-  private def taskSucceeded(appId:String, taskId:String, func:String, blks: Seq[String]): Unit = {
+  def taskSucceeded(appId:String, taskId:String, func:String, blks: Seq[String]): Unit = {
 
     val ref = HDMBlockManager().getRef(taskId) match {
       case dfm: DFM[_ , _] => dfm.copy(blocks = blks, state = Computed)
