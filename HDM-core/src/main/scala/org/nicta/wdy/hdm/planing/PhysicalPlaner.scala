@@ -34,7 +34,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
     case dfm: HDM[_,_] =>
       val bn = hdm.parallelism
       for (i <- 0 until bn) yield hdm.id + "_b" + i
-    case ddm:DDM[_,_] => ddm.blocks
+//    case ddm:DDM[_,_] => ddm.blocks
     case x => Seq.empty[String]
   }
 
@@ -73,12 +73,13 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
       for (in <- input) {
         val inputIds = if (isStatic) getStaticBlockUrls(in)
         else getDynamicBlockUrls(in)
-        val groupedIds = if(in.dependency == OneToOne || in.dependency == NToOne){
+        val groupedIds = if(in.dependency == OneToOne || in.dependency == NToOne){ // parallel reading
           inputIds.groupBy(id => inputIds.indexOf(id) % defParallel).values.toIndexedSeq
-        } else {
+        } else { // shuffle reading
           val pNum = if(in.partitioner ne null) in.partitioner.partitionNum else 1
           for( subIndex <- 0 until pNum) yield {
-            inputIds.map{bid => bid + "_p" + subIndex}
+//            inputIds.map{bid => bid + "_p" + subIndex}
+            Utils.seqSlide(inputIds, subIndex).map{bid => bid + "_p" + subIndex} // slide partitions to avoid network contesting in shuffle
           }.toIndexedSeq
         }
         for(index <- 0 until groupedIds.size) inputArray(index % defParallel) ++= groupedIds(index)

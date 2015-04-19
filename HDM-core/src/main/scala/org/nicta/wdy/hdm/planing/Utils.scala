@@ -25,4 +25,9 @@ object Utils {
     groupBuffer.toSeq
   }
 
+
+  def seqSlide[T](elem:Seq[T], slideLen:Int):Seq[T] ={
+    val (pre, post) = elem.splitAt(slideLen)
+    post ++ pre
+  }
 }

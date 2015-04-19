@@ -98,14 +98,14 @@ class ParallelFunctionsTest {
   @Test
   def testReduceByKeyFunc(){
     val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text)
-    val res = new ParReduceByKey[(String,Int), String](_._1, (s1,s2) => (s1._1, s1._2 + s2._2)).apply(mapped)
+    val res = new ParReduceBy[(String,Int), String](_._1, (s1,s2) => (s1._1, s1._2 + s2._2)).apply(mapped)
     res.foreach(println(_))
   }
 
   @Test
   def testReduceByKeyAggregation(){
     val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text)
-    val reduceByK = new ParReduceByKey[(String,Int), String](_._1, (s1,s2) => (s1._1, s1._2 + s2._2))
+    val reduceByK = new ParReduceBy[(String,Int), String](_._1, (s1,s2) => (s1._1, s1._2 + s2._2))
     var res:mutable.Buffer[(String,(String,Int))] = ArrayBuffer.empty[(String,(String,Int))]
     for (i <- 1 to 3)
       res = reduceByK.aggregate(mapped,res)
@@ -117,7 +117,7 @@ class ParallelFunctionsTest {
   def testGroupFoldByKey(){
 
     val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text)
-    val res = new ParGroupFoldByKey[(String,Int),String, Int](_._1, _._2, _+_).apply(mapped)
+    val res = new ParGroupByAggregation[(String,Int),String, Int](_._1, _._2, _+_).apply(mapped)
     res.foreach(println(_))
 
   }

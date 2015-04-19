@@ -1,5 +1,7 @@
 package org.nicta.wdy.hdm.planing
 
+import org.nicta.wdy.hdm.executor.KeepPartitioner
+import org.nicta.wdy.hdm.functions.{ParGroupByFunc, FindByKey}
 import org.nicta.wdy.hdm.model._
 
 import scala.collection.mutable.ListBuffer
@@ -50,6 +52,34 @@ class FunctionFusion extends LogicalOptimizer {
       }
     }
 
+  }
+}
+
+class FilterLifting extends  LogicalOptimizer {
+
+  /**
+   * optimize the structure of HDM
+   *
+   * @param cur  input HDM
+   * @return     optimized HDM
+   */
+  override def optimize[I: ClassTag, R: ClassTag](cur: HDM[I, R]): HDM[_, R] = {
+    if(cur.children == null) cur
+    else {
+      if(cur.func.isInstanceOf[FindByKey[_,_]] &&  cur.children.forall(child => child.func.isInstanceOf[ParGroupByFunc[_,_]])){
+        val fbk = cur.func.asInstanceOf[FindByKey[_,_]]
+        val nfbk = cur.func.asInstanceOf[FindByKey[I,fbk.kType.type]]
+        val head = cur.children.head
+        val gb = head.func.asInstanceOf[ParGroupByFunc[I, fbk.kType.type]]
+        val newChildren = cur.children.map{ c =>
+          c.asInstanceOf[HDM[_,I]].filter( e => nfbk.f(gb.f(e))).copy(dependency = OneToOne, partitioner = new KeepPartitioner[I](1))
+        }
+        head.asInstanceOf[HDM[I,R]].copy(children = newChildren)
+      }else {
+        val seq = cur.children.map(c => optimize(c.asInstanceOf[HDM[c.inType.type, I]]))
+        cur.copy(children = seq)
+      }
+    }
   }
 }
 

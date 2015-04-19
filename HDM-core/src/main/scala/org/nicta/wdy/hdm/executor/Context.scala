@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.executor
 import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
 
 import scala.concurrent.{Promise, Future}
-import org.nicta.wdy.hdm.model.{PairHDM, HDM}
+import org.nicta.wdy.hdm.model.{GroupedSeqHDM, PairHDM, HDM}
 import org.nicta.wdy.hdm.functions.{ParallelFunction, DDMFunction_1, SerializableFunction}
 import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
@@ -192,8 +192,12 @@ object HDMContext extends  Context{
    * @tparam V
    * @return
    */
-  implicit def hdmToKVHDM[K:ClassTag, V: ClassTag](hdm:HDM[_, (K,V)] ): PairHDM[K,V] = {
+ implicit def hdmToKVHDM[K:ClassTag, V: ClassTag](hdm:HDM[_, (K,V)] ): PairHDM[K,V] = {
     new PairHDM[K,V](hdm)
+  }
+
+  implicit def hdmToGroupedSeqHDM[K:ClassTag, V: ClassTag](hdm:HDM[_, (K,Seq[V])] ): GroupedSeqHDM[K,V] = {
+    new GroupedSeqHDM[K,V](hdm)
   }
 
 }

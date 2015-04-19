@@ -1,7 +1,9 @@
 package org.nicta.hdm.functions
 
 import org.junit.Test
+import org.nicta.wdy.hdm.functions.{ParGroupByFunc, ParReduceBy, ParReduceFunc}
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.parallel.ParSeq
 
@@ -10,9 +12,9 @@ import scala.collection.parallel.ParSeq
  */
 class CollectionEfficiencyTest {
 
-  def generateData(num:Int, strLen:Int): Array[(String, String)] ={
+  def generateTuple(num:Int, range:Int): Array[(String, String)] ={
     Array.fill(num){
-      (Math.random()* num).toInt.toString -> 1.toString
+      (Math.random()* range).toInt.toString -> 1.toString
     }
   }
 
@@ -32,7 +34,7 @@ class CollectionEfficiencyTest {
   def testReduceFunction(): Unit ={
     //test Array
 
-    val arr = generateData(300000, 3)
+    val arr = generateTuple(300000, 3)
     val collection = arr.toSeq
     val start = System.currentTimeMillis()
 //    val res = arr.reduce((d1,d2) => (d1._1, d1._2 + d2._2))
@@ -66,6 +68,46 @@ class CollectionEfficiencyTest {
 
     val end = System.currentTimeMillis() - start
     println(s"Finished in $end ms: ${res.take(10)}")
+  }
+  
+  @Test
+  def testReduceByFunc(): Unit ={
+    val start = System.currentTimeMillis()
+    val collection = generateTuple(300000,10000)
+    val f = (d1:(String, String), d2:(String,String)) => (d1._1, (d1._2.toInt + d2._2.toInt).toString)
+    val func =  new ParReduceBy[(String,String), String](_._1, f)
+    val res = func.apply(collection)
+    val end = System.currentTimeMillis() - start
+    println(s"Finished in $end ms: ${res.take(10)}")
+  }
+
+  @Test
+  def testReduceByAggregation(): Unit ={
+    val start = System.currentTimeMillis()
+    val iterNum = 10
+    val collection = generateTuple(300000,10000)
+    val f = (d1:(String, String), d2:(String,String)) => (d1._1, (d1._2.toInt + d2._2.toInt).toString)
+    val func =  new ParReduceBy[(String,String), String](_._1, f)
+    var res = mutable.Buffer.empty[(String, (String, String))]
+    for( i <- 0 until iterNum)
+     res =  func.aggregate(collection, res)
+    val end = System.currentTimeMillis() - start
+    println(s"Finished in $end ms: ${res.take(10)}")
+  }
+
+  @Test
+  def testGroupByAggregation(): Unit ={
+    val start = System.currentTimeMillis()
+    val iterNum = 10
+    val collection = generateTuple(1000000,300000)
+    val func =  new ParGroupByFunc[(String,String), String](_._1)
+//    var res = mutable.Map.empty[String, scala.collection.mutable.Buffer[(String, String)]]
+//    var res = mutable.Buffer.empty[(String, scala.collection.mutable.Buffer[(String, String)])]
+    var res = mutable.Buffer.empty[(String, Seq[(String, String)])]
+    for( i <- 0 until iterNum)
+      res =  func.aggregate(collection, res)
+    val end = System.currentTimeMillis() - start
+    println(s"Finished in $end ms: ${res.take(10).mkString("\n")}")
   }
 
 }

@@ -2,6 +2,7 @@ package org.nicta.wdy.hdm.storage
 
 import org.nicta.wdy.hdm.functions.SerializableFunction
 import org.nicta.wdy.hdm.model.{Horizontal, Distribution}
+import scala.language.existentials
 
 /**
  * Created by Tiantian on 2014/12/1.

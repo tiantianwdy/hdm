@@ -35,7 +35,7 @@ object HDMBenchmark {
       case "reduceByKey" =>
         benchmark.testReduceByKey(data, len, parallelism)
       case "groupReduce" =>
-        benchmark.testGroupByReduce(data, len, parallelism)
+        benchmark.testGroupMapValues(data, len, parallelism)
       case "top" =>
         benchmark.testTop(data, len, parallelism)
       case "mapCount" =>

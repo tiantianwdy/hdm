@@ -4,6 +4,7 @@ import java.util.concurrent.{ConcurrentHashMap, ConcurrentMap}
 import java.util.UUID
 
 import scala.collection.JavaConversions._
+import scala.language.existentials
 
 import org.nicta.wdy.hdm.model.{DFM, DDM, HDM}
 /**

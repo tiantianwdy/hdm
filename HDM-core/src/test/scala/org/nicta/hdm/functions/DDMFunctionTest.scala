@@ -59,7 +59,7 @@ class DDMFunctionTest {
   def testReduceByKeyFunc(){
     val ddm = HDM(text)
     val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text.toSeq)
-    val res = new ParReduceByKey[(String,Int), String](_._1, (s1,s2) => (s1._1, s1._2 + s2._2)).apply(mapped)
+    val res = new ParReduceBy[(String,Int), String](_._1, (s1,s2) => (s1._1, s1._2 + s2._2)).apply(mapped)
     res.foreach(println(_))
   }
 
@@ -68,7 +68,7 @@ class DDMFunctionTest {
 
     val ddm = HDM(text)
     val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text.toSeq)
-    val res = new ParGroupFoldByKey[(String,Int),String, Int](_._1, _._2, _+_).apply(mapped)
+    val res = new ParGroupByAggregation[(String,Int),String, Int](_._1, _._2, _+_).apply(mapped)
     res.foreach(println(_))
 
   }

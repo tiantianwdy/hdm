@@ -3,6 +3,7 @@ package org.nicta.hdm.benchmark
 import org.junit.{After, Test}
 import org.nicta.wdy.hdm.benchmark.HDMPrimitiveBenchmark
 import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.HDMContext._
 import com.baidu.bpit.akka.messages.{AddMsg, Query}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
@@ -43,7 +44,8 @@ class TechfestDemo {
       (as(0).substring(0,3), as(1).toInt)
     }
       .groupBy(_._1)
-      .map(t => (t._1, t._2.map(_._2).reduce(_+_)))
+      .findByKey(_.startsWith("s"))
+      //.map(t => (t._1, t._2.map(_._2).reduce(_+_)))
 //      .groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
 
@@ -70,7 +72,7 @@ class TechfestDemo {
     HDMContext.init(leader = "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
     Thread.sleep(1500)
 //    benchmark.testGroupBy(data,len, parallelism)
-//    benchmark.testGroupByReduce(data,len, parallelism)
+//    benchmark.testFindByKey(data,len, parallelism, "a")
     benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)
     Thread.sleep(50000000)

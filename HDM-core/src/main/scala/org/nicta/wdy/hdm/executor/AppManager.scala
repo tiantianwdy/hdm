@@ -4,6 +4,7 @@ package org.nicta.wdy.hdm.executor
 import java.util.concurrent.ConcurrentHashMap
 
 import scala.collection.JavaConversions._
+import scala.language.existentials
 
 import org.nicta.wdy.hdm.model.HDM
 

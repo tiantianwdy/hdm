@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.model
 
 import org.nicta.wdy.hdm.executor.{KeepPartitioner, MappingPartitioner}
-import org.nicta.wdy.hdm.functions.{ParMergeByKey, ParMapAllFunc}
+import org.nicta.wdy.hdm.functions._
 
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
@@ -11,12 +11,16 @@ import scala.reflect.runtime.universe._
  */
 class PairHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,V)]) extends Serializable{
 
-  def mapValues[R:TypeTag](f: V => R):HDM[(K,V), (K,R)] = {
-    self.map(t => (t._1, f(t._2)))
+  def mapValues[R:ClassTag](f: V => R):HDM[(K,V), (K,R)] = {
+//    self.map(t => (t._1, f(t._2)))
+    new DFM[(K, V),(K, R)](children = Seq(self), dependency = OneToOne, func = new MapValues[V,K,R](f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, R)](1))
+
   }
 
-  def mapKey[NK:TypeTag] (f: K => NK):HDM[(K,V), (NK,V)] = {
-    self.map(t => (f(t._1), t._2))
+  def mapKey[NK:ClassTag] (f: K => NK):HDM[(K,V), (NK,V)] = {
+//    self.map(t => (f(t._1), t._2))
+    new DFM[(K, V),(NK, V)](children = Seq(self), dependency = OneToOne, func = new MapKeys[V,K,NK](f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(NK, V)](1))
+
   }
 
   def reduceByKey(f: (V,V)=> V): HDM[_, (K,V)] = {
@@ -24,18 +28,58 @@ class PairHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,V)]) extends Serializable{
     val mapAll = (elems:Seq[(K,V)]) => {
       elems.groupBy(_._1).mapValues(_.map(_._2).reduce(f)).toSeq
     }
-    val parallel = new DFM[(K,V), (K,V)](children = Seq(self), dependency = OneToN, func = new ParMergeByKey(f), distribution = self.distribution, location = self.location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
+    val parallel = new DFM[(K,V), (K,V)](children = Seq(self), dependency = OneToN, func = new ReduceByKey(f), distribution = self.distribution, location = self.location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
 //    val aggregate = (elems:Seq[(K,V)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(f)).toSeq
-    new DFM[(K, V),(K, V)](children = Seq(parallel), dependency = NToOne, func = new ParMergeByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
+    new DFM[(K, V),(K, V)](children = Seq(parallel), dependency = NToOne, func = new ReduceByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
 
   }
 
   def findByKey(f: K => Boolean): HDM[_, (K,V)] = {
-    self
+    if(self.dependency == NToOne && self.func.isInstanceOf[ParGroupByFunc[V,K]]){
+      val gb = self.func.asInstanceOf[ParGroupByFunc[self.inType.type , K]]
+      val head = self.children.head.asInstanceOf[HDM[_, self.inType.type ]]
+      val filtered = self.children.map{ c =>
+        c.asInstanceOf[HDM[_, self.inType.type]]
+          .copy(keepPartition = true, dependency = OneToOne, partitioner = new KeepPartitioner[PairHDM.this.self.inType.type](1))
+          .filter(e => f(gb.f(e))).copy(keepPartition = head.keepPartition, dependency = head.dependency, partitioner = head.partitioner)
+      }
+      self.asInstanceOf[HDM[self.inType.type, (K,V)]].copy(children = filtered).asInstanceOf[HDM[_, (K,V)]]
+    } else
+      new DFM[(K, V),(K, V)](children = Seq(self), dependency = OneToOne, func = new FindByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
+  }
+
+
+  def findByValue(f: V=> Boolean): HDM[_, (K,V)] = {
+    new DFM[(K, V),(K, V)](children = Seq(self), dependency = OneToOne, func = new FindByValue(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
+
   }
 
   def swap():HDM[(K,V), (V,K)] ={
     self.map(t => (t._2, t._1))
+  }
+
+}
+
+class GroupedSeqHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,Seq[V])]) extends Serializable{
+  
+  def mapValuesByKey[R:ClassTag](f: V => R):HDM[(K,Seq[V]), (K,Seq[R])] = {
+    val func = (v: Seq[V]) => v.map(f)
+    new DFM[(K, Seq[V]),(K, Seq[R])](children = Seq(self), dependency = OneToOne, func = new MapValues[Seq[V],K,Seq[R]](func), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, Seq[R])](1))
+
+  }
+
+  def findValuesByKey(f: V => Boolean):HDM[(K,Seq[V]), (K,Seq[V])] = {
+    new DFM[(K, Seq[V]),(K, Seq[V])](children = Seq(self), dependency = OneToOne, func = new FindValuesByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, Seq[V])](1))
+  }
+
+  def reduceValues(f :(V,V) => V): HDM[(K,Seq[V]), (K,V)] = {
+    new DFM[(K, Seq[V]),(K, V)](children = Seq(self),
+      dependency = OneToOne,
+      func = new MapValues[Seq[V],K,V](_.reduce(f)),
+      distribution = self.distribution,
+      location = self.location,
+      keepPartition = true,
+      partitioner = new KeepPartitioner[(K, V)](1))
   }
 
 }

@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.message
 import org.nicta.wdy.hdm.executor.Task
 import org.nicta.wdy.hdm.model.HDM
 import scala.reflect.ClassTag
-import scala.reflect.runtime.universe._
+import scala.language.existentials
 
 /**
  * Created by Tiantian on 2014/12/18.

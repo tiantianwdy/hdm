@@ -1,9 +1,10 @@
-package org.nicta.hdm.executor
+package org.nicta.hdm.planing
 
-import org.nicta.wdy.hdm.io.Path
-import org.nicta.wdy.hdm.model.HDM
 import org.junit.Test
 import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.HDMContext._
+import org.nicta.wdy.hdm.io.Path
+import org.nicta.wdy.hdm.model.HDM
 import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
 
 /**
@@ -49,13 +50,14 @@ class HDMPlanerTest {
       (as(0).substring(0,3), as(1).toInt)
     }
       //.groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
-      .groupBy(_._1).map(t => (t._1, t._2.map(_._2).reduce(_+_)))
+      .groupBy(_._1).findByKey(_.startsWith("a"))
+      //.map(t => (t._1, t._2.map(_._2).reduce(_+_)))
       //hdm.map(d=> (d,1)).groupBy(_._1)
       //.map(t => (t._1, t._2.map(_._2))).reduce(("", Seq(0)))((t1,t2) => (t1._1, t1._2))
 
     val wordCountOpti = new FunctionFusion().optimize(wordCount)
 
-    StaticPlaner.plan(wordCountOpti, 2).foreach(println(_))
+    StaticPlaner.plan(wordCountOpti, 4).foreach(println(_))
 
   }
 

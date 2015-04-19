@@ -1,6 +1,5 @@
 package org.nicta.wdy.hdm.io
 
-import java.net.URI
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, FileSystem}

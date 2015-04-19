@@ -276,7 +276,6 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
               }
             } catch {
               case ex: Throwable => log.error(ex, s"Got exception on ${t}"); false
-              case _ => false
             }
           )
           if ((tasks ne null) && !tasks.isEmpty) {

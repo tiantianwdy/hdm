@@ -3,6 +3,8 @@ package org.nicta.wdy.hdm.message
 import org.nicta.wdy.hdm.model.HDM
 import org.nicta.wdy.hdm.storage.{BlockState, Block}
 
+import scala.language.existentials
+
 /**
  * Created by Tiantian on 2014/12/18.
  */

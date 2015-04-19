@@ -194,7 +194,6 @@ class SimpleActorBasedScheduler(implicit val executorService:ExecutionContext) e
               }
             } catch {
               case ex: Throwable => log.error(ex, s"Got exception on ${t}"); false
-              case _ => false
             }
           )
           if ((tasks ne null) && !tasks.isEmpty) {

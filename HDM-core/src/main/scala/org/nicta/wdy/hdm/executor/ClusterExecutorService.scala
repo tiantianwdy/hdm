@@ -14,7 +14,7 @@ import com.typesafe.config.ConfigFactory
 /**
  * Created by Tiantian on 2014/12/2.
  */
-abstract class ClusterExecutor(val localExecutor: ExecutorService) extends ExecutorService with Coordinator {
+abstract class ClusterExecutorService(val localExecutor: ExecutorService) extends ExecutorService with Coordinator {
 
   override def execute(command: Runnable): Unit = ???
 
@@ -45,7 +45,7 @@ abstract class ClusterExecutor(val localExecutor: ExecutorService) extends Execu
 
 
 class AkkaClusterExecutor (val executorSer: ExecutorService,
-                           val actorSys:ActorSystem ) extends ClusterExecutor(localExecutor = executorSer) {
+                           val actorSys:ActorSystem ) extends ClusterExecutorService(localExecutor = executorSer) {
 
 
 
