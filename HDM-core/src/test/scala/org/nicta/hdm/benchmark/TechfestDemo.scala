@@ -72,8 +72,8 @@ class TechfestDemo {
     HDMContext.init(leader = "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
     Thread.sleep(1500)
 //    benchmark.testGroupBy(data,len, parallelism)
-//    benchmark.testFindByKey(data,len, parallelism, "a")
-    benchmark.testReduceByKey(data,len, parallelism)
+    benchmark.testFindByKey(data,len, parallelism, "a")
+//    benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)
     Thread.sleep(50000000)
   }

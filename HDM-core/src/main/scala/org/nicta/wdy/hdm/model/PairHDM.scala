@@ -9,7 +9,7 @@ import scala.reflect.runtime.universe._
 /**
  * Created by Tiantian on 2014/12/11.
  */
-class PairHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,V)]) extends Serializable{
+class PairHDM[T:ClassTag, K:ClassTag,V:ClassTag](self:HDM[T,(K,V)]) extends Serializable{
 
   def mapValues[R:ClassTag](f: V => R):HDM[(K,V), (K,R)] = {
 //    self.map(t => (t._1, f(t._2)))
@@ -35,15 +35,17 @@ class PairHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,V)]) extends Serializable{
   }
 
   def findByKey(f: K => Boolean): HDM[_, (K,V)] = {
-    if(self.dependency == NToOne && self.func.isInstanceOf[ParGroupByFunc[V,K]]){
-      val gb = self.func.asInstanceOf[ParGroupByFunc[self.inType.type , K]]
-      val head = self.children.head.asInstanceOf[HDM[_, self.inType.type ]]
+    if(self.dependency == NToOne && self.func.isInstanceOf[ParGroupByFunc[_,K]]){
+      val head = self.children.head.asInstanceOf[HDM[_, T]]
+      val gb = self.func.asInstanceOf[ParGroupByFunc[T, K]]
+      val fk:T => Boolean = f.compose(gb.f)
       val filtered = self.children.map{ c =>
-        c.asInstanceOf[HDM[_, self.inType.type]]
-          .copy(keepPartition = true, dependency = OneToOne, partitioner = new KeepPartitioner[PairHDM.this.self.inType.type](1))
-          .filter(e => f(gb.f(e))).copy(keepPartition = head.keepPartition, dependency = head.dependency, partitioner = head.partitioner)
+          c.asInstanceOf[HDM[_, T]]
+          .copy(keepPartition = true, dependency = OneToOne, partitioner = new KeepPartitioner[T](1))
+          .filter{e => fk(e)}
+          .copy(keepPartition = head.keepPartition, dependency = head.dependency, partitioner = head.partitioner)
       }
-      self.asInstanceOf[HDM[self.inType.type, (K,V)]].copy(children = filtered).asInstanceOf[HDM[_, (K,V)]]
+      self.asInstanceOf[HDM[T, (K,V)]].copy(children = filtered).asInstanceOf[HDM[_, (K,V)]]
     } else
       new DFM[(K, V),(K, V)](children = Seq(self), dependency = OneToOne, func = new FindByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
   }
@@ -59,6 +61,7 @@ class PairHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,V)]) extends Serializable{
   }
 
 }
+
 
 class GroupedSeqHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,Seq[V])]) extends Serializable{
   

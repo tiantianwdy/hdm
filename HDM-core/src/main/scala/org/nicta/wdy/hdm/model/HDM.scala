@@ -2,6 +2,7 @@ package org.nicta.wdy.hdm.model
 
 import org.nicta.wdy.hdm.ClosureCleaner
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.Future
 import scala.reflect.runtime.universe.{WeakTypeTag,weakTypeOf}
@@ -69,7 +70,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
   }
 
   def filter(f: R => Boolean)  = {
-    ClosureCleaner(f)
+//    ClosureCleaner(f)
     new DFM[R,R](children = Seq(this), dependency = OneToOne, func = new ParFindByFunc(f), distribution = distribution, location = location)
   }
 

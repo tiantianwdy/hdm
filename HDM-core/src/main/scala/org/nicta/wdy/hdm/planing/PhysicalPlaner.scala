@@ -79,7 +79,8 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
           val pNum = if(in.partitioner ne null) in.partitioner.partitionNum else 1
           for( subIndex <- 0 until pNum) yield {
 //            inputIds.map{bid => bid + "_p" + subIndex}
-            Utils.seqSlide(inputIds, subIndex).map{bid => bid + "_p" + subIndex} // slide partitions to avoid network contesting in shuffle
+            val dis = subIndex * pNum % inputIds.size
+            Utils.seqSlide(inputIds, dis).map{bid => bid + "_p" + subIndex} // slide partitions to avoid network contesting in shuffle
           }.toIndexedSeq
         }
         for(index <- 0 until groupedIds.size) inputArray(index % defParallel) ++= groupedIds(index)

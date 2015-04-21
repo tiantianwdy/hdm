@@ -183,7 +183,10 @@ class HDMPrimitiveBenchmark(val context:String) {
       val as = w.split(",")
       if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
       else (as(0), as(1).toInt)
-    }.groupBy(_._1).findByKey(_.startsWith(key))
+    }
+    .groupBy(_._1).findByKey(_.startsWith(key))
+      //.filter(t => t._1.startsWith("a")).groupBy(_._1)
+
 
 
     wordCount.compute(parallelism) onComplete  {

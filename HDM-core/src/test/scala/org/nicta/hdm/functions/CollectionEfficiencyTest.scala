@@ -97,9 +97,10 @@ class CollectionEfficiencyTest {
 
   @Test
   def testGroupByAggregation(): Unit ={
-    val start = System.currentTimeMillis()
+
     val iterNum = 10
-    val collection = generateTuple(1000000,300000)
+    val collection = generateTuple(1000000,300000).toBuffer
+    val start = System.currentTimeMillis()
     val func =  new ParGroupByFunc[(String,String), String](_._1)
 //    var res = mutable.Map.empty[String, scala.collection.mutable.Buffer[(String, String)]]
 //    var res = mutable.Buffer.empty[(String, scala.collection.mutable.Buffer[(String, String)])]
