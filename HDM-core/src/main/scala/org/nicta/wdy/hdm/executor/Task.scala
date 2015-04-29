@@ -47,9 +47,9 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
 
 
     def runShuffleTask():Seq[DDM[_,R]]  = {
-      val blocks = input.map(ddm => DataParser.readBlock(ddm, true))
+      val blocks = input.toBuffer[HDM[_, I]].map(ddm => DataParser.readBlock(ddm, true))
 
-      val inputData = blocks.map(_.data.asInstanceOf[Seq[I]]).flatten
+      val inputData = blocks.map(_.data.asInstanceOf[Buf[I]]).flatten
       val ouputData = func.apply(inputData)
       println(s"non-iterative shuffle results: ${ouputData.take(10)}")
       val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
@@ -68,7 +68,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
         val inputData = DataParser.readBlock(in, true)
         //apply function
         println(s"Input data preparing finished, the task starts running: [${(taskId, func)}] ")
-        func.apply(inputData.data.asInstanceOf[Seq[I]])
+        func.apply(inputData.data.asInstanceOf[Buf[I]])
 
       }.flatten
       println(s"sequence results: ${data.take(10)}")
@@ -87,7 +87,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       //load input data
 //      val inputData = input.flatMap(b => HDMBlockManager.loadOrCompute[I](b.id).map(_.data))
 //      val inputData = input.flatMap(hdm => hdm.blocks.map(Path(_))).map(p => HDMBlockManager().getBlock(p.name).data.asInstanceOf[Seq[I]])
-      val inputData = blks.map(_.data.asInstanceOf[Seq[I]])
+      val inputData = blks.toBuffer[Block[_]].map(_.data.asInstanceOf[Buf[I]])
       //apply function
       val data = func.apply(inputData.flatten)
       println(s"sequence results: ${data.take(10)}")
@@ -126,13 +126,16 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       var partialRes:mutable.Buffer[tempF.mediateType.type ] = ArrayBuffer.empty[tempF.mediateType.type ]
       while (!inputFinished.get()) {
         val block = inputQueue.take()
-        partialRes = concreteFunc.partialAggregate(block.data.asInstanceOf[Seq[I]], partialRes)
+//        concreteFunc.getAggregator().aggregate(block.data.asInstanceOf[Seq[I]].iterator)
+        partialRes = concreteFunc.partialAggregate(block.data.asInstanceOf[Buf[I]], partialRes)
       }
       while(!inputQueue.isEmpty){
         val block = inputQueue.take()
-        partialRes = concreteFunc.partialAggregate(block.data.asInstanceOf[Seq[I]], partialRes)
+        //        concreteFunc.getAggregator().aggregate(block.data.asInstanceOf[Seq[I]].iterator)
+        partialRes = concreteFunc.partialAggregate(block.data.asInstanceOf[Buf[I]], partialRes)
       }
 //      println(s"partial results: ${partialRes.take(10)}")
+//      partialRes =  concreteFunc.getAggregator().getResults
       res = concreteFunc.postF(partialRes)
 //      println(s"shuffle results: ${res.take(10)}")
 
@@ -140,11 +143,11 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       println(s"Running as parallel aggregation..")
       while (!inputFinished.get()) {
         val block = inputQueue.take()
-        res = func.aggregate(block.data.asInstanceOf[Seq[I]], res)
+        res = func.aggregate(block.data.asInstanceOf[Buf[I]], res)
       }
       while(!inputQueue.isEmpty){
         val block = inputQueue.take()
-        res = func.aggregate(block.data.asInstanceOf[Seq[I]], res)
+        res = func.aggregate(block.data.asInstanceOf[Buf[I]], res)
       }
 //      println(s"shuffle results: ${res.take(10)}")
     }

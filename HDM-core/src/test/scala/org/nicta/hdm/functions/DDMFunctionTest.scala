@@ -26,7 +26,7 @@ class DDMFunctionTest {
      new ParMapFunc[String, Int]((d) => d match {
        case s:String  => s.length
        case _ => 0
-     }).apply(text.toSeq).foreach(println(_))
+     }).apply(text.toBuffer).foreach(println(_))
   }
 
   @Test
@@ -38,7 +38,7 @@ class DDMFunctionTest {
     }
 
 //    ddm.elems.groupBy(f).foreach(println(_))
-    val res = new ParGroupByFunc[String,String](f).apply(text.toSeq)
+    val res = new ParGroupByFunc[String,String](f).apply(text.toBuffer)
     res.foreach(println(_))
   }
 
@@ -50,15 +50,15 @@ class DDMFunctionTest {
     }
     val ddm = HDM(text)
 
-    val grouped = new ParGroupByFunc[String,String](f).apply(text.toSeq)
-    val res = new ParReduceFunc[(String, Seq[String]), (String, Seq[String])]((s1,s2) => (s1._1, s1._2 ++ s2._2)).apply(grouped)
+    val grouped = new ParGroupByFunc[String,String](f).apply(text.toBuffer)
+    val res = new ParReduceFunc[(String, Buf[String]), (String, Seq[String])]((s1,s2) => (s1._1, s1._2 ++ s2._2)).apply(grouped)
     res.foreach(println(_))
   }
 
   @Test
   def testReduceByKeyFunc(){
     val ddm = HDM(text)
-    val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text.toSeq)
+    val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text.toBuffer)
     val res = new ParReduceBy[(String,Int), String](_._1, (s1,s2) => (s1._1, s1._2 + s2._2)).apply(mapped)
     res.foreach(println(_))
   }
@@ -67,7 +67,7 @@ class DDMFunctionTest {
   def testGroupFoldByKey(){
 
     val ddm = HDM(text)
-    val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text.toSeq)
+    val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text.toBuffer)
     val res = new ParGroupByAggregation[(String,Int),String, Int](_._1, _._2, _+_).apply(mapped)
     res.foreach(println(_))
 

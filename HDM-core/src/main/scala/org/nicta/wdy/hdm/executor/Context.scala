@@ -40,8 +40,12 @@ object HDMContext extends  Context{
 
   lazy val parallelismFactor = Try {defaultConf.getDouble("hdm.executor.parallelism.factor")} getOrElse (1.0D)
 
+  lazy val PLANER_PARALLEL_CPU_FACTOR = Try {defaultConf.getInt("hdm.planner.parallelism.cpu.factor")} getOrElse (CORES)
+
+  lazy val PLANER_PARALLEL_NETWORK_FACTOR = Try {defaultConf.getInt("hdm.planner.parallelism.network.factor")} getOrElse (2)
+
   val CORES = Runtime.getRuntime.availableProcessors
-  
+
   val slot = new AtomicInteger(1)
 
   val isLinux = System.getProperty("os.name").toLowerCase().contains("linux")
@@ -112,9 +116,9 @@ object HDMContext extends  Context{
 
 
   def explain(hdm:HDM[_, _],parallelism:Int) = {
-    val hdmOpt = new FunctionFusion().optimize(hdm)
-    planer.plan(hdmOpt, parallelism)
-//    planer.plan(hdm, parallelism)
+//    val hdmOpt = new FunctionFusion().optimize(hdm)
+//    planer.plan(hdmOpt, parallelism)
+    planer.plan(hdm, parallelism)
   }
 
   def compute(hdm:HDM[_, _], parallelism:Int):Future[HDM[_,_]] =    {
@@ -196,7 +200,7 @@ object HDMContext extends  Context{
     new PairHDM(hdm)
   }
 
-  implicit def hdmToGroupedSeqHDM[K:ClassTag, V: ClassTag](hdm:HDM[_, (K,Seq[V])] ): GroupedSeqHDM[K,V] = {
+  implicit def hdmToGroupedSeqHDM[K:ClassTag, V: ClassTag](hdm:HDM[_, (K,Buffer[V])] ): GroupedSeqHDM[K,V] = {
     new GroupedSeqHDM[K,V](hdm)
   }
 

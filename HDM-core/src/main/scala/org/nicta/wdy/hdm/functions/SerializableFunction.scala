@@ -19,8 +19,16 @@ trait SerializableFunction[I,R] extends  Serializable{
 
 trait Aggregatable[T,R] {
 
-  def aggregate(params:Seq[T], res:Buffer[R]): Buffer[R]
+  def zero(params:T): R
 
+  def aggregate(params:T, res:R): R
+
+
+}
+
+trait ShuffleAggregatable[K,T,R] extends Aggregatable[T,R]{
+
+  def map(param:T):K
 }
 
 trait Mergeable[R] {

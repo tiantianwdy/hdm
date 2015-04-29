@@ -9,6 +9,7 @@ import com.baidu.bpit.akka.server.SmsSystem
 import org.apache.commons.logging.LogFactory
 import org.slf4j.{LoggerFactory, Logger}
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
@@ -294,31 +295,30 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
     future
   }
 
-  private def getAvailableWorks(): Seq[Path] = {
-
-    followerMap.filter(t => t._2.get() > 0).map(s => Path(s._1)).toSeq
-  }
 
 
   private def findPreferredWorker(task: Task[_, _]): String = try {
 
-//    val inputLocations = task.input.flatMap(hdm => HDMBlockManager().getRef(hdm.id).blocks).map(Path(_))
-    val inputLocations = task.input.flatMap{ hdm =>
+    //    val inputLocations = task.input.flatMap(hdm => HDMBlockManager().getRef(hdm.id).blocks).map(Path(_))
+    val inputLocations = task.input.flatMap { hdm =>
       val nhdm = HDMBlockManager().getRef(hdm.id)
-        if(nhdm.preferLocation == null)
+      if (nhdm.preferLocation == null)
         nhdm.blocks.map(Path(_))
       else Seq(nhdm.preferLocation)
     }
     log.info(s"Block prefered input locations:${inputLocations.mkString(",")}")
-    val availableWorkers = getAvailableWorks()
-    //find closest worker which has positive slot in flower map
-    if(availableWorkers.size > 0){
-      val workerPath = Path.findClosestLocation(availableWorkers, inputLocations).toString
+    val candidates =
+      if (task.dep == OneToN || task.dep == OneToOne) Scheduler.getAllAvailableWorkers(followerMap) // for parallel tasks
+      else Scheduler.getFreestWorkers(followerMap) // for shuffle tasks
+
+    //find closest worker from candidates
+    if (candidates.size > 0) {
+      val workerPath = Path.findClosestLocation(candidates, inputLocations).toString
       followerMap.get(workerPath).decrementAndGet() // reduce slots of worker
       workerPath
     } else ""
   } catch {
-    case e:Throwable => log.error(e, s"failed to find worker for task:${task.taskId}"); ""
+    case e: Throwable => log.error(e, s"failed to find worker for task:${task.taskId}"); ""
   }
 
 }

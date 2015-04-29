@@ -14,6 +14,7 @@ import org.nicta.wdy.hdm.message.AddTaskMsg
 import org.nicta.wdy.hdm.model.{DDM, DFM, HDM}
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.reflect.ClassTag
@@ -237,5 +238,31 @@ class SimpleActorBasedScheduler(implicit val executorService:ExecutionContext) e
     } else ""
   } catch {
     case e:Throwable => log.error(e, s"failed to find worker for task:${task.taskId}"); ""
+  }
+}
+
+object Scheduler {
+
+  def getAllAvailableWorkers(candidateMap: mutable.Map[String, AtomicInteger]): Seq[Path] = {
+
+    candidateMap.filter(t => t._2.get() > 0).map(s => Path(s._1)).toSeq
+  }
+
+  def getFreestWorkers(candidateMap: mutable.Map[String, AtomicInteger]): Seq[Path] = {
+    val workers = mutable.Buffer.empty[Path]
+    val sorted = candidateMap.filter(t => t._2.get() > 0).toSeq.sortBy(_._2.get())(ord = Ordering[Int].reverse).iterator
+    if(sorted.hasNext){
+      var cur = sorted.next()
+      workers += Path(cur._1)
+      var next:(String, AtomicInteger) = null
+      while(sorted.hasNext) {
+        next = sorted.next()
+        if (next != null && (next._2.get >= cur._2.get())) {
+          workers += Path(next._1)
+          cur = next
+        }
+      }
+    }
+    workers
   }
 }

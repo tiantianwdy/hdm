@@ -64,7 +64,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   def reduce[R1>: R :ClassTag](t:R1)(f: (R1, R1) => R): HDM[_,R1] =  { //parallel func is different with aggregation func
     ClosureCleaner(f)
-    val mapAllFunc = (elems:Seq[R]) => Seq(elems.reduce(f))
+    val mapAllFunc = (elems:Buf[R]) => Buf(elems.reduce(f))
     val parallel = new DFM[R,R](children = Seq(this), dependency = OneToOne, func = new ParMapAllFunc[R,R](mapAllFunc), distribution = distribution, location = location)
     new DFM[R,R1](children = Seq(parallel), dependency = NToOne, func = new ParReduceFunc[R,R1](f), distribution = distribution, location = location).withParallelism(1)
   }
@@ -74,13 +74,13 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
     new DFM[R,R](children = Seq(this), dependency = OneToOne, func = new ParFindByFunc(f), distribution = distribution, location = location)
   }
 
-  def groupBy[K:ClassTag](f: R=> K): HDM[_,(K,Seq[R])] = {
+  def groupBy[K:ClassTag](f: R=> K): HDM[_,(K,Buf[R])] = {
     ClosureCleaner(f)
 
     val pFunc = (t:R) => f(t).hashCode()
     val parallel = new DFM[R,R](children = Seq(this), dependency = OneToN, func = new NullFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
 //    val parallel = this.copy(dependency = OneToN, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
-    new DFM[R,(K, Seq[R])](children = Seq(parallel), dependency = NToOne, func = new ParGroupByFunc(f), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, Seq[R])](1))
+    new DFM[R,(K, Buf[R])](children = Seq(parallel), dependency = NToOne, func = new ParGroupByFunc(f), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, Buf[R])](1))
 
 
 /*
@@ -117,11 +117,11 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
     ClosureCleaner(f)
     ClosureCleaner(r)
     val pFunc = (t:(K, R)) => t._1.hashCode()
-    val mapAll = (elems:Seq[R]) => {
-      elems.groupBy(f).mapValues(_.reduce(r)).toSeq
+    val mapAll = (elems:Buf[R]) => {
+      elems.groupBy(f).mapValues(_.reduce(r)).toBuffer
     }
     val parallel = new DFM[R,(K, R)](children = Seq(this), dependency = OneToN, func = new ParMapAllFunc(mapAll), distribution = distribution, location = location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
-    val groupReduce = (elems:Seq[(K,R)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(r)).toSeq
+    val groupReduce = (elems:Buf[(K,R)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(r)).toBuffer
     new DFM[(K, R),(K, R)](children = Seq(parallel), dependency = NToOne, func = new ParMapAllFunc(groupReduce), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, R)](1))
 
   }
@@ -131,17 +131,17 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
     ClosureCleaner(m)
     ClosureCleaner(r)
     val pFunc = (t:(K, V)) => t._1.hashCode()
-    val mapAll = (elems:Seq[R]) => {
-      elems.groupBy(f).mapValues(_.map(m).reduce(r)).toSeq
+    val mapAll = (elems:Buf[R]) => {
+      elems.groupBy(f).mapValues(_.map(m).reduce(r)).toBuffer
     }
     val parallel = new DFM[R,(K, V)](children = Seq(this), dependency = OneToN, func = new ParMapAllFunc(mapAll), distribution = distribution, location = location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
-    val groupReduce = (elems:Seq[(K,V)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(r)).toSeq
+    val groupReduce = (elems:Buf[(K,V)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(r)).toBuffer
     new DFM(children = Seq(parallel), dependency = NToOne, func = new ParMapAllFunc(groupReduce), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
 
   }
 
   def count(): HDM[_, Int] = {
-    val countFunc = (elems:Seq[R]) =>  Seq(elems.size)
+    val countFunc = (elems:Buf[R]) =>  Buf(elems.size)
     val parallel = new DFM[R,Int](children = Seq(this), dependency = OneToOne, func = new ParMapAllFunc(countFunc), distribution = distribution, location = location, keepPartition = false, partitioner = new KeepPartitioner[Int](1))
     val reduceFunc = (l1:Int, l2 :Int) => l1 + l2
     new DFM[Int,Int](children = Seq(parallel), dependency = NToOne, func = new ParReduceFunc(reduceFunc), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[Int](1), parallelism = 1)
@@ -149,7 +149,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
   }
 
   def top(k:Int)(implicit ordering: Ordering[R]): HDM[_, R] = {
-    val topFunc = (elems:Seq[R]) =>  elems.sorted(ord = ordering.reverse)
+    val topFunc = (elems:Buf[R]) =>  elems.sorted(ord = ordering.reverse)
     val parallel = new DFM[R, R](children = Seq(this), dependency = OneToOne, func = new ParMapAllFunc(topFunc), distribution = distribution, location = location, keepPartition = false, partitioner = new KeepPartitioner[R](1))
     new DFM[R,R](children = Seq(parallel), dependency = NToOne, func = new ParMapAllFunc(topFunc), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[R](1), parallelism = 1)
 
@@ -227,7 +227,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
     val ddms = blocks.map( url =>
       HDMBlockManager().getBlock(Path(url).name))
     if(ddms != null && !ddms.isEmpty)
-      ddms.map(_.data).flatten.take(size).map(_.toString)
+      ddms.map(_.data.asInstanceOf[mutable.Buffer[R]]).flatten.take(size).map(_.toString)
     else Seq.empty[String]
   }
 

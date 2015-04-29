@@ -18,7 +18,7 @@ class ParallelFunctionsTest {
         this is a word count text
         this is line 2
         this is line 3
-    """.split("\\s+").toSeq
+    """.split("\\s+").toBuffer
 
   val numberArray = Seq.fill(10){Math.random()}
 
@@ -61,7 +61,7 @@ class ParallelFunctionsTest {
       case ss => ss
     }
     val gb = new ParGroupByFunc[String,String](f)
-    var res: mutable.Buffer[(String,Seq[String])] = ArrayBuffer.empty[(String,Seq[String])]
+    var res: mutable.Buffer[(String,Buf[String])] = ArrayBuffer.empty[(String,Buf[String])]
     for (i <- 1 to 10)
       res = gb.aggregate(text,res)
     res.foreach(println(_))
@@ -75,7 +75,7 @@ class ParallelFunctionsTest {
     }
 
     val grouped = new ParGroupByFunc[String,String](f).apply(text)
-    val res = new ParReduceFunc[(String, Seq[String]), (String, Seq[String])]((s1,s2) => (s2._1, s1._2 ++ s2._2)).apply(grouped)
+    val res = new ParReduceFunc[(String, Buf[String]), (String, Buf[String])]((s1,s2) => (s2._1, s1._2 ++ s2._2)).apply(grouped)
     res.foreach(println(_))
   }
 
@@ -87,8 +87,8 @@ class ParallelFunctionsTest {
     }
 
     val grouped = new ParGroupByFunc[String,String](f).apply(text)
-    val reduce = new ParReduceFunc[(String, Seq[String]), (String, Seq[String])]((s1,s2) => (s2._1, s1._2 ++ s2._2))
-    var res:mutable.Buffer[(String,Seq[String])] = ArrayBuffer.empty[(String,Seq[String])]
+    val reduce = new ParReduceFunc[(String, Buf[String]), (String, Buf[String])]((s1,s2) => (s2._1, s1._2 ++ s2._2))
+    var res:mutable.Buffer[(String,Buf[String])] = ArrayBuffer.empty[(String,Buf[String])]
     for (i <- 1 to 3)
       res = reduce.aggregate(grouped,res)
     res.foreach(println(_))
@@ -132,7 +132,7 @@ class ParallelFunctionsTest {
     val mapF = new ParMapFunc[String,(String,Int)](f)
     val mapped = mapF.apply(text)
     val groupBy = new ParGroupByFunc[(String,Int),String](_._1)
-    val mv = (t:(String, Seq[(String,Int)])) => {
+    val mv = (t:(String, Buf[(String,Int)])) => {
       (t._1, t._2.map(_._2).reduce(_+_))
     }
     val mapValues = new ParMapFunc(mv)
@@ -155,7 +155,7 @@ class ParallelFunctionsTest {
     val mapped = mapF.apply(text)
 
     val groupBy = new ParGroupByFunc[(String,Int),String](_._1)
-    val mv = (t:(String, Seq[(String,Int)])) => {
+    val mv = (t:(String, Buf[(String,Int)])) => {
       (t._1, t._2.map(_._2).reduce(_+_))
     }
     val mapValues = new ParMapFunc(mv)

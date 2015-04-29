@@ -34,7 +34,7 @@ class TechfestDemo {
 
   @Test
   def testHDFSExecution(): Unit = {
-    HDMContext.init(leader = "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
+    HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1000)
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
     val hdm = HDM(path, false)
@@ -64,16 +64,16 @@ class TechfestDemo {
 
   @Test
   def testBenchMark(): Unit ={
-    val context = "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster"
+    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
-    val parallelism = 4
+    val parallelism = 1
     val len = 3
     val benchmark = new HDMPrimitiveBenchmark(context)
-    HDMContext.init(leader = "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
+    HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1500)
 //    benchmark.testGroupBy(data,len, parallelism)
-    benchmark.testFindByKey(data,len, parallelism, "a")
-//    benchmark.testReduceByKey(data,len, parallelism)
+//    benchmark.testFindByKey(data,len, parallelism, "a")
+    benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)
     Thread.sleep(50000000)
   }

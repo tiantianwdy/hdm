@@ -63,22 +63,22 @@ class PairHDM[T:ClassTag, K:ClassTag,V:ClassTag](self:HDM[T,(K,V)]) extends Seri
 }
 
 
-class GroupedSeqHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,Seq[V])]) extends Serializable{
+class GroupedSeqHDM[K:ClassTag,V:ClassTag](self:HDM[_,(K,Buf[V])]) extends Serializable{
   
-  def mapValuesByKey[R:ClassTag](f: V => R):HDM[(K,Seq[V]), (K,Seq[R])] = {
-    val func = (v: Seq[V]) => v.map(f)
-    new DFM[(K, Seq[V]),(K, Seq[R])](children = Seq(self), dependency = OneToOne, func = new MapValues[Seq[V],K,Seq[R]](func), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, Seq[R])](1))
+  def mapValuesByKey[R:ClassTag](f: V => R):HDM[(K,Buf[V]), (K,Buf[R])] = {
+    val func = (v: Buf[V]) => v.map(f)
+    new DFM[(K, Buf[V]),(K, Buf[R])](children = Seq(self), dependency = OneToOne, func = new MapValues[Buf[V],K,Buf[R]](func), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, Buf[R])](1))
 
   }
 
-  def findValuesByKey(f: V => Boolean):HDM[(K,Seq[V]), (K,Seq[V])] = {
-    new DFM[(K, Seq[V]),(K, Seq[V])](children = Seq(self), dependency = OneToOne, func = new FindValuesByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, Seq[V])](1))
+  def findValuesByKey(f: V => Boolean):HDM[(K,Buf[V]), (K,Buf[V])] = {
+    new DFM[(K, Buf[V]),(K, Buf[V])](children = Seq(self), dependency = OneToOne, func = new FindValuesByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, Buf[V])](1))
   }
 
-  def reduceValues(f :(V,V) => V): HDM[(K,Seq[V]), (K,V)] = {
-    new DFM[(K, Seq[V]),(K, V)](children = Seq(self),
+  def reduceValues(f :(V,V) => V): HDM[(K,Buf[V]), (K,V)] = {
+    new DFM[(K, Buf[V]),(K, V)](children = Seq(self),
       dependency = OneToOne,
-      func = new MapValues[Seq[V],K,V](_.reduce(f)),
+      func = new MapValues[Buf[V],K,V](_.reduce(f)),
       distribution = self.distribution,
       location = self.location,
       keepPartition = true,

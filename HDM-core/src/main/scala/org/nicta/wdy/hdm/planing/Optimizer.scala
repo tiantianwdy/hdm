@@ -22,6 +22,16 @@ trait LogicalOptimizer extends Serializable {
 
 }
 
+/**
+ *
+ */
+trait PhysicalOptimizer extends Serializable {
+
+  def optimize(hdms: Seq[HDM[_, _]]): Seq[HDM[_, _]]
+
+}
+
+
 class FunctionFusion extends LogicalOptimizer {
 
   /**

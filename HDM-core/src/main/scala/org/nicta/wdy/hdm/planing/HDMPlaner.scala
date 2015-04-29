@@ -40,14 +40,32 @@ trait DynamicPlaner {
 
 object StaticPlaner extends HDMPlaner{
 
-  val planer = new DefaultPhysicalPlanner(HDMBlockManager(), true)
+  val physicalPlaner = new DefaultPhysicalPlanner(HDMBlockManager(), isStatic = true)
+  
+  val logicalPlanner = new DefaultLocalPlaner
+
+  /**
+   * ordered optimizers
+   */
+  val logicOptimizers:Seq[LogicalOptimizer] = Seq{
+    new FunctionFusion()
+  }
+
+  val physicalOptimizers:Seq[PhysicalOptimizer] = Seq.empty[PhysicalOptimizer]
 
   override def plan(hdm:HDM[_,_], maxParallelism:Int):Seq[HDM[_,_]] = {
     val explainedMap  = new java.util.HashMap[String, HDM[_,_]]()// temporary map to save updated hdms
-    val logicPlan = DefaultLocalPlaner.plan(hdm, maxParallelism)
+    var optimized = hdm
+    // optimization
+    logicOptimizers foreach { optimizer =>
+      optimized = optimizer.optimize(hdm)
+    }
+    // logical planning
+    val logicPlan = logicalPlanner.plan(optimized, maxParallelism)
+    //physical planning
     logicPlan.map{ h =>
       val input = Try {h.children.map(cld => explainedMap.get(cld.id)).asInstanceOf[Seq[HDM[_,h.inType.type]]]} getOrElse {Seq.empty[HDM[_,h.inType.type]]}
-      val newHdms = planer.plan(input, h.asInstanceOf[HDM[h.inType.type, h.outType.type ]], h.parallelism)
+      val newHdms = physicalPlaner.plan(input, h.asInstanceOf[HDM[h.inType.type, h.outType.type ]], h.parallelism)
       newHdms.foreach(nh => explainedMap.put(nh.id, nh))
       newHdms
     }

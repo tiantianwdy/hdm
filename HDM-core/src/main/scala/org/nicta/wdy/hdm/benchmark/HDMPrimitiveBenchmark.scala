@@ -50,7 +50,8 @@ class HDMPrimitiveBenchmark(val context:String) {
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
          println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-         hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
+         System.exit(1)
        case Failure(t) =>
          println("Job failed because of: " + t)
          t.printStackTrace()
@@ -70,7 +71,8 @@ class HDMPrimitiveBenchmark(val context:String) {
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
          println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-         hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
+         System.exit(1)
        case Failure(t) =>
          println("Job failed because of: " + t)
          t.printStackTrace()
@@ -89,7 +91,7 @@ class HDMPrimitiveBenchmark(val context:String) {
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
          println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-         hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
        case Failure(t) =>
          println("Job failed because of: " + t)
          t.printStackTrace()
@@ -119,7 +121,8 @@ class HDMPrimitiveBenchmark(val context:String) {
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
          println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-         hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
+         System.exit(1)
        case Failure(t) =>
          println("Job failed because of: " + t)
          t.printStackTrace()
@@ -136,14 +139,15 @@ class HDMPrimitiveBenchmark(val context:String) {
        if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
        else (as(0), as(1).toInt)
      }
-       //.reduceByKey((t1,t2) => t1 + t2)
-       .groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+       .reduceByKey((t1,t2) => t1 + t2)
+//       .groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
 
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
          println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-         hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
+         System.exit(1)
        case Failure(t) =>
          println("Job failed because of: " + t)
          t.printStackTrace()
@@ -166,7 +170,8 @@ class HDMPrimitiveBenchmark(val context:String) {
     wordCount.compute(parallelism) onComplete  {
       case Success(hdm) =>
         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+        hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
+        System.exit(1)
       case Failure(t) =>
         println("Job failed because of: " + t)
         t.printStackTrace()
@@ -192,7 +197,8 @@ class HDMPrimitiveBenchmark(val context:String) {
     wordCount.compute(parallelism) onComplete  {
       case Success(hdm) =>
         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+        hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
+        System.exit(1)
       case Failure(t) =>
         println("Job failed because of: " + t)
         t.printStackTrace()
@@ -215,7 +221,7 @@ class HDMPrimitiveBenchmark(val context:String) {
     wordCount.compute(parallelism) onComplete  {
       case Success(hdm) =>
         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+        hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
       case Failure(t) =>
         println("Job failed because of: " + t)
         t.printStackTrace()

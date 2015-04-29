@@ -45,21 +45,23 @@ class HDMPlanerTest {
   @Test
   def testClusterPlanner(): Unit ={
     HDMContext.init()
-    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
+    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings")
     val hdm = HDM(path, false)
     val wordCount = hdm.map{ w =>
       val as = w.split(",");
       (as(0).substring(0,3), as(1).toInt)
     }
-      //.groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
-      .groupBy(_._1).findByKey(_.startsWith("a"))
+      .groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+//      .groupBy(_._1).findByKey(_.startsWith("a"))
       //.map(t => (t._1, t._2.map(_._2).reduce(_+_)))
       //hdm.map(d=> (d,1)).groupBy(_._1)
       //.map(t => (t._1, t._2.map(_._2))).reduce(("", Seq(0)))((t1,t2) => (t1._1, t1._2))
 
-    val wordCountOpti = new FunctionFusion().optimize(wordCount)
+    HDMContext.explain(wordCount, 1).foreach(println(_))
 
-    StaticPlaner.plan(wordCountOpti, 4).foreach(println(_))
+/*    val wordCountOpti = new FunctionFusion().optimize(wordCount)
+
+    StaticPlaner.plan(wordCountOpti, 4).foreach(println(_))*/
 
   }
 
