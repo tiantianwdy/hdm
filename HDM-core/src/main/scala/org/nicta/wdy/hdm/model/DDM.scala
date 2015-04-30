@@ -78,13 +78,14 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
 
 object DDM {
 
-  def apply[T: ClassTag](id:String, elems: Seq[T]): DDM[T,T] = {
+  def apply[T: ClassTag](id:String, elems: Seq[T], broadcast:Boolean = false): DDM[T,T] = {
     val ddm = new DDM[T,T](id= id,
       func = new NullFunc[T],
       state = Computed,
       location = Path(HDMContext.localBlockPath + "/" + id))
-    HDMContext.addBlock(Block(ddm.id, elems))
-    HDMContext.declareHdm(Seq(ddm))
+    HDMContext.addBlock(Block(ddm.id, elems), false)
+    if(broadcast)
+      HDMContext.declareHdm(Seq(ddm))
     ddm
   }
 
@@ -93,7 +94,7 @@ object DDM {
     this.apply(id,elems)
   }
 
-  def apply[T: ClassTag](elems: Seq[Seq[T]]): Seq[DDM[T, T]] = {
+  def apply[T: ClassTag](elems: Seq[Seq[T]], broadcast:Boolean = false): Seq[DDM[T, T]] = {
     val (ddms, blocks:Seq[Block[T]]) =
       elems.map { seq =>
         val id = HDMContext.newLocalId()
@@ -108,7 +109,8 @@ object DDM {
         (d, bl)
       }.unzip
     HDMBlockManager().addAll(blocks) //todo change to use HDMContext
-    HDMContext.declareHdm(ddms)
+    if(broadcast)
+      HDMContext.declareHdm(ddms)
     ddms
   }
 }

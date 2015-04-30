@@ -6,6 +6,8 @@ import org.nicta.wdy.hdm.io.{HDMIOManager, DataParser, Path}
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.functions.{ParCombinedFunc, ParallelFunction, DDMFunction_1, SerializableFunction}
 import java.util.concurrent.{LinkedBlockingDeque, TimeUnit, Callable}
+import org.slf4j.LoggerFactory
+
 import scala.collection.mutable
 import scala.collection.mutable.{Buffer, ArrayBuffer}
 import scala.concurrent.duration.Duration
@@ -27,6 +29,8 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
                      partitioner: Partitioner[R] = null,
                      createTime:Long = System.currentTimeMillis())
                      extends Serializable with Callable[Seq[DDM[_,R]]]{
+
+  val log = LoggerFactory.getLogger(classOf[Scheduler])
 
   final val inType = classTag[I]
 
@@ -51,7 +55,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
 
       val inputData = blocks.map(_.data.asInstanceOf[Buf[I]]).flatten
       val ouputData = func.apply(inputData)
-      println(s"non-iterative shuffle results: ${ouputData.take(10)}")
+      log.trace(s"non-iterative shuffle results: ${ouputData.take(10)}")
       val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
         Seq(DDM[R](taskId, ouputData))
       } else {
@@ -67,11 +71,11 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       val data = input.map { in =>
         val inputData = DataParser.readBlock(in, true)
         //apply function
-        println(s"Input data preparing finished, the task starts running: [${(taskId, func)}] ")
+        log.info(s"Input data preparing finished, the task starts running: [${(taskId, func)}] ")
         func.apply(inputData.data.asInstanceOf[Buf[I]])
 
       }.flatten
-      println(s"sequence results: ${data.take(10)}")
+      log.trace(s"sequence results: ${data.take(10)}")
       //partition as seq of data
       val ddms = if(partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
         Seq(DDM[R](taskId, data))
@@ -95,7 +99,9 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       val ddms = if(partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
         Seq(DDM[R](taskId, data))
       } else {
-        partitioner.split(data).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
+        partitioner.split(data).map(seq =>
+          DDM(taskId + "_p" + seq._1, seq._2, false)
+        ).toSeq
       }
       ddms
       //    DFM(children = input, blocks = blocks.map(_.id), state = Computed, func = func)
@@ -106,7 +112,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
     }
 
   def runTaskIteratively()(implicit executionContext: ExecutionContext): Seq[DDM[_,_]] = {
-    println(s"Preparing input data for task: [${(taskId, func)}] ")
+    log.info(s"Preparing input data for task: [${(taskId, func)}] ")
     val iter = input.iterator
     var res:Buffer[R] = ArrayBuffer.empty[R]
     val inputFinished = new AtomicBoolean(false)
@@ -120,7 +126,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
     }
 
     if (func.isInstanceOf[ParCombinedFunc[I,_,R]] ) {
-      println(s"Running as shuffle aggregation..")
+      log.info(s"Running as shuffle aggregation..")
       val tempF = func.asInstanceOf[ParCombinedFunc[I,_,R]]
       val concreteFunc = tempF.asInstanceOf[ParCombinedFunc[I,tempF.mediateType.type,R]]
       var partialRes:mutable.Buffer[tempF.mediateType.type ] = ArrayBuffer.empty[tempF.mediateType.type ]
@@ -137,10 +143,10 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
 //      println(s"partial results: ${partialRes.take(10)}")
 //      partialRes =  concreteFunc.getAggregator().getResults
       res = concreteFunc.postF(partialRes)
-//      println(s"shuffle results: ${res.take(10)}")
+      log.trace(s"shuffle results: ${res.take(10)}")
 
     } else {
-      println(s"Running as parallel aggregation..")
+      log.info(s"Running as parallel aggregation..")
       while (!inputFinished.get()) {
         val block = inputQueue.take()
         res = func.aggregate(block.data.asInstanceOf[Buf[I]], res)

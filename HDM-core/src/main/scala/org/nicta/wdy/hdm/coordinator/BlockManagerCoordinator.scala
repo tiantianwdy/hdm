@@ -29,7 +29,7 @@ class BlockManagerLeader extends WorkActor {
 
   override def process: PartialFunction[Any, Unit] = {
 
-    case AddRefMsg(refs) =>
+    case AddRefMsg(refs, broadcast) =>
       val senderPath = sender.path
       val nRefs = refs.map { r =>
         r match {
@@ -42,9 +42,12 @@ class BlockManagerLeader extends WorkActor {
         }
       }
       blockManager.addAllRef(refs)
-      for (follower <- followerMap.toSeq){
-        if(follower._1 != senderPath.toString) context.actorSelection(follower._1) ! SyncRefMsg(refs)
+      if(broadcast){
+        for (follower <- followerMap.toSeq){
+          if(follower._1 != senderPath.toString) context.actorSelection(follower._1) ! SyncRefMsg(refs)
+        }
       }
+
       log.debug(s"Block references have has been added: [${nRefs.map(r => (r.id, r.location.toString)).mkString(",")}] ")
 
     case RemoveRefMsg(id) =>
@@ -55,7 +58,7 @@ class BlockManagerLeader extends WorkActor {
       }
       log.debug(s"A Block reference has has been removed: [${id}] ")
 
-    case AddBlockMsg(bl) =>
+    case AddBlockMsg(bl, declare) =>
       blockManager.add(bl.id, bl)
       log.debug(s"A Block data has has been added: [${bl.id}] ")
 
@@ -133,9 +136,9 @@ class BlockManagerFollower(val leaderPath: String) extends WorkActor {
    */
   override def process: PartialFunction[Any, Unit] = {
 
-    case AddRefMsg(refs) =>
+    case AddRefMsg(refs, broadcast) =>
       blockManager.addAllRef(refs)
-      if (sender.path.toString != leaderPath)
+      if (broadcast && sender.path.toString != leaderPath)
         context.actorSelection(leaderPath).tell(AddRefMsg(refs), self)
       log.debug(s"Block references have has been added: [${refs.map(r => (r.id, r.location.toString)).mkString(",")}] ")
 
@@ -149,9 +152,9 @@ class BlockManagerFollower(val leaderPath: String) extends WorkActor {
         context.actorSelection(leaderPath).tell(RemoveRefMsg(id), self)
       log.debug(s"A Block reference has has been removed: [${id}] ")
 
-    case AddBlockMsg(bl) =>
+    case AddBlockMsg(bl, declare) =>
       blockManager.add(bl.id, bl)
-      if (sender.path.toString != leaderPath) {
+      if (declare && sender.path.toString != leaderPath) {
         val id = HDMContext.newLocalId()
         val ddm = new DDM(id = id,
           state = Computed,

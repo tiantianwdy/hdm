@@ -126,12 +126,12 @@ object HDMContext extends  Context{
     submitJob(hdm.id, hdm, parallelism)
   }
 
-  def declareHdm(hdms:Seq[HDM[_,_]]) = {
-     SmsSystem.forwardLocalMsg(BLOCK_MANAGER_NAME, AddRefMsg(hdms))
+  def declareHdm(hdms:Seq[HDM[_,_]], declare:Boolean = true) = {
+     SmsSystem.forwardLocalMsg(BLOCK_MANAGER_NAME, AddRefMsg(hdms, declare))
   }
 
-  def addBlock(block:Block[_]) = {
-    SmsSystem.forwardLocalMsg(BLOCK_MANAGER_NAME, AddBlockMsg(block))
+  def addBlock(block:Block[_], declare:Boolean) = {
+    SmsSystem.forwardLocalMsg(BLOCK_MANAGER_NAME, AddBlockMsg(block, declare))
   }
 
   def queryBlock(id:String, location:String) = {

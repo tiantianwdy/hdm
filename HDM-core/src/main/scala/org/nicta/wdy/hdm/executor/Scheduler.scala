@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.executor
 
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
-import java.util.concurrent.{TimeUnit, ConcurrentHashMap, LinkedBlockingQueue}
+import java.util.concurrent.{Semaphore, TimeUnit, ConcurrentHashMap, LinkedBlockingQueue}
 
 import akka.pattern.ask
 import akka.util.Timeout
@@ -11,8 +11,10 @@ import org.nicta.wdy.hdm.coordinator.ClusterExecutor
 import org.nicta.wdy.hdm.functions.{ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.{AkkaIOManager, Path}
 import org.nicta.wdy.hdm.message.AddTaskMsg
-import org.nicta.wdy.hdm.model.{DDM, DFM, HDM}
+import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
+import org.nicta.wdy.hdm.utils.Logging
+import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -35,7 +37,7 @@ trait Scheduler {
 
   def init()
 
-  def start()
+  def startup()
 
   def stop()
 
@@ -43,18 +45,24 @@ trait Scheduler {
 
 }
 
-class SimpleActorBasedScheduler(implicit val executorService:ExecutionContext) extends Scheduler{
+/**
+ *
+ * @param candidatesMap
+ * @param executorService
+ */
+class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicInteger] = new ConcurrentHashMap[String, AtomicInteger])
+                               (implicit val executorService:ExecutionContext) extends Scheduler{
 
   this: WorkActor =>
 
   import scala.collection.JavaConversions._
 
 
-  val blockManager = HDMBlockManager()
+  val blockManager = HDMBlockManager() //todo get from HDMContext
 
-  val ioManager = new AkkaIOManager
+  val ioManager = new AkkaIOManager //todo get from HDMContext
 
-  val appManager = new AppManager
+  val appManager = new AppManager //todo get from HDMContext
 
   val appBuffer: java.util.Map[String, ListBuffer[Task[_, _]]] = new ConcurrentHashMap[String, ListBuffer[Task[_, _]]]()
 
@@ -62,10 +70,7 @@ class SimpleActorBasedScheduler(implicit val executorService:ExecutionContext) e
 
   val promiseMap = new ConcurrentHashMap[String, Promise[_]]()
 
-  /**
-   * maintain the state or free slots of each follower
-   */
-  val followerMap: java.util.Map[String, AtomicInteger] = new ConcurrentHashMap[String, AtomicInteger]
+  val workingSize = new Semaphore(0)
 
   val isRunning = new AtomicBoolean(false)
 
@@ -83,22 +88,24 @@ class SimpleActorBasedScheduler(implicit val executorService:ExecutionContext) e
       // run job, assign to remote or local node to execute this task
       val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
       val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
-      var workerPath = findPreferredWorker(updatedTask)
+      workingSize.acquire(1)
+      var workerPath = Scheduler.findPreferredWorker(updatedTask, candidatesMap )
       while (workerPath == null || workerPath == ""){ // wait for available workers
         log.info(s"no worker available for task[${task.taskId + "__" + task.func.toString}}] ")
-        workerPath = findPreferredWorker(updatedTask)
-        Thread.sleep(100)
+        workerPath = Scheduler.findPreferredWorker(updatedTask, candidatesMap)
+        Thread.sleep(50)
       }
       log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "__" + task.func.toString}}] ")
       val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskSynconized(updatedTask)
       else runRemoteTask(workerPath, updatedTask)
 
-      future onComplete {
-        case Success(blkUrls) =>
-          taskSucceeded(task.appId, task.taskId,task. func.toString, blkUrls)
-          followerMap.get(workerPath).incrementAndGet()
-        case Failure(t) => println(t.toString)
-      }
+//      future onComplete {
+//        case Success(blkUrls) =>
+//          candidatesMap.get(workerPath).incrementAndGet()
+//          workingSize.release(1)
+//          taskSucceeded(task.appId, task.taskId,task. func.toString, blkUrls)
+//        case Failure(t) => println(t.toString)
+//      }
     }
     log.info(s"A task has been scheduled: [${task.taskId + "__" + task.func.toString}}] ")
     promise
@@ -108,7 +115,7 @@ class SimpleActorBasedScheduler(implicit val executorService:ExecutionContext) e
     isRunning.set(false)
   }
 
-  override def start(): Unit = {
+  override def startup(): Unit = {
     isRunning.set(true)
     while (isRunning.get) {
       val task = taskQueue.take()
@@ -120,6 +127,8 @@ class SimpleActorBasedScheduler(implicit val executorService:ExecutionContext) e
   override def init(): Unit = {
     isRunning.set(false)
     taskQueue.clear()
+    val totalSlots = candidatesMap.map(_._2.get()).sum
+    workingSize.release(totalSlots)
   }
 
   override def addTask[I, R](task: Task[I, R]): Promise[HDM[I, R]] = {
@@ -171,8 +180,8 @@ class SimpleActorBasedScheduler(implicit val executorService:ExecutionContext) e
       log.info(s"A promise is triggered for : [${taskId + "_" + func}}] ")
     }
     else if (promise eq null) {
-      log.warning(s"no matched promise found: ${taskId}")
-      log.warning(s"current promiss map: ${promiseMap.keys().toSeq}")
+      log.warning(s"no matched promise found: $taskId")
+      log.debug(s"current promise map: ${promiseMap.keys().toSeq}")
     }
     triggerTasks(appId)
   }
@@ -182,7 +191,7 @@ class SimpleActorBasedScheduler(implicit val executorService:ExecutionContext) e
     if (appBuffer.containsKey(appId)) {
       val seq = appBuffer.get(appId)
       synchronized {
-        if (!seq.isEmpty) {
+        if (seq.nonEmpty) {
           //find tasks that all inputs have been computed
           val tasks = seq.filter(t =>
             if (t.input eq null) false
@@ -194,13 +203,13 @@ class SimpleActorBasedScheduler(implicit val executorService:ExecutionContext) e
                 else false
               }
             } catch {
-              case ex: Throwable => log.error(ex, s"Got exception on ${t}"); false
+              case ex: Throwable => log.error(ex, s"Got exception on $t"); false
             }
           )
-          if ((tasks ne null) && !tasks.isEmpty) {
+          if ((tasks ne null) && tasks.nonEmpty) {
             seq --= tasks
-            tasks.foreach(taskQueue.put(_))
-            log.info(s"New tasks have has been triggered: [${tasks.map(t => (t.taskId, t.func)) mkString (",")}}] ")
+            tasks.foreach(taskQueue.put)
+            log.info(s"New tasks have has been activated: [${tasks.map(t => (t.taskId, t.func)).mkString(",")}}] ")
           }
         }
       }
@@ -213,35 +222,41 @@ class SimpleActorBasedScheduler(implicit val executorService:ExecutionContext) e
     future
   }
 
-  private def getAvailableWorks(): Seq[Path] = {
-
-    followerMap.filter(t => t._2.get() > 0).map(s => Path(s._1)).toSeq
-  }
 
 
-  private def findPreferredWorker(task: Task[_, _]): String = try {
+
+
+}
+
+object Scheduler extends Logging{
+
+
+  def findPreferredWorker(task: Task[_, _], candidatesMap: mutable.Map[String, AtomicInteger]): String = try {
 
     //    val inputLocations = task.input.flatMap(hdm => HDMBlockManager().getRef(hdm.id).blocks).map(Path(_))
-    val inputLocations = task.input.flatMap{ hdm =>
+    val inputLocations = task.input.flatMap { hdm =>
       val nhdm = HDMBlockManager().getRef(hdm.id)
-      if(nhdm.preferLocation == null)
+      if (nhdm.preferLocation == null)
         nhdm.blocks.map(Path(_))
       else Seq(nhdm.preferLocation)
     }
-    log.info(s"Block prefered input locations:${inputLocations.mkString(",")}")
-    val availableWorkers = getAvailableWorks()
-    //find closest worker which has positive slot in flower map
-    if(availableWorkers.size > 0){
-      val workerPath = Path.findClosestLocation(availableWorkers, inputLocations).toString
-      followerMap.get(workerPath).decrementAndGet() // reduce slots of worker
+//    log.info(s"Block prefered input locations:${inputLocations.mkString(",")}")
+    val candidates =
+      if (task.dep == OneToN || task.dep == OneToOne) Scheduler.getAllAvailableWorkers(candidatesMap) // for parallel tasks
+      else Scheduler.getFreestWorkers(candidatesMap) // for shuffle tasks
+
+    //find closest worker from candidates
+    if (candidates.size > 0) {
+      val workerPath = Path.findClosestLocation(candidates, inputLocations).toString
+      candidatesMap(workerPath).decrementAndGet() // reduce slots of worker
       workerPath
     } else ""
   } catch {
-    case e:Throwable => log.error(e, s"failed to find worker for task:${task.taskId}"); ""
+    case e: Throwable =>
+      log.error(s"failed to find worker for task:${task.taskId}")
+      ""
   }
-}
 
-object Scheduler {
 
   def getAllAvailableWorkers(candidateMap: mutable.Map[String, AtomicInteger]): Seq[Path] = {
 

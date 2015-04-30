@@ -11,6 +11,8 @@ import org.nicta.wdy.hdm.storage.{HDMBlockManager, Block}
 import akka.serialization.Serializer
 import java.io.IOException
 
+import org.nicta.wdy.hdm.utils.Logging
+
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -104,7 +106,7 @@ class HDMParser extends DataParser {
 }
 
 
-object DataParser{
+object DataParser extends Logging{
 
   implicit val maxWaitResponseTime = Duration(600, TimeUnit.SECONDS)
 
@@ -136,7 +138,7 @@ object DataParser{
       in.location.protocol match {
         case Path.AKKA =>
           //todo replace with using data parsers
-          println(s"Asking block ${in.location.name} from ${in.location.parent}")
+          log.info(s"Asking block ${in.location.name} from ${in.location.parent}")
           val await = HDMIOManager().askBlock(in.location.name, in.location.parent) // this is only for hdm
           Await.result[Block[_]](await, maxWaitResponseTime) match {
             case data: Block[_] => data
@@ -148,11 +150,11 @@ object DataParser{
 
         case Path.HDFS =>
           val bl = DataParser.readBlock(in.location)
-          println(s"Read data size: ${bl.size} ")
+          log.info(s"finished reading block with size: ${bl.size / (1024*1024F)} MB. ")
           bl
       }
     } else {
-      println(s"input data are at local: [${in.id}] ")
+      log.info(s"input data are at local: [${in.id}] ")
       val resp = HDMBlockManager().getBlock(in.id)
       if(removeFromCache) HDMBlockManager().removeBlock(in.id)
       resp

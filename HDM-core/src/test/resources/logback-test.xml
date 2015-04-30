@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+
 <configuration>
 
     <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
@@ -12,7 +13,7 @@
     <appender name="FILE"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${log.filePattern}.log</fileNamePattern>
+            <fileNamePattern>../logs/hdm-server-%d{yyyy-MM-dd}.log</fileNamePattern>
             <maxHistory>7</maxHistory>
         </rollingPolicy>
         <encoder>
@@ -23,7 +24,7 @@
     <appender name="FILE-ERROR"
               class="ch.qos.logback.core.rolling.RollingFileAppender">
         <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
-            <fileNamePattern>${log.filePattern}-ERROR.log</fileNamePattern>
+            <fileNamePattern>../logs/hdm-server-%d{yyyy-MM-dd}-ERROR.log</fileNamePattern>
             <maxHistory>7</maxHistory>
         </rollingPolicy>
         <encoder>
@@ -32,19 +33,19 @@
     </appender>
 
     <logger name="org.nicta" level="info" >
-        <appender-ref ref="${log.appender}" />
+        <appender-ref ref="STDOUT" />
     </logger>
 
 
     <!-- Strictly speaking, the level attribute is not necessary since -->
     <!-- the level of the root level is set to DEBUG by default. -->
     <root level="INFO">
-        <appender-ref ref="${log.appender}" />
+        <appender-ref ref="STDOUT" />
     </root>
 
     <root level="WARN">
-        <appender-ref ref="${log.appender}" />
-        <appender-ref ref="${log.error.appender}" />
+        <appender-ref ref="STDOUT" />
+        <appender-ref ref="STDOUT" />
     </root>
 
 </configuration>

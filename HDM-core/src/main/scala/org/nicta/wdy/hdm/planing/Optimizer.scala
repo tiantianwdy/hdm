@@ -3,6 +3,7 @@ package org.nicta.wdy.hdm.planing
 import org.nicta.wdy.hdm.executor.KeepPartitioner
 import org.nicta.wdy.hdm.functions.{ParGroupByFunc, FindByKey}
 import org.nicta.wdy.hdm.model._
+import org.nicta.wdy.hdm.utils.Logging
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -32,7 +33,7 @@ trait PhysicalOptimizer extends Serializable {
 }
 
 
-class FunctionFusion extends LogicalOptimizer {
+class FunctionFusion extends LogicalOptimizer with Logging{
 
   /**
    * optimize the structure of HDM
@@ -50,7 +51,7 @@ class FunctionFusion extends LogicalOptimizer {
            val child = cur.children.head
            val first = child.asInstanceOf[HDM[child.inType.type, I]]
            val second = cur
-           println(s"function fusion ${first.func} with ${second.func}")
+           log.info(s"function fusion ${first.func} with ${second.func}")
            optimize(first.andThen(second))
          } else {
            val seq = cur.children.map(c => optimize(c.asInstanceOf[HDM[c.inType.type, I]]))
