@@ -22,8 +22,13 @@ object HDMBenchmark {
     val data = args(1)
     val testTag = args(2)
     val parallelism = args(3).toInt
-    val len = if(args.length >= 5) args(4).toInt else 3
-    val benchmark = new HDMPrimitiveBenchmark(context)
+    val dataTag = if(args.length >= 5) args(4) else "ranking"
+    val len = if(args.length >= 6) args(5).toInt else 3
+    val benchmark = dataTag match {
+      case "userVisits" => new KVBasedPrimitiveBenchmark(context, 1, 3)
+      case "ranking" => new KVBasedPrimitiveBenchmark(context)
+      case x => new KVBasedPrimitiveBenchmark(context)
+    }
     HDMContext.init(leader = context, slots = 0)//not allow local running
     Thread.sleep(100)
 

@@ -55,7 +55,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
 
       val inputData = blocks.map(_.data.asInstanceOf[Buf[I]]).flatten
       val ouputData = func.apply(inputData)
-      log.trace(s"non-iterative shuffle results: ${ouputData.take(10)}")
+      log.debug(s"non-iterative shuffle results: ${ouputData.take(10)}")
       val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
         Seq(DDM[R](taskId, ouputData))
       } else {
@@ -75,7 +75,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
         func.apply(inputData.data.asInstanceOf[Buf[I]])
 
       }.flatten
-      log.trace(s"sequence results: ${data.take(10)}")
+      log.debug(s"sequence results: ${data.take(10)}")
       //partition as seq of data
       val ddms = if(partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
         Seq(DDM[R](taskId, data))
@@ -143,7 +143,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
 //      println(s"partial results: ${partialRes.take(10)}")
 //      partialRes =  concreteFunc.getAggregator().getResults
       res = concreteFunc.postF(partialRes)
-      log.trace(s"shuffle results: ${res.take(10)}")
+      log.debug(s"shuffle results: ${res.take(10)}")
 
     } else {
       log.info(s"Running as parallel aggregation..")

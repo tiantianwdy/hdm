@@ -220,11 +220,11 @@ trait MasterExtensionImpl extends MasterSlaveActorExtension with RoutingService 
     val params = getConfigurations(slavePath)
     val actor = context.actorSelection(slavePath)
     actor ! InitMsg(params) //初始化
-    actor ! RoutingSyncMsg(routingService.getAllRooting) //同步数据
-    val slaveConfig = ActorConfig(id = SLAVE_NAME, name = "", clazzName = "").withDeploy(slavePath).withState(Deployment.DEPLOYED_NORMAL)
     //slave 作为Actor一样加入到rooting中
+    val slaveConfig = ActorConfig(id = SLAVE_NAME, name = "", clazzName = "").withDeploy(slavePath).withState(Deployment.DEPLOYED_NORMAL)
     routingService.removeRooting(slavePath) //去重
     routingService.addRooting(slaveConfig)
+    actor ! RoutingSyncMsg(routingService.getAllRooting) //同步数据
     log.info("A node has joined the cluster:" + slavePath)
     log.info("current nodes:")
     routingService.getRooting(SLAVE_BUSS_PATH).foreach(conf => log.debug(conf.toString))

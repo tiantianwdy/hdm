@@ -10,9 +10,12 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
 
 /**
-  * Created by tiantian on 7/01/15.
-  */
-class HDMPrimitiveBenchmark(val context:String) {
+ * consider the input is text files with columns separated by ","
+ * @param context context for running this benchmark
+ * @param kIndex
+ * @param vIndex
+ */
+class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vIndex:Int = 1) extends  Serializable{
 
    def init(context:String, localCores:Int = 0): Unit ={
      HDMContext.init(leader = context, slots = localCores)
@@ -40,11 +43,13 @@ class HDMPrimitiveBenchmark(val context:String) {
    def testTop(dataPath:String,  k:Int,  parallelism:Int = 4): Unit ={
      val path = Path(dataPath)
      val hdm = HDM(path)
+     val kOffset = kIndex
+     val vOffset = vIndex
 
      val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
        val as = w.split(",")
-       as(1).toInt
+       as(vOffset).toFloat
      }.top(k)
 
      wordCount.compute(parallelism) onComplete  {
@@ -61,12 +66,14 @@ class HDMPrimitiveBenchmark(val context:String) {
    def testMap(dataPath:String, keyLen:Int = 3, parallelism:Int = 4): Unit ={
      val path = Path(dataPath)
      val hdm = HDM(path)
+     val kOffset = kIndex
+     val vOffset = vIndex
 
      val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
        val as = w.split(",")
-       if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
-       else (as(0), as(1).toInt)
+       if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
+       else (as(kOffset), as(vOffset).toFloat)
      }
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
@@ -82,11 +89,13 @@ class HDMPrimitiveBenchmark(val context:String) {
    def testMapCount(dataPath:String,  parallelism:Int = 4): Unit ={
      val path = Path(dataPath)
      val hdm = HDM(path)
+     val kOffset = kIndex
+     val vOffset = vIndex
 
      val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
        val as = w.split(",")
-       (as(0), as(1).toInt)
+       (as(kOffset), as(vOffset).toFloat)
      }.count()
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
@@ -111,12 +120,14 @@ class HDMPrimitiveBenchmark(val context:String) {
 
      val path = Path(dataPath)
      val hdm = HDM(path)
+     val kOffset = kIndex
+     val vOffset = vIndex
 
      val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
        val as = w.split(",")
-       if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
-       else (as(0), as(1).toInt)
+       if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
+       else (as(kOffset), as(vOffset).toFloat)
      }.groupBy(_._1)
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
@@ -132,14 +143,16 @@ class HDMPrimitiveBenchmark(val context:String) {
    def testReduceByKey(dataPath:String, keyLen:Int = 3, parallelism:Int = 4): Unit ={
      val path = Path(dataPath)
      val hdm = HDM(path)
+     val kOffset = kIndex
+     val vOffset = vIndex
 
      val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
        val as = w.split(",")
-       if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
-       else (as(0), as(1).toInt)
+       if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
+       else (as(kOffset), as(vOffset).toFloat)
      }
-       .reduceByKey((t1,t2) => t1 + t2)
+       .reduceByKey(_ + _)
 //       .groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
 
@@ -158,12 +171,14 @@ class HDMPrimitiveBenchmark(val context:String) {
   def testGroupMapValues(dataPath:String, keyLen:Int = 3, parallelism:Int = 4): Unit ={
     val path = Path(dataPath)
     val hdm = HDM(path)
+    val kOffset = kIndex
+    val vOffset = vIndex
 
     val start = System.currentTimeMillis()
     val wordCount = hdm.map{ w =>
       val as = w.split(",")
-      if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
-      else (as(0), 1)
+      if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
+      else (as(kOffset), 1F)
     }.groupBy(_._1).mapValues(_.map(_._2).reduce(_ + _))
       //.map(t => (t._1, t._2.map(_._2).reduce(_+_)))
 
@@ -182,12 +197,14 @@ class HDMPrimitiveBenchmark(val context:String) {
   def testFindByKey(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, key:String): Unit ={
     val path = Path(dataPath)
     val hdm = HDM(path)
+    val kOffset = kIndex
+    val vOffset = vIndex
 
     val start = System.currentTimeMillis()
     val wordCount = hdm.map{ w =>
       val as = w.split(",")
-      if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
-      else (as(0), as(1).toInt)
+      if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
+      else (as(kOffset), as(vOffset).toFloat)
     }
     .groupBy(_._1).findByKey(_.startsWith(key))
       //.filter(t => t._1.startsWith("a")).groupBy(_._1)
@@ -209,12 +226,14 @@ class HDMPrimitiveBenchmark(val context:String) {
   def testFindByValue(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, value:Int): Unit ={
     val path = Path(dataPath)
     val hdm = HDM(path)
+    val kOffset = kIndex
+    val vOffset = vIndex
 
     val start = System.currentTimeMillis()
     val wordCount = hdm.map{ w =>
       val as = w.split(",")
-      if(keyLen > 0) (as(0).substring(0,keyLen), as(1).toInt)
-      else (as(0), as(1).toInt)
+      if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
+      else (as(kOffset), as(vOffset).toFloat)
     }.groupBy(_._1).findValuesByKey(_._2 > value)
 
 

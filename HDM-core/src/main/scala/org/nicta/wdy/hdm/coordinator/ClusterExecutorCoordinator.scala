@@ -104,8 +104,8 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
           val resActor = context.actorSelection(fullPath)
           resActor ! JobCompleteMsg(appId, 1, hdm)
           //clean resources for execution
-          val app = appManager.getApp(appId)
-          val hdms = app.plan.foreach(hdm => HDMContext.removeBlock(hdm.id))
+//          val app = appManager.getApp(appId)
+//          val hdms = app.plan.foreach(hdm => HDMContext.removeBlock(hdm.id))
           appBuffer.remove(appId)
           log.info(s"A job has completed successfully. result has been send to [${resultHandler}}]; appId: ${appId}} ")
         case Failure(t) =>
@@ -123,7 +123,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
           resActor ! JobCompleteMsg(appId, 1, hdm)
           //clean resources for execution
           val app = appManager.getApp(appId)
-          val hdms = app.plan.foreach(hdm => HDMContext.removeBlock(hdm.id))
+//          val hdms = app.plan.foreach(hdm => HDMContext.removeBlock(hdm.id))
           appBuffer.remove(appId)
           log.info(s"A job has completed successfully. result has been send to [${resultHandler}}]; appId: ${appId}} ")
         case Failure(t) =>

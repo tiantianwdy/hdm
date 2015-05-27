@@ -227,6 +227,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
     val ddms = blocks.map( url =>
       HDMBlockManager().getBlock(Path(url).name))
     if(ddms != null && !ddms.isEmpty)
+      //todo ask blocks from remote block manager
       ddms.map(_.data.asInstanceOf[mutable.Buffer[R]]).flatten.take(size).map(_.toString)
     else Seq.empty[String]
   }

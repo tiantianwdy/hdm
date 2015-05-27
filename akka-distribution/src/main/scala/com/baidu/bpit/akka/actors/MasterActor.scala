@@ -25,20 +25,20 @@ class MasterActor(override var persistenceActor: ActorRef) extends Actor with Ma
 
   def receive = {
     case msg: MasterSlaveProtocol => try {
-      log.info(s"received a master-slave msg: $msg")
+      log.debug(s"received a master-slave msg: $msg")
       handleMasterSlaveMsg(msg)
     } catch logEx(log, self.path.toString)
     case msg: RoutingProtocol => try {
-      log.info(s"received a routing msg: $msg")
+      log.debug(s"received a routing msg: $msg")
       handleRootingMsg(msg)
     } catch logEx(log, self.path.toString)
     case query: QueryProtocol => try {
-      log.info(s"received a query msg: $query")
-      val reply = handleQueryMsg(query);
+      log.debug(s"received a query msg: $query")
+      val reply = handleQueryMsg(query)
       sender ! reply
-      log.info(s"send a reply msg: $reply")
+      log.debug(s"send a reply msg: $reply")
     } catch logEx(log, self.path.toString)
-    case msg: Any => log.info("unhandled msg:" + msg + "from " + sender.path); unhandled(msg)
+    case msg: Any => log.warning("unhandled msg:" + msg + "from " + sender.path); unhandled(msg)
   }
 
   override def postStop() {

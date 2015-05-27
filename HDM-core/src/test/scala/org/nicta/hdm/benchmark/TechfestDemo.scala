@@ -1,7 +1,7 @@
 package org.nicta.hdm.benchmark
 
 import org.junit.{After, Test}
-import org.nicta.wdy.hdm.benchmark.HDMPrimitiveBenchmark
+import org.nicta.wdy.hdm.benchmark.KVBasedPrimitiveBenchmark
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.executor.HDMContext._
 import com.baidu.bpit.akka.messages.{AddMsg, Query}
@@ -36,20 +36,22 @@ class TechfestDemo {
   def testHDFSExecution(): Unit = {
     HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1000)
-    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
+//    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
+    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits")
     val hdm = HDM(path, false)
 
     val wordCount = hdm.map{ w =>
       val as = w.split(",");
-      (as(0).substring(0,3), as(1).toInt)
+      (as(1).substring(0,3), as(3).toFloat)
     }
-      .groupBy(_._1)
-      .findByKey(_.startsWith("s"))
+//      .groupBy(_._1)
+        .reduceByKey(_ + _)
+//      .findByKey(_.startsWith("s"))
       //.map(t => (t._1, t._2.map(_._2).reduce(_+_)))
 //      .groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
 
-    wordCount.compute(4) onComplete {
+    wordCount.compute(2) onComplete {
       case Success(hdm) =>
         println("Job completed and received response:" + hdm)
         hdm.asInstanceOf[HDM[_, _]].sample().foreach(println(_))
@@ -66,9 +68,11 @@ class TechfestDemo {
   def testBenchMark(): Unit ={
     val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
-    val parallelism = 1
+//    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
+    val parallelism = 2
     val len = 3
-    val benchmark = new HDMPrimitiveBenchmark(context)
+//    val benchmark = new KVBasedPrimitiveBenchmark(context)
+    val benchmark = new KVBasedPrimitiveBenchmark(context = context, kIndex = 0, vIndex = 1)
     HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1500)
 //    benchmark.testGroupBy(data,len, parallelism)
