@@ -36,9 +36,10 @@ object NettyTestServer {
 
 
   def main(args:Array[String]): Unit ={
-    HDMBlockManager().add("blk-001", Block(data))
-    HDMBlockManager().add("blk-002", Block(data2))
+    HDMBlockManager().add("blk-001", Block("blk-001",data))
+    HDMBlockManager().add("blk-002", Block("blk-002",data2))
 
+    blockServer.init()
     blockServer.start()
 
   }

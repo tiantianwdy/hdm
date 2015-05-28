@@ -1,6 +1,9 @@
 package org.nicta.wdy.hdm.storage
 
+import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.io.netty.NettyBlockFetcher
 import org.nicta.wdy.hdm.io.{DataParser, Path}
+import org.nicta.wdy.hdm.message.QueryBlockMsg
 import org.nicta.wdy.hdm.model.{DFM, HDM, DDM}
 import java.util.concurrent.ConcurrentHashMap
 
@@ -152,6 +155,19 @@ object HDMBlockManager{
       //compute the block
       //todo change to submit a computing task
       Block(Seq.empty[T])
+    }
+  }
+
+  def loadBlock(path:Path, blockHandler: Block[_] => Unit) ={
+    if (defaultManager.isCached(path.name))
+      blockHandler.apply(defaultManager.getBlock(path.name))
+    else{ // change to use ConnectionManager for reusing connections
+      val blockFetcher = new NettyBlockFetcher(HDMContext.defaultSerializer, blockHandler)
+      blockFetcher.init()
+      blockFetcher.connect(path.host, HDMContext.NETTY_BLOCK_SERVER_PORT)
+      //
+      val success = blockFetcher.sendRequest(QueryBlockMsg(path.name, path.host + ":" + HDMContext.NETTY_BLOCK_SERVER_PORT))
+      if(!success) throw new RuntimeException("send block request failed to path:" + path)
     }
   }
 

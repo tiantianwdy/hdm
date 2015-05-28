@@ -37,30 +37,41 @@ class Netty4Test {
   }
 
 
+  @Before
   def beforeTest: Unit ={
-    HDMBlockManager().add("blk-001", Block(data))
-    HDMBlockManager().add("blk-002", Block(data2))
-    new Thread() {
+    HDMBlockManager().add("blk-001", Block("blk-001",data))
+    HDMBlockManager().add("blk-002", Block("blk-002",data2))
+    val thread = new Thread() {
       override def run(): Unit = {
+        blockServer.init()
         blockServer.start()
       }
-    }.run()
+    }
+    thread.setDaemon(true)
+    thread.run()
 
   }
 
   @Test
   def testSendBlock(): Unit ={
     val blkHandler = (blk:Block[_]) => {
+      println(blk.id)
       blk.data.map(_.toString) foreach(println(_))
+      HDMBlockManager().add(blk.id, blk)
     }
-    val blockFetcher = new NettyBlockFetcher("127.0.0.1", 9091, serializer, blkHandler)
-    blockFetcher.start()
+    val blockFetcher = new NettyBlockFetcher(serializer, blkHandler)
+    blockFetcher.init()
+    blockFetcher.connect("127.0.0.1", 9091)
     blockFetcher.sendRequest(QueryBlockMsg("blk-002", null))
-    Thread.sleep(10000)
+    blockFetcher.waitForClose()
+    val cachedBlk = HDMBlockManager().getBlock("blk-002")
+    println(cachedBlk)
     blockFetcher.shutdown()
   }
 
 
+
+  @After
   def afterTest: Unit ={
     blockServer.shutdown()
   }

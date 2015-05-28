@@ -1,6 +1,7 @@
 package org.nicta.wdy.hdm.executor
 
 import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
+import org.nicta.wdy.hdm.serializer.{JavaSerializer, SerializerInstance}
 
 import scala.concurrent.{Promise, Future}
 import scala.collection.mutable.Buffer
@@ -42,7 +43,11 @@ object HDMContext extends  Context{
 
   lazy val PLANER_PARALLEL_CPU_FACTOR = Try {defaultConf.getInt("hdm.planner.parallelism.cpu.factor")} getOrElse (CORES)
 
-  lazy val PLANER_PARALLEL_NETWORK_FACTOR = Try {defaultConf.getInt("hdm.planner.parallelism.network.factor")} getOrElse (2)
+  lazy val PLANER_PARALLEL_NETWORK_FACTOR = Try {defaultConf.getInt("hdm.planner.parallelism.network.factor")} getOrElse (CORES)
+
+  lazy val NETTY_BLOCK_SERVER_PORT = Try {defaultConf.getInt("hdm.io.netty.server.port")} getOrElse (9091)
+
+  lazy val defaultSerializer:SerializerInstance = new JavaSerializer(defaultConf).newInstance()
 
   val CORES = Runtime.getRuntime.availableProcessors
 

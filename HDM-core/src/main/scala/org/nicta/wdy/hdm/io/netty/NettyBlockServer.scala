@@ -21,17 +21,19 @@ import org.nicta.wdy.hdm.utils.Logging
 class NettyBlockServer(val port:Int,
                        val nThreads:Int,
                        val blockManager: HDMBlockManager,
-                       serializerInstance: SerializerInstance) {
+                       serializerInstance: SerializerInstance) extends Logging{
 
   private var f:ChannelFuture = _
+  private var bt:ServerBootstrap = _
+  private var bossGroup:EventLoopGroup = _
+  private var workerGroup: EventLoopGroup = _
 
-  def start(): Unit ={
-    val addr = new InetSocketAddress(port)
-    println("netty server start at" + addr.getHostString + ":" + port)
-    val bossGroup = new NioEventLoopGroup(1)
-    val workerGroup = new NioEventLoopGroup(nThreads)
+  def init(): Unit ={
+
+    bossGroup = new NioEventLoopGroup(1)
+    workerGroup = new NioEventLoopGroup(nThreads)
     try{
-      val bt = new ServerBootstrap()
+      bt = new ServerBootstrap()
       bt.group(bossGroup, workerGroup)
       .channel(classOf[NioServerSocketChannel])
       .childHandler(new ChannelInitializer[SocketChannel] {
@@ -48,21 +50,27 @@ class NettyBlockServer(val port:Int,
       .option[java.lang.Integer](ChannelOption.SO_BACKLOG, 128)
       .childOption[java.lang.Boolean](ChannelOption.SO_KEEPALIVE, true)
 
-      //bind and start
-      f = bt.bind(addr).sync()
-
-      f.channel().closeFuture().sync()
-
     } finally {
-      workerGroup.shutdownGracefully()
-      bossGroup.shutdownGracefully()
+
     }
 
   }
 
+  def start(): Unit ={
+    val addr = new InetSocketAddress(port)
+    //bind and start
+    f = bt.bind(addr).sync()
+    log.info("Netty server is started at " + addr.getHostString + ":" + port)
+//    f.channel().closeFuture().sync()
+  }
+
 
   def shutdown(): Unit ={
-    f.channel().close().sync()
+    log.info(" Netty server is stopping ... ")
+    f.channel().close().awaitUninterruptibly()
+    workerGroup.shutdownGracefully()
+    bossGroup.shutdownGracefully()
+    log.info(" Netty server is stopped successfully... ")
   }
 
 }

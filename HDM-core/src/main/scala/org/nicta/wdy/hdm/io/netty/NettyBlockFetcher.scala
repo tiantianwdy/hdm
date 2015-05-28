@@ -18,18 +18,18 @@ import org.nicta.wdy.hdm.utils.Logging
 /**
  * Created by tiantian on 27/05/15.
  */
-class NettyBlockFetcher( val host:String,
-                         val port:Int,
-                         val serializerInstance: SerializerInstance,
-                         val blockHandler: Block[_] => Unit ) {
+class NettyBlockFetcher( val serializerInstance: SerializerInstance,
+                         val blockHandler: Block[_] => Unit ) extends Logging{
 
   private var f: Channel = _
+  private var bt:Bootstrap = _
+  private var workerGroup:EventLoopGroup = _
 
-  def start(): Unit ={
-    val workerGroup = new NioEventLoopGroup(2)
+  def init(): Unit ={
+    workerGroup = new NioEventLoopGroup(2)
 
     try{
-      val bt = new Bootstrap()
+      bt = new Bootstrap()
       bt.group(workerGroup)
       bt.channel(classOf[NioSocketChannel])
       .handler(new ChannelInitializer[SocketChannel] {
@@ -44,8 +44,7 @@ class NettyBlockFetcher( val host:String,
         }
       })
         .option[java.lang.Boolean](ChannelOption.SO_KEEPALIVE, true)
-      // connect to server
-      f = bt.connect(host,port).sync().channel()
+
 
     } finally {
 //      workerGroup.shutdownGracefully()
@@ -53,16 +52,35 @@ class NettyBlockFetcher( val host:String,
 
   }
 
-  def sendRequest(msg:Any): Unit ={
+  def connect(host:String, port:Int): Unit ={
+    // connect to server
+    if(bt ne null)
+      f = bt.connect(host,port).sync().channel()
+    else
+      log.error("Netty bootstrap is not initiated!")
+  }
+
+  def sendRequest(msg:Any): Boolean ={
     val success = f.writeAndFlush(msg).await(60, TimeUnit.SECONDS)
-    println("send block query success:" + success)
+    log.debug("send block query success:" + success)
     //wait until closed
-//    f.closeFuture().sync()
+    success
+  }
+
+  def isConnected()={
+    if(f eq null) false
+    else f.isActive
+  }
+
+  def waitForClose() = {
+    if(f ne null) f.closeFuture().sync()
   }
 
 
   def shutdown(): Unit ={
-    f.close().sync()
+    if(f ne null) f.close().sync()
+    if(workerGroup ne null) workerGroup.shutdownGracefully()
+    bt = null
   }
 
 }
