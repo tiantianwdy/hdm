@@ -398,7 +398,8 @@ object ClusterExecutor extends Logging{
       }
     else
       Future {
-        task.runTaskIteratively()
+        task.runNettyShuffleTask()
+//        task.runTaskIteratively()
       }
 //      runTaskConcurrently(task)
   }

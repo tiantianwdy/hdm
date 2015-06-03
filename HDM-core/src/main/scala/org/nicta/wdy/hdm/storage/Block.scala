@@ -16,15 +16,15 @@ trait Block[T] extends Serializable{
 
   def data: Buf[T]
 
-  val size: Int
+  def size: Int
 }
 
 class UnserializedBlock[T](val id:String, val data:Buf[T]) extends  Block[T] {
 
   //approximate data size of one element with this type T
-  private lazy val metaDataSize = Block.sizeOf(if(data.isEmpty) 0 else data.head)
+  private def metaDataSize = Block.sizeOf(if(data.isEmpty) 0 else data.head)
 
-  lazy val size = data.size * metaDataSize
+  def size = data.size * metaDataSize
 
 }
 
@@ -32,7 +32,7 @@ class SerializedBlock[T <: Serializable] (val id:String, val elems:Buf[T])(impli
 
   private val block: Array[Byte] = serializer.toBinary(elems)
 
-  val size = block.size
+  def size = block.size
 
   def data = serializer.fromBinary(block).asInstanceOf[Buf[T]]
 

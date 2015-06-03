@@ -19,6 +19,7 @@ object HDMServer {
   var parentPath = defaultConf.getString("hdm.cluster.master.url")
   var port = defaultConf.getInt("akka.remote.netty.tcp.port")
   var slots = 1
+  var blockServerPort = 9091
   var isMaster = Try {
     defaultConf.getBoolean("hdm.cluster.isMaster")
   } getOrElse false
@@ -49,6 +50,7 @@ object HDMServer {
 
     paramMap.foreach(param => param._1 match {
       case "-p" | "-port" => port = param._2.toInt
+      case "-b" | "-bport" => blockServerPort = param._2.toInt
       case "-m" | "-master" => isMaster = param._2.toBoolean
       case "-P" | "-parent" => parentPath = param._2
       case "-s" | "-slots" => slots = param._2.toInt
@@ -65,7 +67,7 @@ object HDMServer {
     if (isMaster)
       HDMContext.startAsMaster(port, defaultConf)//port, defaultConf
     else
-      HDMContext.startAsSlave(parentPath, port, defaultConf, slots)//parentPath, port, defaultConf
+      HDMContext.startAsSlave(parentPath, port, blockServerPort, defaultConf, slots)//parentPath, port, defaultConf
     println(s"[HDM Node Startted] as ${if (isMaster) "master" else "slave"} at port: $port .")
   }
 

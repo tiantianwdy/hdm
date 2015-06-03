@@ -52,7 +52,20 @@ class PathTest {
     paths
   }
 
-
+  @Test
+  def testParseHostAndPort() = {
+    val src = Seq(
+      Path("akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster"),
+      Path("akka.tcp://slaveSys@127.0.0.1:10010/user/smsMaster"),
+      Path("akka.tcp://slaveSys@127.0.0.1:10020/user/smsMaster"),
+      Path("akka.tcp://slaveSys@127.0.0.100:10020/user/smsMaster"),
+      Path("akka.tcp://slaveSys@127.0.10.1:10020/user/smsMaster"),
+      Path("netty://127.0.0.1:9001/123213-2323"),
+      Path("netty://127.0.0.1:9001/"),
+      Path("netty://127.0.0.1:9001")
+    )
+    src.foreach(p => println(p.host + ":"  + p.port))
+  }
 
   @Test
   def testComputeDistance(): Unit ={

@@ -25,9 +25,11 @@ class Path(val protocol:String, val absPath:String, scope:String = "") extends S
     } else absPath
   }
 
-  lazy val (host:String, port:String) = {
-    if(address.contains(":"))
-    address.splitAt(address.indexOf(":"))
+  lazy val (host:String, port:Int) = {
+    if(address.contains(":")){
+      val tup = address.splitAt(address.indexOf(":"))
+      (tup._1, tup._2.substring(1).toInt)
+    } else ("", null)
   }
 
   def relativePath = {

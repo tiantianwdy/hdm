@@ -10,6 +10,7 @@ import org.nicta.wdy.hdm.message.{QueryBlockMsg, HDMBlockMsg}
 
 import org.nicta.wdy.hdm.serializer.SerializerInstance
 import org.nicta.wdy.hdm.storage.Block
+import org.nicta.wdy.hdm.utils.Logging
 
 /**
  * Created by tiantian on 27/05/15.
@@ -26,14 +27,19 @@ import org.nicta.wdy.hdm.storage.Block
   }
 }*/
 
-class NettyServerByteEncoder4x(serializerInstance: SerializerInstance) extends MessageToByteEncoder[Block[_]]{
+class NettyBlockByteEncoder4x(serializerInstance: SerializerInstance) extends MessageToByteEncoder[Block[_]] with Logging{
 
   override def encode(ctx: ChannelHandlerContext, msg: Block[_], out: ByteBuf): Unit = {
-    out.writeBytes(serializerInstance.serialize(msg).array())
+    val data = serializerInstance.serialize(msg).array()
+    val buf = ctx.alloc().heapBuffer(data.length)
+    log.debug(s"encoded block size:${data.length}")
+    buf.writeInt(data.length + 4)
+    buf.writeBytes(data)
+    out.writeBytes(buf)
   }
 }
 
-class NettyFetcherByteEncoder4x(serializerInstance: SerializerInstance) extends MessageToByteEncoder[QueryBlockMsg]{
+class NettyQueryByteEncoder4x(serializerInstance: SerializerInstance) extends MessageToByteEncoder[QueryBlockMsg]{
 
   override def encode(ctx: ChannelHandlerContext, msg: QueryBlockMsg, out: ByteBuf): Unit = {
     out.writeBytes(serializerInstance.serialize(msg).array())
@@ -45,8 +51,10 @@ class NettyFetcherByteEncoder4x(serializerInstance: SerializerInstance) extends 
 class NettyBlockEncoder4x(serializerInstance: SerializerInstance) extends MessageToMessageEncoder[Block[_]]{
 
   override def encode(channelHandlerContext: ChannelHandlerContext, in: Block[_], list: util.List[AnyRef]): Unit = {
-    val data = Unpooled.wrappedBuffer(serializerInstance.serialize(in))
-    list.add(data)
+
+    val data = serializerInstance.serialize(in)
+    val buf = Unpooled.wrappedBuffer(data)
+    list.add(buf)
   }
 
 }

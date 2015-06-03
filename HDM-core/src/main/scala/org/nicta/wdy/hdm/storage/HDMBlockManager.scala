@@ -1,11 +1,13 @@
 package org.nicta.wdy.hdm.storage
 
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.io.netty.NettyBlockFetcher
+import org.nicta.wdy.hdm.io.netty.{NettyBlockServer, NettyConnectionManager, NettyBlockFetcher}
 import org.nicta.wdy.hdm.io.{DataParser, Path}
 import org.nicta.wdy.hdm.message.QueryBlockMsg
 import org.nicta.wdy.hdm.model.{DFM, HDM, DDM}
 import java.util.concurrent.ConcurrentHashMap
+
+import org.nicta.wdy.hdm.utils.Logging
 
 /**
  * Created by Tiantian on 2014/12/15.
@@ -132,9 +134,23 @@ class DefaultHDMBlockManager extends HDMBlockManager{
   }
 }
 
-object HDMBlockManager{
+object HDMBlockManager extends Logging{
 
   lazy val defaultManager = new DefaultHDMBlockManager // todo change to loading according to the config
+
+  lazy val defaultBlockServer =  new NettyBlockServer(HDMContext.NETTY_BLOCK_SERVER_PORT,
+    HDMContext.NETTY_BLOCK_SERVER_THREADS,
+    defaultManager,
+    HDMContext.defaultSerializer)
+
+  def initBlockServer() = {
+    defaultBlockServer.init()
+    defaultBlockServer.start()
+  }
+
+  def shutdown(): Unit ={
+    defaultBlockServer.shutdown()
+  }
 
   def apply():HDMBlockManager = defaultManager
 
@@ -158,16 +174,16 @@ object HDMBlockManager{
     }
   }
 
-  def loadBlock(path:Path, blockHandler: Block[_] => Unit) ={
-    if (defaultManager.isCached(path.name))
+  def loadBlockAsync(path:Path, blockHandler: Block[_] => Unit) ={
+    if (defaultManager.isCached(path.name)){
+      log.info(s"block:${path.name} is at local")
       blockHandler.apply(defaultManager.getBlock(path.name))
-    else{ // change to use ConnectionManager for reusing connections
-      val blockFetcher = new NettyBlockFetcher(HDMContext.defaultSerializer, blockHandler)
-      blockFetcher.init()
-      blockFetcher.connect(path.host, HDMContext.NETTY_BLOCK_SERVER_PORT)
+    } else { // change to support of different protocol
+      val blockFetcher = NettyConnectionManager.getInstance.getConnection(path.host, path.port)
       //
-      val success = blockFetcher.sendRequest(QueryBlockMsg(path.name, path.host + ":" + HDMContext.NETTY_BLOCK_SERVER_PORT))
+      val success = blockFetcher.sendRequest(QueryBlockMsg(path.name, path.host + ":" + path.port), blockHandler)
       if(!success) throw new RuntimeException("send block request failed to path:" + path)
+//      NettyConnectionManager.getInstance.recycleConnection(path.host, path.port, blockFetcher)
     }
   }
 

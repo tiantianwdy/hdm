@@ -65,47 +65,47 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
 
     }
 
-  def runNettyShuffleTask:Seq[DDM[_,R]] = {
+  def runNettyShuffleTask()(implicit executionContext: ExecutionContext):Seq[DDM[_,R]] = {
     log.info(s"Preparing input data for task: [${(taskId, func)}] ")
-    val iter = input.iterator
+    val inputIter = input.iterator
     var res:Buffer[R] = ArrayBuffer.empty[R]
     val blockCounter = new AtomicInteger(0)
-    val inputFinished = new AtomicBoolean(false)
+    val fetchingCompleted = new AtomicBoolean(false)
     val inputQueue = new LinkedBlockingDeque[Block[_]]
-    val blockhandler = (blk:Block[_]) => {
+    val blockHandler = (blk:Block[_]) => {
       inputQueue.offer(blk)
       val count = blockCounter.incrementAndGet()
+      if(count >= input.length) fetchingCompleted.set(true)
       log.info(s"Fetched block:${blk.id}, progress: ($count/${input.length}).")
     }
-    while(iter.hasNext) {
-      HDMBlockManager.loadBlock(iter.next().location, blockhandler)
+
+    while (inputIter.hasNext) {
+      val input = inputIter.next()
+      log.info(s"Fetching block:${input.location} ...")
+      HDMBlockManager.loadBlockAsync(input.location, blockHandler)
     }
-    inputFinished.set(true)
+
 
     if (func.isInstanceOf[ParCombinedFunc[I,_,R]] ) {
       log.info(s"Running as shuffle aggregation..")
       val tempF = func.asInstanceOf[ParCombinedFunc[I,_,R]]
       val concreteFunc = tempF.asInstanceOf[ParCombinedFunc[I,tempF.mediateType.type,R]]
       var partialRes:mutable.Buffer[tempF.mediateType.type ] = ArrayBuffer.empty[tempF.mediateType.type ]
-      while (!inputFinished.get() && !inputQueue.isEmpty) {
+      while (!fetchingCompleted.get() || !inputQueue.isEmpty) {
         val block = inputQueue.take()
         partialRes = concreteFunc.partialAggregate(block.data.asInstanceOf[Buf[I]], partialRes)
       }
-      log.debug(s"partial results: ${partialRes.take(10)}")
+      log.trace(s"partial results: ${partialRes.take(10)}")
       res = concreteFunc.postF(partialRes)
-      log.debug(s"shuffle results: ${res.take(10)}")
+      log.trace(s"shuffle results: ${res.take(10)}")
 
     } else {
       log.info(s"Running as parallel aggregation..")
-      while (!inputFinished.get()) {
+      while (!fetchingCompleted.get() || !inputQueue.isEmpty) {
         val block = inputQueue.take()
         res = func.aggregate(block.data.asInstanceOf[Buf[I]], res)
       }
-      while(!inputQueue.isEmpty){
-        val block = inputQueue.take()
-        res = func.aggregate(block.data.asInstanceOf[Buf[I]], res)
-      }
-      //      println(s"shuffle results: ${res.take(10)}")
+      log.trace(s"shuffle results: ${res.take(10)}")
     }
     val ddms = if(partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
       Seq(DDM[R](taskId, res))

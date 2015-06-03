@@ -36,8 +36,8 @@ class TechfestDemo {
   def testHDFSExecution(): Unit = {
     HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1000)
-//    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
-    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits")
+    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
+//    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits")
     val hdm = HDM(path, false)
 
     val wordCount = hdm.map{ w =>
@@ -73,11 +73,12 @@ class TechfestDemo {
     val len = 3
 //    val benchmark = new KVBasedPrimitiveBenchmark(context)
     val benchmark = new KVBasedPrimitiveBenchmark(context = context, kIndex = 0, vIndex = 1)
+    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
     HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1500)
-//    benchmark.testGroupBy(data,len, parallelism)
+    benchmark.testGroupBy(data,len, parallelism)
 //    benchmark.testFindByKey(data,len, parallelism, "a")
-    benchmark.testReduceByKey(data,len, parallelism)
+//    benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)
     Thread.sleep(50000000)
   }

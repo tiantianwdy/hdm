@@ -24,7 +24,7 @@ class JavaSerilizerTest {
 
   val data = ArrayBuffer.empty[String] ++= text
 
-  val data2 = ArrayBuffer.fill[(String, Int)](10){
+  val data2 = ArrayBuffer.fill[(String, Int)](1000000){
     ("test", 1)
   }
 
@@ -37,7 +37,7 @@ class JavaSerilizerTest {
     val buf = serilizer.serialize(blk)
     val nBlk = serilizer.deserialize[Block[_]](buf)
 
-    nBlk.data.foreach(println(_))
+    nBlk.data.take(10).foreach(println(_))
 
 
 

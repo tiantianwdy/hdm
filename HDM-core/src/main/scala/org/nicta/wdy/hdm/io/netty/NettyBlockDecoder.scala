@@ -3,51 +3,71 @@ package org.nicta.wdy.hdm.io.netty
 import java.nio.ByteBuffer
 import java.util
 
-import io.netty.buffer.ByteBuf
+import io.netty.buffer.{ByteBufInputStream, ByteBuf}
 import io.netty.channel
 import io.netty.handler.codec.{ByteToMessageDecoder, MessageToMessageDecoder}
+import io.netty.util.ReferenceCountUtil
 import org.jboss.netty.buffer.ChannelBuffer
 import org.jboss.netty.channel.{Channel, ChannelHandlerContext}
 import org.jboss.netty.handler.codec.frame.FrameDecoder
 import org.nicta.wdy.hdm.message.QueryBlockMsg
 import org.nicta.wdy.hdm.serializer.SerializerInstance
 import org.nicta.wdy.hdm.storage.Block
+import org.nicta.wdy.hdm.utils.Logging
 
 /**
  * Created by tiantian on 27/05/15.
  */
-class NettyBlockDecoder3x(serilizer: SerializerInstance) extends FrameDecoder{
+class NettyBlockDecoder3x(serializer: SerializerInstance) extends FrameDecoder{
 
   override def decode(channelHandlerContext: ChannelHandlerContext, channel: Channel, channelBuffer: ChannelBuffer): AnyRef = {
    val buf = channelBuffer.toByteBuffer
-    serilizer.deserialize[Block[_]](buf)
+    serializer.deserialize[Block[_]](buf)
   }
 }
 
-class NettyByteBlockDecoder4x(serilizer: SerializerInstance) extends ByteToMessageDecoder{
+class NettyBlockByteDecoder4x(serializer: SerializerInstance) extends ByteToMessageDecoder with Logging{
 
   override def decode(ctx: channel.ChannelHandlerContext, in: ByteBuf, out: util.List[AnyRef]): Unit = {
-    val obj = serilizer.deserialize(in.nioBuffer())
-    out.add(obj)
+    if(in.readableBytes() < 4) return
+    val dataLength = in.getInt(in.readerIndex())
+    in.retain()
+    if(in.readableBytes() >= dataLength) try {
+      log.debug("expected decoding msg size:" + dataLength)
+      log.debug("current decoding msg size:" + in.readableBytes())
+      val obj = serializer.deserialize[Block[_]](in.nioBuffer(4, dataLength))
+      out.add(obj)
+    } finally {
+      ReferenceCountUtil.release(in)
+      in.clear()
+    }
   }
 }
 
-class NettyBlockDecoder4x(serilizer: SerializerInstance) extends MessageToMessageDecoder[ByteBuf]{
+class NettyBlockDecoder4x(serializer: SerializerInstance) extends MessageToMessageDecoder[ByteBuf] with Logging{
 
-  override def decode(ctx: channel.ChannelHandlerContext, msg: ByteBuf, out: util.List[AnyRef]): Unit = {
-    println("deserializing msg:" + msg)
-    val obj = serilizer.deserialize[Block[_]](msg.nioBuffer())
-    println("deserialized msg:" + obj)
+  override def decode(ctx: channel.ChannelHandlerContext, msg: ByteBuf, out: util.List[AnyRef]): Unit = try {
+    log.debug("de-serializing msg:" + msg)
+//    val len = msg.readInt()
+    log.debug("current decoding msg size:" + msg.readableBytes())
+    val buf = msg.nioBuffer()
+    val start = System.currentTimeMillis()
+    val obj = serializer.deserialize[Block[_]](buf)
+    val end = System.currentTimeMillis() - start
+    log.info(s"de-serialized data:${obj.data.size} in $end ms.")
     out.add(obj)
+  } finally {
+//    ReferenceCountUtil.release(msg)
+    msg.clear()
   }
 }
 
-class NettyQueryDecoder4x(serilizer: SerializerInstance) extends MessageToMessageDecoder[ByteBuf]{
+class NettyQueryDecoder4x(serializer: SerializerInstance) extends MessageToMessageDecoder[ByteBuf] with Logging{
 
   override def decode(ctx: channel.ChannelHandlerContext, msg: ByteBuf, out: util.List[AnyRef]): Unit = {
-    println("deserializing msg:" + msg)
-    val obj = serilizer.deserialize[QueryBlockMsg](msg.nioBuffer())
-    println("deserialized msg:" + obj)
+    log.debug("de-serializing msg:" + msg)
+    val obj = serializer.deserialize[QueryBlockMsg](msg.nioBuffer())
+    log.debug("de-serialized msg:" + obj)
     out.add(obj)
   }
 }

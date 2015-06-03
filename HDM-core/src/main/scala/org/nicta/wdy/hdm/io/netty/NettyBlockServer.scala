@@ -1,12 +1,15 @@
 package org.nicta.wdy.hdm.io.netty
 
 import java.net.InetSocketAddress
+import java.util.concurrent.TimeUnit
 
 import io.netty.bootstrap.ServerBootstrap
+import io.netty.buffer.ByteBufAllocator
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
 import io.netty.channel._
+import io.netty.handler.codec.LengthFieldBasedFrameDecoder
 import io.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
 import io.netty.handler.codec.string.StringDecoder
 import io.netty.util.ReferenceCountUtil
@@ -27,6 +30,7 @@ class NettyBlockServer(val port:Int,
   private var bt:ServerBootstrap = _
   private var bossGroup:EventLoopGroup = _
   private var workerGroup: EventLoopGroup = _
+  private val allocator = NettyConnectionManager.createPooledByteBufAllocator(true)
 
   def init(): Unit ={
 
@@ -39,7 +43,8 @@ class NettyBlockServer(val port:Int,
       .childHandler(new ChannelInitializer[SocketChannel] {
         override def initChannel(c: SocketChannel): Unit = {
           c.pipeline()
-            .addLast(new NettyBlockEncoder4x(serializerInstance))
+          .addLast(new NettyBlockByteEncoder4x(serializerInstance))
+//            .addLast(NettyConnectionManager.getFrameDecoder())
             .addLast(new NettyQueryDecoder4x(serializerInstance))
 //            .addLast(new StringDecoder)
 //            .addLast(new ProtobufEncoder)
@@ -48,7 +53,10 @@ class NettyBlockServer(val port:Int,
         }
       })
       .option[java.lang.Integer](ChannelOption.SO_BACKLOG, 128)
+      .option[java.lang.Integer](ChannelOption.SO_SNDBUF, 1024)
+        .option[ByteBufAllocator](ChannelOption.ALLOCATOR, allocator)
       .childOption[java.lang.Boolean](ChannelOption.SO_KEEPALIVE, true)
+        .childOption[ByteBufAllocator](ChannelOption.ALLOCATOR, allocator)
 
     } finally {
 
@@ -57,9 +65,9 @@ class NettyBlockServer(val port:Int,
   }
 
   def start(): Unit ={
-    val addr = new InetSocketAddress(port)
+    val addr = new InetSocketAddress(NettyConnectionManager.localHost, port)
     //bind and start
-    f = bt.bind(addr).sync()
+    f = bt.bind(addr).syncUninterruptibly()
     log.info("Netty server is started at " + addr.getHostString + ":" + port)
 //    f.channel().closeFuture().sync()
   }
@@ -67,7 +75,7 @@ class NettyBlockServer(val port:Int,
 
   def shutdown(): Unit ={
     log.info(" Netty server is stopping ... ")
-    f.channel().close().awaitUninterruptibly()
+    f.channel().close().awaitUninterruptibly(10, TimeUnit.SECONDS)
     workerGroup.shutdownGracefully()
     bossGroup.shutdownGracefully()
     log.info(" Netty server is stopped successfully... ")
@@ -93,7 +101,7 @@ class NettyBlockServerHandler(blockManager: HDMBlockManager) extends  ChannelInb
       ctx.flush()
     }
   } catch {
-    case e: Throwable => log.error(e.getCause.toString)
+    case e: Throwable => e.printStackTrace()
   } finally {
     ReferenceCountUtil.release(msg)
   }

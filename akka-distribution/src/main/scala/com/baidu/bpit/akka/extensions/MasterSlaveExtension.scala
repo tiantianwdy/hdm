@@ -209,10 +209,11 @@ trait MasterExtensionImpl extends MasterSlaveActorExtension with RoutingService 
 
     def getConfigurations(actorPath: String) = {
       getChildrenConfig(actorPath) match {
-        case lst if ((lst ne null) && !lst.isEmpty) => lst.filter(conf => conf ne null) match {
+        case lst if (lst != null && lst.nonEmpty) => lst.filter(conf => conf ne null) match {
           case fLst if (fLst.length > 0) => SlaveParams(fLst)
+          case other => null
         }
-        case _ => null
+        case other => null
       }
 
     }

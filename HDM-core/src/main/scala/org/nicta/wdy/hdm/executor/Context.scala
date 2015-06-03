@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.executor
 
+import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
 import org.nicta.wdy.hdm.serializer.{JavaSerializer, SerializerInstance}
 
@@ -45,9 +46,17 @@ object HDMContext extends  Context{
 
   lazy val PLANER_PARALLEL_NETWORK_FACTOR = Try {defaultConf.getInt("hdm.planner.parallelism.network.factor")} getOrElse (CORES)
 
-  lazy val NETTY_BLOCK_SERVER_PORT = Try {defaultConf.getInt("hdm.io.netty.server.port")} getOrElse (9091)
-
   lazy val defaultSerializer:SerializerInstance = new JavaSerializer(defaultConf).newInstance()
+
+  val BLOCK_SERVER_PROTOCOL = Try {defaultConf.getString("hdm.io.network.protocol")} getOrElse ("netty")
+
+  var NETTY_BLOCK_SERVER_PORT = Try {defaultConf.getInt("hdm.io.netty.server.port")} getOrElse (9091)
+
+  val BLOCK_SERVER_INIT = Try {defaultConf.getBoolean("hdm.io.netty.server.init")} getOrElse (true)
+
+  val NETTY_BLOCK_SERVER_THREADS = Try {defaultConf.getInt("hdm.io.netty.server.threads")} getOrElse(CORES)
+
+  val NETTY_BLOCK_CLIENT_THREADS = Try {defaultConf.getInt("hdm.io.netty.client.threads")} getOrElse(CORES)
 
   val CORES = Runtime.getRuntime.availableProcessors
 
@@ -71,10 +80,14 @@ object HDMContext extends  Context{
 
   def clusterBlockPath = leaderPath.get() + "/" + BLOCK_MANAGER_NAME
 
-  def localBlockPath = SmsSystem.physicalRootPath + "/" + BLOCK_MANAGER_NAME
+  def localBlockPath = {
+    BLOCK_SERVER_PROTOCOL match {
+      case "akka" => SmsSystem.physicalRootPath + "/" + BLOCK_MANAGER_NAME
+      case "netty" => s"netty://${NettyConnectionManager.localHost}:$NETTY_BLOCK_SERVER_PORT"
+    }
+  }
 
   def startAsMaster(port:Int = 8999, conf: Config = defaultConf, slots:Int = 0){
-
     SmsSystem.startAsMaster(port, isLinux, conf)
     SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorLeader", slots)
     SmsSystem.addActor(BLOCK_MANAGER_NAME, "localhost","org.nicta.wdy.hdm.coordinator.BlockManagerLeader", null)
@@ -82,16 +95,18 @@ object HDMContext extends  Context{
     leaderPath.set(SmsSystem.rootPath)
   }
 
-  def startAsSlave(masterPath:String, port:Int = 10010, conf: Config = defaultConf, slots:Int = CORES){
+  def startAsSlave(masterPath:String, port:Int = 10010, blockPort:Int = 9091, conf: Config = defaultConf, slots:Int = CORES){
     this.slot.set(slots)
+    this.NETTY_BLOCK_SERVER_PORT = blockPort
     SmsSystem.startAsSlave(masterPath, port, isLinux, conf)
     SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorFollower", masterPath+"/"+CLUSTER_EXECUTOR_NAME)
     SmsSystem.addActor(BLOCK_MANAGER_NAME, "localhost","org.nicta.wdy.hdm.coordinator.BlockManagerFollower", masterPath+"/"+BLOCK_MANAGER_NAME)
     SmsSystem.addActor(JOB_RESULT_DISPATCHER, "localhost","org.nicta.wdy.hdm.coordinator.ResultHandler", null)
     leaderPath.set(masterPath)
+    if(BLOCK_SERVER_INIT) HDMBlockManager.initBlockServer()
   }
 
-  def startAsClient(masterPath:String, port:Int = 20010, conf: Config = defaultConf, localExecution:Boolean = false){
+  def startAsClient(masterPath:String, port:Int = 20010, blockPort:Int = 9091, conf: Config = defaultConf, localExecution:Boolean = false){
     SmsSystem.startAsSlave(masterPath, port, isLinux, conf)
     SmsSystem.addActor(BLOCK_MANAGER_NAME, "localhost","org.nicta.wdy.hdm.coordinator.BlockManagerFollower", masterPath+"/"+BLOCK_MANAGER_NAME)
     SmsSystem.addActor(JOB_RESULT_DISPATCHER, "localhost","org.nicta.wdy.hdm.coordinator.ResultHandler", null)

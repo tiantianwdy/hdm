@@ -1,7 +1,8 @@
 package org.nicta.hdm.io.netty
 
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.io.netty.NettyBlockFetcher
+import org.nicta.wdy.hdm.io.Path
+import org.nicta.wdy.hdm.io.netty.{NettyConnectionManager, NettyBlockFetcher}
 import org.nicta.wdy.hdm.message.QueryBlockMsg
 import org.nicta.wdy.hdm.serializer.JavaSerializer
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, Block}
@@ -15,15 +16,22 @@ object NettyClient {
 
   def main(args:Array[String]): Unit ={
     val blkHandler = (blk:Block[_]) => {
-      println(blk.id)
-      blk.data.map(_.toString) foreach(println(_))
+      println(s"received block ${blk.id} with size ${blk.data.length}.")
+//      blk.data.map(_.toString) foreach(println(_))
       HDMBlockManager().add(blk.id, blk)
     }
-    val blockFetcher = new NettyBlockFetcher(serializer, blkHandler)
-    blockFetcher.init()
-    blockFetcher.connect("0.0.0.0", 9091)
-    blockFetcher.sendRequest(QueryBlockMsg("blk-002",null))
-    blockFetcher.waitForClose()
+    var blockFetcher = NettyConnectionManager.getInstance.getConnection("tiantian-HP-EliteBook-Folio-9470m", 9091, blkHandler)
+//    val blockFetcher = new NettyBlockFetcher(serializer, blkHandler)
+//    blockFetcher.init()
+//    blockFetcher.connect("0.0.0.0", 9091)
+    blockFetcher.sendRequest(QueryBlockMsg("blk-001","tiantian-HP-EliteBook-Folio-9470m:9091"))
+//    Thread.sleep(100)
+//    blockFetcher.waitForClose()
+//    NettyConnectionManager.getInstance.recycleConnection("tiantian-HP-EliteBook-Folio-9470m", 9091, blockFetcher)
+    blockFetcher = NettyConnectionManager.getInstance.getConnection("tiantian-HP-EliteBook-Folio-9470m", 9091, blkHandler)
+    blockFetcher.sendRequest(QueryBlockMsg("blk-002","tiantian-HP-EliteBook-Folio-9470m:9091"))
+//    blockFetcher.waitForClose()
+    Thread.sleep(25000)
     val cachedBlk = HDMBlockManager().getBlock("blk-002")
     println(cachedBlk)
     blockFetcher.shutdown()
