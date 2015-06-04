@@ -1,5 +1,8 @@
 package org.nicta.wdy.hdm.storage
 
+import java.util.concurrent.atomic.AtomicInteger
+
+import com.baidu.bpit.akka.monitor.SystemMonitorService
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.netty.{NettyBlockServer, NettyConnectionManager, NettyBlockFetcher}
 import org.nicta.wdy.hdm.io.{DataParser, Path}
@@ -53,13 +56,15 @@ trait HDMBlockManager {
 }
 
 
-class DefaultHDMBlockManager extends HDMBlockManager{
+class DefaultHDMBlockManager extends HDMBlockManager with Logging{
 
   import scala.collection.JavaConversions._
 
   val blockCache = new ConcurrentHashMap[String, Block[_]]()
 
   val blockRefMap = new ConcurrentHashMap[String, HDM[_,_]]()
+
+  val releasedBlockSize = new AtomicInteger(0)
 
 
   override def checkAllStates(ids: Seq[String], state: BlockState): Boolean = {
@@ -75,17 +80,26 @@ class DefaultHDMBlockManager extends HDMBlockManager{
   }
 
   override def removeRef(id: String): Unit = {
-    blockCache.remove(id)
+    removeBlock(id)
     blockRefMap.remove(id)
   }
 
 
   override def removeBlock(id: String): Unit = {
-    blockCache.remove(id)
+    val blk = blockCache.remove(id)
+    val dataSize = Block.byteSize(blk)
+    HDMBlockManager.cleanup(blk)
+    val memReleased = releasedBlockSize.addAndGet(dataSize.toInt)
+    if(memReleased > HDMContext.MAX_MEM_GC_SIZE){
+      releasedBlockSize.set(0)
+      HDMBlockManager.forceGC()
+    }
+    log.info(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
   }
 
   override def addAll(blocks: Map[String, Block[_]]): Unit = {
     blockCache.putAll(blocks)
+    log.info(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
   }
 
   override def addAll(blocks: Seq[Block[_]]): Unit = {
@@ -94,6 +108,7 @@ class DefaultHDMBlockManager extends HDMBlockManager{
 
   override def add(id: String, block: Block[_]): Unit = {
     blockCache.put(id, block)
+    log.info(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
   }
 
   override def addAllRef(brs: Seq[HDM[_, _]]): Unit = {
@@ -195,5 +210,24 @@ object HDMBlockManager extends Logging{
         defaultManager.declare(br)
       Block(Seq.empty[T])
     }
+  }
+
+  def freeMemMB() = {
+    val jvmMem = SystemMonitorService.getJVMMemInfo
+    (jvmMem(2) - jvmMem(1) + jvmMem(0))/ (1024*1024F)
+  }
+
+  def cleanup(blk:Block[_]) = {
+    if(blk != null && blk.data != null)
+      blk.data.clear()
+  }
+
+  def forceGC(): Unit ={
+    val start = System.currentTimeMillis()
+    val beforeMem = HDMBlockManager.freeMemMB()
+    System.gc()
+    val end = System.currentTimeMillis() - start
+    log.info(s"JVM GC took $end ms.")
+    log.info(s"Free mem recycled by GC:${HDMBlockManager.freeMemMB() - beforeMem} MB.")
   }
 }

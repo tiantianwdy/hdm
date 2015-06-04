@@ -150,7 +150,7 @@ object DataParser extends Logging{
 
         case Path.HDFS =>
           val bl = DataParser.readBlock(in.location)
-          log.info(s"finished reading block with size: ${bl.size / (1024*1024F)} MB. ")
+          log.info(s"finished reading block with size: ${Block.byteSize(bl)/ (1024*1024F)} MB. ")
           bl
       }
     } else {

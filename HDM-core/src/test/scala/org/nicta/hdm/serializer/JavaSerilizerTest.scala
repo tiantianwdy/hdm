@@ -24,14 +24,14 @@ class JavaSerilizerTest {
 
   val data = ArrayBuffer.empty[String] ++= text
 
-  val data2 = ArrayBuffer.fill[(String, Int)](1000000){
-    ("test", 1)
+  val data2 = ArrayBuffer.fill[(String, List[Double])](1000000){
+    ("test", List(1D))
   }
 
   val serilizer = new JavaSerializer(HDMContext.defaultConf).newInstance()
 
   @Test
-  def testSerilizingBlock(): Unit ={
+  def testSerializingBlock(): Unit ={
 
     val blk = Block("bk-001", data2)
     val buf = serilizer.serialize(blk)
@@ -41,6 +41,34 @@ class JavaSerilizerTest {
 
 
 
+  }
+
+  @Test
+  def testJavaSerializingEfficiency(): Unit ={
+    val blk = Block(HDMContext.newLocalId(), data2)
+    //test direct serialization
+    val t1 = System.currentTimeMillis()
+    val buf = serilizer.serialize(blk)
+    val t2 = System.currentTimeMillis()
+    println(s"encode finished in ${t2 - t1} ms.")
+    val nBlk = serilizer.deserialize[Block[_]](buf)
+    val t3 = System.currentTimeMillis()
+    println(s"encoded size : ${buf.array().length} bytes.")
+    println(s"decode finished in ${t3 - t2} ms.")
+  }
+
+  @Test
+  def testEncodeDecodeEfficiency(): Unit ={
+
+    val blk = Block(HDMContext.newLocalId(), data2)
+    //test direct serialization
+    val t1 = System.currentTimeMillis()
+    val buf = Block.encode(blk)
+    val t2 = System.currentTimeMillis()
+    println(s"encode finished in ${t2 - t1} ms.")
+    val nBlk = Block.decode(buf)
+    val t3 = System.currentTimeMillis()
+    println(s"decode finished in ${t3 - t2} ms.")
   }
 
 

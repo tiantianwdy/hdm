@@ -32,7 +32,7 @@
         </encoder>
     </appender>
 
-    <logger name="org.nicta" level="info" >
+    <logger name="org.nicta.wdy.hdm" level="info" additivity="false">
         <appender-ref ref="STDOUT" />
     </logger>
 
@@ -43,8 +43,7 @@
         <appender-ref ref="STDOUT" />
     </root>
 
-    <root level="TRACE">
-        <appender-ref ref="STDOUT" />
+    <root level="WARN">
         <appender-ref ref="STDOUT" />
     </root>
 

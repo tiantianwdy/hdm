@@ -2,7 +2,7 @@ package org.nicta.wdy.hdm.executor
 
 import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
-import org.nicta.wdy.hdm.serializer.{JavaSerializer, SerializerInstance}
+import org.nicta.wdy.hdm.serializer.{KryoSerializer, JavaSerializer, SerializerInstance}
 
 import scala.concurrent.{Promise, Future}
 import scala.collection.mutable.Buffer
@@ -48,6 +48,8 @@ object HDMContext extends  Context{
 
   lazy val defaultSerializer:SerializerInstance = new JavaSerializer(defaultConf).newInstance()
 
+  lazy val DEFAULT_BLOCK_ID_LENGTH = defaultSerializer.serialize(newLocalId()).array().length
+
   val BLOCK_SERVER_PROTOCOL = Try {defaultConf.getString("hdm.io.network.protocol")} getOrElse ("netty")
 
   var NETTY_BLOCK_SERVER_PORT = Try {defaultConf.getInt("hdm.io.netty.server.port")} getOrElse (9091)
@@ -59,6 +61,8 @@ object HDMContext extends  Context{
   val NETTY_BLOCK_CLIENT_THREADS = Try {defaultConf.getInt("hdm.io.netty.client.threads")} getOrElse(CORES)
 
   val CORES = Runtime.getRuntime.availableProcessors
+
+  val MAX_MEM_GC_SIZE = Try {defaultConf.getInt("hdm.memory.gc.max.byte")} getOrElse(1024 * 1024 * 1024) // about 256MB
 
   val slot = new AtomicInteger(1)
 

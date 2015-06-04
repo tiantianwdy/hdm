@@ -366,10 +366,8 @@ class ClusterExecutorFollower(leaderPath: String) extends WorkActor {
       ClusterExecutor.runTaskSynconized(task) onComplete {
         case Success(results) =>
           context.actorSelection(leaderPath) ! TaskCompleteMsg(task.appId, task.taskId, task.func.toString, results)
-          val jvmMem = SystemMonitorService.getJVMMemInfo
-          val freeMem = jvmMem(2) - jvmMem(1) + jvmMem(0)
           log.info(s"A task [${task.taskId + "_" + task.func}] has been completed in ${System.currentTimeMillis() - startTime} ms.")
-          log.info(s"JVM freeMem size: ${freeMem / (1024*1024F)} MB.")
+          log.info(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
         case Failure(t) => log.error(t.toString); sender ! Seq.empty[Seq[String]]
       }
 

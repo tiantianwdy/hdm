@@ -39,6 +39,7 @@ class NettyConnectionManager {
       createConnection(host, port)
     }
     connectionCacheMap.put(cId, activeCon)
+    if(!activeCon.isRunning) activeCon.schedule()
     activeCon
   }
 

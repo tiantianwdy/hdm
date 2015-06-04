@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.io.netty
 
-import java.util.concurrent.atomic.AtomicReference
-import java.util.concurrent.{Semaphore, TimeUnit}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
+import java.util.concurrent.{LinkedBlockingDeque, Semaphore, TimeUnit}
 
 import io.netty.bootstrap.Bootstrap
 import io.netty.buffer.ByteBufAllocator
@@ -14,7 +14,7 @@ import io.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
 import io.netty.handler.codec.string.StringEncoder
 import io.netty.util.ReferenceCountUtil
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.message.QueryBlockMsg
+import org.nicta.wdy.hdm.message.{NettyCallbackRequest, QueryBlockMsg}
 import org.nicta.wdy.hdm.serializer.SerializerInstance
 import org.nicta.wdy.hdm.storage.Block
 import org.nicta.wdy.hdm.utils.Logging
@@ -30,6 +30,23 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
   private val allocator = NettyConnectionManager.createPooledByteBufAllocator(true)
   private val workingSize = new Semaphore(1)
   private val handler = new AtomicReference[Block[_] => Unit]()
+  private val requestsQueue = new LinkedBlockingDeque[NettyCallbackRequest]()
+  private val running = new AtomicBoolean(false)
+
+  private val workingThread:Thread = new Thread {
+
+    override def run(): Unit = {
+      while(running.get()){
+        workingSize.acquire(1)
+        val req = requestsQueue.take()
+        handler.set(req.callback)
+        try{
+          val success = f.writeAndFlush(req.msg).awaitUninterruptibly(60,TimeUnit.SECONDS)
+          if(!success) log.error("send block request failed to address:" + f.remoteAddress())
+        }
+      }
+    }
+  }
 
   def init(): Unit ={
     workerGroup = new NioEventLoopGroup(HDMContext.NETTY_BLOCK_CLIENT_THREADS)
@@ -45,8 +62,6 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
             .addLast("encoder", new NettyQueryEncoder4x(serializerInstance))
             .addLast("frameDecoder", NettyConnectionManager.getFrameDecoder())
             .addLast("decoder", new NettyBlockDecoder4x(serializerInstance))
-            //            .addLast(new ProtobufEncoder)
-//            .addLast(new ProtobufDecoder)
             .addLast("handler", new NettyBlockFetcherHandler(workingSize, handler))
         }
       })
@@ -73,11 +88,19 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
       log.error("Netty bootstrap is not initiated!")
   }
 
+  def schedule(): Unit ={
+    running.set(true)
+    workingThread.start()
+  }
+  
+  def stopScheduling() = {
+    running.set(false)
+    workingThread.stop()
+  }
+
   def sendRequest(msg:Any, blockHandler: Block[_] => Unit ): Boolean ={
-    workingSize.acquire(1)
-    handler.set(blockHandler)
-    val success = f.writeAndFlush(msg).awaitUninterruptibly(60,TimeUnit.SECONDS)
-    success
+    requestsQueue.offer(NettyCallbackRequest(msg, blockHandler))
+    true
   }
 
   def isConnected()={
@@ -85,13 +108,17 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
     else f.isActive || f.isOpen
   }
 
+  def isRunning = running.get()
+
   def waitForClose() = {
     if(f ne null) f.closeFuture().sync()
   }
 
 
-  def shutdown(): Unit ={
+  def shutdown(): Unit = try {
     log.info("A netty client is shutting down...")
+    stopScheduling()
+  } finally {
     if(f ne null) f.close().sync()
     if(workerGroup ne null) workerGroup.shutdownGracefully()
     bt = null
@@ -101,7 +128,11 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
 
 }
 
-
+/**
+ * 
+ * @param workingSize
+ * @param blockHandler
+ */
 class NettyBlockFetcherHandler(val workingSize:Semaphore, val blockHandler: AtomicReference[Block[_] => Unit]) extends  ChannelInboundHandlerAdapter with Logging{
 
   override def channelActive(ctx: ChannelHandlerContext): Unit = super.channelActive(ctx)
@@ -114,7 +145,7 @@ class NettyBlockFetcherHandler(val workingSize:Semaphore, val blockHandler: Atom
   } catch {
     case e: Throwable =>  e.printStackTrace()
   } finally {
-    ReferenceCountUtil.release(msg)
+//    ReferenceCountUtil.release(msg)
     workingSize.release(1)
   }
 

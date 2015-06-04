@@ -57,7 +57,6 @@ class NettyBlockDecoder4x(serializer: SerializerInstance) extends MessageToMessa
     log.info(s"de-serialized data:${obj.data.size} in $end ms.")
     out.add(obj)
   } finally {
-//    ReferenceCountUtil.release(msg)
     msg.clear()
   }
 }

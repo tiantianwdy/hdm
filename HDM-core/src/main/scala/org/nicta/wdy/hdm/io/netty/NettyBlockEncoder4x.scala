@@ -31,11 +31,11 @@ class NettyBlockByteEncoder4x(serializerInstance: SerializerInstance) extends Me
 
   override def encode(ctx: ChannelHandlerContext, msg: Block[_], out: ByteBuf): Unit = {
     val data = serializerInstance.serialize(msg).array()
-    val buf = ctx.alloc().heapBuffer(data.length)
+//    val buf = ctx.alloc().heapBuffer(data.length)
     log.debug(s"encoded block size:${data.length}")
-    buf.writeInt(data.length + 4)
-    buf.writeBytes(data)
-    out.writeBytes(buf)
+    out.writeInt(data.length + 4)
+    out.writeBytes(data)
+//    out.writeBytes(buf)
   }
 }
 

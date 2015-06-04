@@ -23,8 +23,8 @@ class KryoSerilizerTest {
 
   val data = ArrayBuffer.empty[String] ++= text
 
-  val data2 = ArrayBuffer.fill[(String, Int)](10){
-    ("test", 1)
+  val data2 = ArrayBuffer.fill[(String, List[Double])](1000000){
+    ("test", List(1D))
   }
 
   val serilizer = new KryoSerializer(HDMContext.defaultConf).newInstance()
@@ -40,5 +40,32 @@ class KryoSerilizerTest {
 
 
 
+  }
+
+  @Test
+  def testKypoSerializingEfficiency(): Unit ={
+    val blk = Block(HDMContext.newLocalId(), data2)
+    //test direct serialization
+    val t1 = System.currentTimeMillis()
+    val buf = serilizer.serialize(blk)
+    val t2 = System.currentTimeMillis()
+    println(s"encode finished in ${t2 - t1} ms.")
+    val nBlk = serilizer.deserialize[Block[_]](buf)
+    val t3 = System.currentTimeMillis()
+    println(s"encoded size : ${buf.array().length} bytes.")
+    println(s"decode finished in ${t3 - t2} ms.")
+  }
+
+  @Test
+  def testEncodeDecodeEfficiency(): Unit ={
+    val blk = Block(HDMContext.newLocalId(), data2)
+    //test direct serialization
+    val t1 = System.currentTimeMillis()
+    val buf = Block.encode(blk)(serilizer)
+    val t2 = System.currentTimeMillis()
+    println(s"encode finished in ${t2 - t1} ms.")
+    val nBlk = Block.decode(buf)(serilizer)
+    val t3 = System.currentTimeMillis()
+    println(s"decode finished in ${t3 - t2} ms.")
   }
 }
