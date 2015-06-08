@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.model
 
-import org.nicta.wdy.hdm.ClosureCleaner
+import org.nicta.wdy.hdm.{Buf, ClosureCleaner}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -74,7 +74,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
     new DFM[R,R](children = Seq(this), dependency = OneToOne, func = new ParFindByFunc(f), distribution = distribution, location = location)
   }
 
-  def groupBy[K:ClassTag](f: R=> K): HDM[_,(K,Buf[R])] = {
+  def groupBy[K:ClassTag](f: R=> K): HDM[_,(K, Buf[R])] = {
     ClosureCleaner(f)
 
     val pFunc = (t:R) => f(t).hashCode()

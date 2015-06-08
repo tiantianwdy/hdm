@@ -1,8 +1,8 @@
 package org.nicta.hdm.functions
 
 import org.junit.Test
+import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.functions.{ParGroupByFunc, ParReduceBy, ParReduceFunc}
-import org.nicta.wdy.hdm.model.Buf
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
@@ -89,7 +89,7 @@ class CollectionEfficiencyTest {
     val collection = generateTuple(300000,10000).toBuffer
     val f = (d1:(String, String), d2:(String,String)) => (d1._1, (d1._2.toInt + d2._2.toInt).toString)
     val func =  new ParReduceBy[(String,String), String](_._1, f)
-    var res = mutable.Buffer.empty[(String, (String, String))]
+    var res = Buf.empty[(String, (String, String))]
     for( i <- 0 until iterNum)
      res =  func.aggregate(collection, res)
     val end = System.currentTimeMillis() - start
@@ -105,7 +105,7 @@ class CollectionEfficiencyTest {
     val func =  new ParGroupByFunc[(String,String), String](_._1)
 //    var res = mutable.Map.empty[String, scala.collection.mutable.Buffer[(String, String)]]
 //    var res = mutable.Buffer.empty[(String, scala.collection.mutable.Buffer[(String, String)])]
-    var res = mutable.Buffer.empty[(String, Buf[(String, String)])]
+    var res = Buf.empty[(String, Buf[(String, String)])]
     for( i <- 0 until iterNum)
       res =  func.aggregate(collection, res)
     val end = System.currentTimeMillis() - start

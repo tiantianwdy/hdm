@@ -16,6 +16,7 @@ import org.nicta.wdy.hdm.utils.Logging
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scala.reflect.ClassTag
 
 /**
  * Created by Tiantian on 2014/12/1.
@@ -24,11 +25,11 @@ trait DataParser {
 
   def protocol:String
 
-  def readBlock[T](path:Path)(implicit serializer:BlockSerializer[T]):Block[T]
+  def readBlock[T: ClassTag](path:Path)(implicit serializer:BlockSerializer[T]):Block[T]
 
-  def readBatch[T](path:Seq[Path])(implicit serializer:BlockSerializer[T]):Seq[Block[T]] = ???
+  def readBatch[T: ClassTag](path:Seq[Path])(implicit serializer:BlockSerializer[T]):Seq[Block[T]] = ???
 
-  def writeBlock[T](path:Path, bl:Block[T])(implicit serializer:BlockSerializer[T]):Unit
+  def writeBlock[T: ClassTag](path:Path, bl:Block[T])(implicit serializer:BlockSerializer[T]):Unit
 
 }
 
@@ -36,9 +37,9 @@ class HdfsParser extends DataParser{
 
   type HPath = org.apache.hadoop.fs.Path
 
-  override def writeBlock[String](path: Path, bl: Block[String])(implicit serializer: BlockSerializer[String]): Unit = ???
+  override def writeBlock[String: ClassTag](path: Path, bl: Block[String])(implicit serializer: BlockSerializer[String]): Unit = ???
 
-  override def readBlock[String](path: Path)(implicit serializer: BlockSerializer[String] = new StringSerializer): Block[String] = {
+  override def readBlock[String: ClassTag](path: Path)(implicit serializer: BlockSerializer[String] = new StringSerializer): Block[String] = {
     val conf = new Configuration()
     conf.set("fs.default.name", path.protocol + path.address)
     val filePath = new HPath(path.relativePath)
@@ -53,7 +54,7 @@ class HdfsParser extends DataParser{
   }
 
 
-  override def readBatch[String](pathList: Seq[Path])(implicit serializer: BlockSerializer[String] = new StringSerializer): Seq[Block[String]] = {
+  override def readBatch[String: ClassTag](pathList: Seq[Path])(implicit serializer: BlockSerializer[String] = new StringSerializer): Seq[Block[String]] = {
     val head = pathList.head
     val conf = new Configuration()
     conf.set("fs.default.name", head.protocol + head.address)
@@ -72,9 +73,9 @@ class HdfsParser extends DataParser{
 
 class FileParser extends DataParser{
 
-  override def writeBlock[T](path: Path, bl: Block[T])(implicit serializer: BlockSerializer[T]): Unit = ???
+  override def writeBlock[T: ClassTag](path: Path, bl: Block[T])(implicit serializer: BlockSerializer[T]): Unit = ???
 
-  override def readBlock[T](path: Path)(implicit serializer: BlockSerializer[T]): Block[T] = ???
+  override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T]): Block[T] = ???
 
   override def protocol: String = "file://"
 
@@ -82,9 +83,9 @@ class FileParser extends DataParser{
 
 class MysqlParser extends DataParser{
 
-  override def writeBlock[T](path: Path, bl: Block[T])(implicit serializer: BlockSerializer[T]): Unit = ???
+  override def writeBlock[T: ClassTag](path: Path, bl: Block[T])(implicit serializer: BlockSerializer[T]): Unit = ???
 
-  override def readBlock[T](path: Path)(implicit serializer: BlockSerializer[T]): Block[T] = ???
+  override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T]): Block[T] = ???
 
   override def protocol: String = "mysql://"
 }
@@ -94,11 +95,11 @@ class HDMParser extends DataParser {
 
   lazy val blockManager = HDMBlockManager()
 
-  override def writeBlock[T](path: Path, bl: Block[T])(implicit serializer: BlockSerializer[T] = null): Unit = {
+  override def writeBlock[T: ClassTag](path: Path, bl: Block[T])(implicit serializer: BlockSerializer[T] = null): Unit = {
     blockManager.add(bl.id, bl)
   }
 
-  override def readBlock[T](path: Path)(implicit serializer: BlockSerializer[T] = null): Block[T] = {
+  override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T] = null): Block[T] = {
     blockManager.getBlock(path.name).asInstanceOf[Block[T]]
   }
 

@@ -11,6 +11,8 @@ import org.nicta.wdy.hdm.model.{DFM, HDM, DDM}
 import java.util.concurrent.ConcurrentHashMap
 
 import org.nicta.wdy.hdm.utils.Logging
+import org.nicta.wdy.hdm.Buf
+import scala.reflect.ClassTag
 
 /**
  * Created by Tiantian on 2014/12/15.
@@ -169,7 +171,7 @@ object HDMBlockManager extends Logging{
 
   def apply():HDMBlockManager = defaultManager
 
-  def loadOrCompute[T](refID: String):Seq[Block[T]] = {
+  def loadOrCompute[T: ClassTag](refID: String):Seq[Block[T]] = {
     val id = Path(refID).name
     val ref = defaultManager.getRef(id)
     if (ref != null && ref.state == Computed)
@@ -177,7 +179,7 @@ object HDMBlockManager extends Logging{
     else Seq.empty[Block[T]]
   }
 
-  def loadBlock[T](url:String):Block[T] ={
+  def loadBlock[T: ClassTag](url:String):Block[T] ={
     val path = Path(url)
 //    val bl = defaultManager.getBlock(id)*/
     val bl = DataParser.readBlock(path)
@@ -202,7 +204,7 @@ object HDMBlockManager extends Logging{
     }
   }
 
-  def loadOrDeclare[T](br:DDM[_,T]) :Block[T] = {
+  def loadOrDeclare[T: ClassTag](br:DDM[_,T]) :Block[T] = {
     val bl = defaultManager.getBlock(br.id)
     if(bl ne null) bl.asInstanceOf[Block[T]]
     else {
@@ -218,8 +220,8 @@ object HDMBlockManager extends Logging{
   }
 
   def cleanup(blk:Block[_]) = {
-    if(blk != null && blk.data != null)
-      blk.data.clear()
+//    if(blk != null && blk.data != null)
+//      blk.data.clear
   }
 
   def forceGC(): Unit ={

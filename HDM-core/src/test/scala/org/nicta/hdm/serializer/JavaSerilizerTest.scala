@@ -6,6 +6,7 @@ import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.serializer.JavaSerializer
 import org.nicta.wdy.hdm.storage.Block
 
+import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 /**
@@ -24,8 +25,12 @@ class JavaSerilizerTest {
 
   val data = ArrayBuffer.empty[String] ++= text
 
-  val data2 = ArrayBuffer.fill[(String, List[Double])](1000000){
-    ("test", List(1D))
+  val data2 = ArrayBuffer.fill[Product2[String, Seq[Double]]](1000000){
+    ("test", Seq(0D))
+  }
+
+  val data3 = ArrayBuffer.fill[(String, mutable.Buffer[Double])](1000000){
+    ("test", mutable.Buffer(1D))
   }
 
   val serilizer = new JavaSerializer(HDMContext.defaultConf).newInstance()
@@ -68,7 +73,17 @@ class JavaSerilizerTest {
     println(s"encode finished in ${t2 - t1} ms.")
     val nBlk = Block.decode(buf)
     val t3 = System.currentTimeMillis()
+    println(s"encoded size : ${buf.array().length} bytes.")
     println(s"decode finished in ${t3 - t2} ms.")
+  }
+
+  @Test
+  def testEncodeSize() ={
+    val t1 = System.currentTimeMillis()
+    val buf = serilizer.serialize(data2)
+    val t2 = System.currentTimeMillis()
+    println(s"encode finished in ${t2 - t1} ms.")
+    println(s"encoded size : ${buf.array().length} bytes.")
   }
 
 

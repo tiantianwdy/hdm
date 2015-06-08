@@ -5,6 +5,6 @@ package org.nicta.wdy.hdm
  */
 package object functions {
 
-  type Buf[A] = scala.collection.mutable.Buffer[A]
-  val Buf = scala.collection.mutable.Buffer
+//  type Buf[A] = scala.Array[A]
+//  val Buf = scala.Array
 }

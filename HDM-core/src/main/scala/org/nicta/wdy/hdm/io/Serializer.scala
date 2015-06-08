@@ -4,6 +4,7 @@ import java.io._
 import java.nio.charset.Charset
 
 import akka.serialization.Serializer
+import org.nicta.wdy.hdm.Buf
 
 import scala.collection.mutable.ListBuffer
 

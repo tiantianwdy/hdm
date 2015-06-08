@@ -7,6 +7,7 @@ import akka.actor.ActorPath
 import com.baidu.bpit.akka.monitor.SystemMonitorService
 import com.baidu.bpit.akka.server.SmsSystem
 import org.apache.commons.logging.LogFactory
+import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.utils.Logging
 import org.slf4j.{LoggerFactory, Logger}
 

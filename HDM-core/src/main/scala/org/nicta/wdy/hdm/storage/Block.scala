@@ -2,12 +2,12 @@ package org.nicta.wdy.hdm.storage
 
 import java.nio.ByteBuffer
 import java.util.UUID
-import io.netty.buffer.{Unpooled, ByteBuf}
+import _root_.io.netty.buffer.{Unpooled, ByteBuf}
+import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.model.Buf
 import org.nicta.wdy.hdm.serializer.SerializerInstance
 
-import scala.reflect.ClassTag
+import scala.reflect._
 import akka.serialization.{JavaSerializer, Serializer}
 import org.nicta.wdy.hdm.io.DefaultJSerializer
 
@@ -23,13 +23,13 @@ trait Block[T] extends Serializable{
   def size: Int
 }
 
-class UnserializedBlock[T](val id:String, val data:Buf[T]) extends  Block[T] {
+class UnserializedBlock[T:ClassTag](val id:String, val data:Buf[T]) extends  Block[T] {
 
   def size = data.size
 
 }
 
-class SerializedBlock[T <: Serializable] (val id:String, val elems:Buf[T])(implicit serializer:Serializer = new DefaultJSerializer) extends  Block[T] {
+class SerializedBlock[T <: Serializable: ClassTag] (val id:String, val elems:Buf[T])(implicit serializer:Serializer = new DefaultJSerializer) extends  Block[T] {
 
   private val block: Array[Byte] = serializer.toBinary(elems)
 
@@ -42,13 +42,15 @@ class SerializedBlock[T <: Serializable] (val id:String, val elems:Buf[T])(impli
 
 object Block {
 
-  def apply[T](data:Buf[T]) = new UnserializedBlock[T](UUID.randomUUID().toString, data)
+  def apply[T: ClassTag](data:Seq[T]) = new UnserializedBlock(UUID.randomUUID().toString, data.toBuffer)
 
-  def apply[T](id:String, data:Buf[T]) = new UnserializedBlock[T](id, data)
+  def apply[T: ClassTag](id:String, data:Seq[T]) = new UnserializedBlock(id, data.toBuffer)
 
-  def apply[T](data:Seq[T]) = new UnserializedBlock[T](UUID.randomUUID().toString, data.toBuffer)
+  def apply[T: ClassTag](data:Buf[T]) = {
+    new UnserializedBlock(UUID.randomUUID().toString, data)
+  }
 
-  def apply[T](id:String, data:Seq[T]) = new UnserializedBlock[T](id, data.toBuffer)
+  def apply[T: ClassTag](id:String, data:Buf[T]) = new UnserializedBlock(id, data)
 
   def sizeOf(obj:Any)(implicit serializer:Serializer = new DefaultJSerializer) : Int = obj match {
     case o:AnyRef =>

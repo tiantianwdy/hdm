@@ -1,8 +1,9 @@
 package org.nicta.wdy.hdm.functions
 
 
+import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.executor.{ShuffleBlockAggregator, Aggregator}
-import org.nicta.wdy.hdm.model.{FullDep, PartialDep, FuncDependency, DataDependency}
+import org.nicta.wdy.hdm.model._
 
 import scala.collection.mutable
 import scala.collection.mutable.{HashMap, Buffer, ArrayBuffer}
@@ -29,16 +30,16 @@ abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFu
     val f = (seq:Buf[T]) => func(this.apply(seq))
     val combinedDep = if(this.dependency == FullDep || func.dependency == FullDep) FullDep else PartialDep
     if(this.dependency == PartialDep) {
-      val a = (seq: Buf[T], res: mutable.Buffer[U]) => {
+      val a = (seq: Buf[T], res: Buf[U]) => {
         func.aggregate(this.apply(seq), res)
       }
       val post = (b:Buf[U]) => b
       new ParCombinedFunc[T,U,U](dependency= combinedDep, parallel = f, preF = f, aggregation = a, postF = post)
     } else {//if(this.dependency == FullDep)
-      val a = (seq: Buf[T], res: mutable.Buffer[R]) => {
+      val a = (seq: Buf[T], res: Buf[R]) => {
         this.aggregate(seq, res)
       }
-      val post = (b:Buf[R]) => func.apply(b).toBuffer[U]
+      val post = (b:Buf[R]) => func.apply(b)
       new ParCombinedFunc[T,R,U](dependency= combinedDep, parallel = f, preF = this.apply(_), aggregation = a, postF = post)
     }
   }
@@ -47,16 +48,16 @@ abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFu
     val f = (seq:Buf[I]) => this.apply(func.apply(seq))
     val combinedDep = if(func.dependency == FullDep || this.dependency == FullDep) FullDep else PartialDep
     if(func.dependency == PartialDep) {
-      val a = (seq: Buf[I], res: mutable.Buffer[R]) => {
+      val a = (seq: Buf[I], res: Buf[R]) => {
         this.aggregate(func.apply(seq), res)
       }
       val post = (b:Buf[R]) => b
       new ParCombinedFunc[I,R,R](dependency= combinedDep, parallel = f, preF = f, aggregation = a, postF = post)
     } else {//if(func.dependency == FullDep)
-    val a = (seq: Buf[I], res: mutable.Buffer[T]) => {
+    val a = (seq: Buf[I], res: Buf[T]) => {
         func.aggregate(seq, res)
       }
-      val post = (b:Buf[T]) => this.apply(b).toBuffer
+      val post = (b:Buf[T]) => this.apply(b)
       new ParCombinedFunc[I,T,R](dependency= combinedDep, parallel = f, preF = func.apply(_), aggregation = a, postF = post)
     }
   }
@@ -78,7 +79,8 @@ class ParMapFunc [T:ClassTag,R:ClassTag](f: T=>R)  extends ParallelFunction[T,R]
   }
 
   override def aggregate(params: Buf[T], res: Buf[R]): Buf[R] = {
-    res ++= params.map(f)
+//    res ++= params.map(f)
+    BufUtils.combine(res, params.map(f))
   }
 
 }
@@ -93,7 +95,8 @@ class ParMapAllFunc [T:ClassTag,R:ClassTag](f: Buf[T]=>Buf[R])  extends Parallel
   }
 
   override def aggregate(params: Buf[T], res: Buf[R]): Buf[R] = {
-    res ++= f(params)
+//    res ++= f(params)
+    BufUtils.combine(res, f(params))
   }
 }
 
@@ -103,7 +106,8 @@ class ParFindByFunc[T:ClassTag](f: T=> Boolean)  extends ParallelFunction[T,T] {
   override val dependency: FuncDependency = PartialDep
 
   override def aggregate(params: Buf[T], res: Buf[T]): Buf[T] = {
-    res ++= this.apply(params)
+//    res ++= this.apply(params)
+    BufUtils.combine(res, apply(params))
   }
 
   override def apply(params: Buf[T]): Buf[T] = {
@@ -143,7 +147,7 @@ class ParReduceFunc[T:ClassTag ,R >:T :ClassTag](f: (R, R) => R)  extends Parall
   override def aggregate(params: Buf[T], res: Buf[R]): Buf[R] = {
     val elems = if(res.isEmpty) params.reduce(f)
      else params.fold(res.head)(f)
-    ArrayBuffer(elems)
+    Buf(elems)
   }
 }
 
@@ -156,7 +160,7 @@ class ParFoldFunc[T:ClassTag, R:ClassTag](z:R)(f: (R, T) => R)  extends Parallel
   }
 
   override def aggregate(params: Buf[T], res: Buf[R]): Buf[R] = {
-    ArrayBuffer(params.foldLeft(res.head)(f))
+    Buf(params.foldLeft(res.head)(f))
   }
 
 }
@@ -172,31 +176,33 @@ class ParGroupByFunc[T: ClassTag, K: ClassTag](val f: T => K) extends ParallelFu
 
 
   @deprecated("replcaced by follow up aggregator","0.0.1")
-  def aggregateOld(params: Buf[T], res: mutable.Buffer[(K, Buf[T])]): mutable.Buffer[(K, Buf[T])] = {
-    val tempMap = HashMap.empty[K,Buffer[T]]
+  def aggregateOld(params: Buf[T], res: Buf[(K, Buf[T])]): Buf[(K, Buf[T])] = {
+    val tempMap = HashMap.empty[K,Buf[T]]
     res foreach { e =>
-      tempMap += e._1 -> e._2.toBuffer
+      tempMap += e._1 -> e._2
     }
     params foreach {elem =>
       val k = f(elem)
       if(tempMap.contains(k)){
         val v = tempMap.apply(k)
-        tempMap.update(k, v += elem)
+//        tempMap.update(k, v += elem)
+        tempMap.update(k, BufUtils.add(v,elem))
       } else {
-        tempMap += k -> Buffer(elem)
+        tempMap += k -> Buf(elem)
       }
     }
     tempMap.toBuffer
   }
 
-  override def aggregate(params: Buf[T], res: mutable.Buffer[(K, Buffer[T])]): mutable.Buffer[(K, Buffer[T])] = { // 40% faster than non-optimized one
+  override def aggregate(params: Buf[T], res: Buf[(K, Buf[T])]): Buf[(K, Buf[T])] = { // 40% faster than non-optimized one
 //    val tempMap = res
-    val tempMap = HashMap.empty[K,Buffer[T]] ++= res
+    val tempMap = HashMap.empty[K,Buf[T]] ++= res
     params foreach {elem =>
       val k = f(elem)
       if(tempMap.contains(k)){
         val v = tempMap.apply(k)
-        tempMap.update(k, v +=elem)
+//        tempMap.update(k, v += elem)
+        tempMap.update(k, BufUtils.add(v,elem))
       } else {
         tempMap += k -> Buffer(elem)
       }
@@ -266,7 +272,7 @@ class ParGroupByAggregation[T:ClassTag, K:ClassTag, R : ClassTag] (fk: T=> K, t:
     params.groupBy(fk).mapValues(_.map(t).reduce(fr)).toBuffer
   }
 
-  override def aggregate(params: Buf[T], res: mutable.Buffer[(K, R)]): mutable.Buffer[(K, R)] = {
+  override def aggregate(params: Buf[T], res: Buf[(K, R)]): Buf[(K, R)] = {
     val mapRes = params.groupBy(fk).mapValues(_.map(t).reduce(fr))
     val tempMap = HashMap.empty[K,R] ++= res
     mapRes.toSeq foreach { tup =>
@@ -290,7 +296,8 @@ class ParUnionFunc[T: ClassTag]()  extends ParallelFunction[T,T] {
   }
 
   override def aggregate(params: Buf[T], res: Buf[T]): Buf[T] = {
-    res ++= params
+//    res ++= params
+    BufUtils.combine(res, params)
   }
 }
 
@@ -303,7 +310,8 @@ class FlattenFunc[T: ClassTag] extends ParallelFunction[T,T] {
   }
 
   override def aggregate(params: Buf[T], res: Buf[T]): Buf[T] = {
-    res ++= params
+//    res ++= params
+    BufUtils.combine(res, params)
   }
 
 }
@@ -331,7 +339,8 @@ class NullFunc[T: ClassTag] extends ParallelFunction[T,T] {
   }
 
   override def aggregate(params: Buf[T], res: Buf[T]): Buf[T] = {
-    res ++= params
+//    res ++= params
+    BufUtils.combine(res, params)
   }
 
 }

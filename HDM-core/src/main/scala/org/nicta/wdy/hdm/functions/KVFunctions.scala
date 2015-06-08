@@ -1,9 +1,10 @@
 package org.nicta.wdy.hdm.functions
 
+import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.model._
 
-import scala.collection.mutable
-import scala.collection.mutable.{HashMap, Buffer}
+
+import scala.collection.mutable.HashMap
 import scala.reflect.{classTag,ClassTag}
 
 /**
@@ -33,7 +34,7 @@ class ReduceByKey[T:ClassTag, K :ClassTag](fr: (T, T) => T) extends ParallelFunc
     tempMap.toBuffer
   }
 
-  override def aggregate(params: Buf[(K, T)], res: Buffer[(K, T)]): Buf[(K, T)] = {
+  override def aggregate(params: Buf[(K, T)], res: Buf[(K, T)]): Buf[(K, T)] = {
     val tempMap = HashMap.empty[K,T] ++= res
     params foreach { elem =>
       val k = elem._1
@@ -52,8 +53,9 @@ class MapValues[T:ClassTag, K :ClassTag, R:ClassTag](f: T => R) extends Parallel
   
   override val dependency: FuncDependency = FullDep
 
-  override def aggregate(params: Buf[(K, T)], res: Buffer[(K, R)]): Buffer[(K, R)] = {
-    res ++= apply(params)
+  override def aggregate(params: Buf[(K, T)], res: Buf[(K, R)]): Buf[(K, R)] = {
+//    res ++= apply(params)
+    BufUtils.combine(res, apply(params))
   }
 
   override def apply(params: Buf[(K, T)]): Buf[(K, R)] = {
@@ -67,7 +69,7 @@ class MapKeys[T:ClassTag, K :ClassTag, R:ClassTag](f: K => R) extends ParallelFu
   
   override val dependency: FuncDependency = FullDep
 
-  override def aggregate(params: Buf[(K, T)], res: mutable.Buffer[(R, T)]): mutable.Buffer[(R, T)] = ???
+  override def aggregate(params: Buf[(K, T)], res: Buf[(R, T)]): Buf[(R, T)] = ???
 
   override def apply(params: Buf[(K, T)]): Buf[(R, T)] = {
     params.map{ kv =>
@@ -84,8 +86,9 @@ class FindByKey[T:ClassTag, K :ClassTag](val f: K => Boolean) extends ParallelFu
   
   override val dependency: FuncDependency = PartialDep 
 
-  override def aggregate(params: Buf[(K, T)], res: mutable.Buffer[(K, T)]): mutable.Buffer[(K, T)] = {
-    res ++= apply(params)
+  override def aggregate(params: Buf[(K, T)], res: Buf[(K, T)]): Buf[(K, T)] = {
+//    res ++= apply(params)
+    BufUtils.combine(res, apply(params))
   }
 
   override def apply(params: Buf[(K, T)]): Buf[(K, T)] = {
@@ -99,8 +102,9 @@ class FindByValue[T:ClassTag, K :ClassTag](f: T => Boolean) extends ParallelFunc
   
   override val dependency: FuncDependency = PartialDep
 
-  override def aggregate(params: Buf[(K, T)], res: mutable.Buffer[(K, T)]): mutable.Buffer[(K, T)] = {
-    res ++= apply(params)
+  override def aggregate(params: Buf[(K, T)], res: Buf[(K, T)]): Buf[(K, T)] = {
+//    res ++= apply(params)
+    BufUtils.combine(res, apply(params))
   }
 
   override def apply(params: Buf[(K, T)]): Buf[(K, T)] = {
@@ -114,8 +118,9 @@ class FindValuesByKey[T:ClassTag, K :ClassTag](f: T => Boolean) extends Parallel
   
   override val dependency: FuncDependency = PartialDep
 
-  override def aggregate(params: Buf[(K, Buf[T])], res: mutable.Buffer[(K, Buf[T])]): mutable.Buffer[(K, Buf[T])] = {
-    res ++= apply(params)
+  override def aggregate(params: Buf[(K, Buf[T])], res: Buf[(K, Buf[T])]): Buf[(K, Buf[T])] = {
+//    res ++= apply(params)
+    BufUtils.combine(res, apply(params))
   }
 
   override def apply(params: Buf[(K, Buf[T])]): Buf[(K, Buf[T])] = {

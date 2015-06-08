@@ -1,13 +1,15 @@
 package org.nicta.wdy.hdm.io.netty
 
 import java.net.{InetAddress, Inet4Address, InetSocketAddress}
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{ArrayBlockingQueue, ConcurrentHashMap}
 
 import io.netty.buffer.PooledByteBufAllocator
 import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.handler.codec.{LengthFieldPrepender, MessageToByteEncoder, ByteToMessageDecoder, LengthFieldBasedFrameDecoder}
 import io.netty.util.internal.PlatformDependent
 import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.utils.Logging
+import scala.collection.JavaConversions._
 import org.nicta.wdy.hdm.io.netty.NettyBlockFetcher
 import org.nicta.wdy.hdm.storage.Block
 
@@ -16,16 +18,12 @@ import org.nicta.wdy.hdm.storage.Block
  */
 class NettyConnectionManager {
 
-  private val connectionCacheMap = new ConcurrentHashMap[String, NettyBlockFetcher]()
+  val connectionNumPerPeer = 4
 
-  private def createConnection(host:String, port:Int) = {
-    val blockFetcher = new NettyBlockFetcher(HDMContext.defaultSerializer)
-    blockFetcher.init()
-    blockFetcher.connect(host, port)
-    blockFetcher
-  }
+  private val connectionCacheMap = new ConcurrentHashMap[String, ConnectionPool]()
 
-  def getConnection(host:String, port:Int):NettyBlockFetcher ={
+
+/*  def getConnection(host:String, port:Int):NettyBlockFetcher ={
     val cId = host + ":" + port
     val activeCon = if(connectionCacheMap.containsKey(cId)) {
       val con = connectionCacheMap.get(cId)
@@ -33,36 +31,42 @@ class NettyConnectionManager {
       else {
         con.shutdown()
         connectionCacheMap.remove(cId)
-        createConnection(host, port)
+        NettyConnectionManager.createConnection(host, port)
       }
     } else {
-      createConnection(host, port)
+      NettyConnectionManager.createConnection(host, port)
     }
     connectionCacheMap.put(cId, activeCon)
+    if(!activeCon.isRunning) activeCon.schedule()
+    activeCon
+  }*/
+
+  def getConnection(host:String, port:Int):NettyBlockFetcher ={
+    val cId = host + ":" + port
+    if(!connectionCacheMap.containsKey(cId)) {
+      connectionCacheMap.put(cId, new ConnectionPool(connectionNumPerPeer,host, port))
+    }
+    val activeCon = connectionCacheMap.get(cId).getNext()
     if(!activeCon.isRunning) activeCon.schedule()
     activeCon
   }
 
   def recycleConnection(host:String, port:Int, con: NettyBlockFetcher) = {
     val cId = host + ":" + port
-    if(!connectionCacheMap.contains(cId) && con.isConnected())
-      connectionCacheMap.put(cId, con)
-    else if(connectionCacheMap.contains(cId)){
-      val oldCon = connectionCacheMap.get(cId)
-      if(oldCon.isConnected())
-        con.shutdown()
-      else{
-        oldCon.shutdown()
-        connectionCacheMap.put(cId, con)
-      }
-    } else {
-      con.shutdown()
+    if(!connectionCacheMap.contains(cId)){
+      connectionCacheMap.put(cId, new ConnectionPool(connectionNumPerPeer,host, port))
     }
+    connectionCacheMap.get(cId).recycle(con)
+  }
+
+  def clear(): Unit ={
+    connectionCacheMap.values().foreach(_.dispose())
+    connectionCacheMap.clear()
   }
 
 }
 
-object NettyConnectionManager {
+object NettyConnectionManager extends Logging{
 
   lazy val defaultManager = new NettyConnectionManager
 
@@ -87,5 +91,13 @@ object NettyConnectionManager {
   }
 
   def getInstance = defaultManager
+
+  def createConnection(host:String, port:Int) = {
+    log.info(s"creating a new connection for $host:$port")
+    val blockFetcher = new NettyBlockFetcher(HDMContext.defaultSerializer)
+    blockFetcher.init()
+    blockFetcher.connect(host, port)
+    blockFetcher
+  }
 
 }

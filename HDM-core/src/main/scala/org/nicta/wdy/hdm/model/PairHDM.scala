@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.model
 
+import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.executor.{KeepPartitioner, MappingPartitioner}
 import org.nicta.wdy.hdm.functions._
 

@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.executor
 
+import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
 import org.nicta.wdy.hdm.serializer.{KryoSerializer, JavaSerializer, SerializerInstance}
@@ -224,7 +225,7 @@ object HDMContext extends  Context{
     new PairHDM(hdm)
   }
 
-  implicit def hdmToGroupedSeqHDM[K:ClassTag, V: ClassTag](hdm:HDM[_, (K,Buffer[V])] ): GroupedSeqHDM[K,V] = {
+  implicit def hdmToGroupedSeqHDM[K:ClassTag, V: ClassTag](hdm:HDM[_, (K,Buf[V])] ): GroupedSeqHDM[K,V] = {
     new GroupedSeqHDM[K,V](hdm)
   }
 

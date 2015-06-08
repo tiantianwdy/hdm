@@ -2,6 +2,8 @@ package org.nicta.wdy.hdm.storage
 
 import org.nicta.wdy.hdm.model.HDM
 
+import scala.reflect.ClassTag
+
 
 /**
  * Created by Tiantian on 2014/12/1.
@@ -45,7 +47,7 @@ object BlockManager{
 
   def apply():BlockManager = defaultManager
 
-  def loadOrCompute[T](bID: String):Block[T] = {
+  def loadOrCompute[T:ClassTag](bID: String):Block[T] = {
     val bl = defaultManager.getBlock(bID)
     if(bl ne null) bl.asInstanceOf[Block[T]]
     else {

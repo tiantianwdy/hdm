@@ -2,6 +2,7 @@ package org.nicta.hdm.functions
 
 import org.junit.Test
 import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.functions._
 
 import scala.collection.mutable
@@ -32,7 +33,7 @@ class ParallelFunctionsTest {
 
   @Test
   def textMapAggregation(): Unit ={
-    val res = ArrayBuffer.empty[Int]
+    val res = Buf.empty[Int]
     val map = new ParMapFunc[String, Int]((d) => d match {
       case s:String  => s.length
       case _ => 0
@@ -61,7 +62,7 @@ class ParallelFunctionsTest {
       case ss => ss
     }
     val gb = new ParGroupByFunc[String,String](f)
-    var res: mutable.Buffer[(String,Buf[String])] = ArrayBuffer.empty[(String,Buf[String])]
+    var res: Buf[(String,Buf[String])] = Buf.empty[(String,Buf[String])]
     for (i <- 1 to 10)
       res = gb.aggregate(text,res)
     res.foreach(println(_))
@@ -88,7 +89,7 @@ class ParallelFunctionsTest {
 
     val grouped = new ParGroupByFunc[String,String](f).apply(text)
     val reduce = new ParReduceFunc[(String, Buf[String]), (String, Buf[String])]((s1,s2) => (s2._1, s1._2 ++ s2._2))
-    var res:mutable.Buffer[(String,Buf[String])] = ArrayBuffer.empty[(String,Buf[String])]
+    var res:Buf[(String,Buf[String])] = Buf.empty[(String,Buf[String])]
     for (i <- 1 to 3)
       res = reduce.aggregate(grouped,res)
     res.foreach(println(_))
@@ -106,7 +107,7 @@ class ParallelFunctionsTest {
   def testReduceByKeyAggregation(){
     val mapped = new ParMapFunc[String,(String,Int)]((_, 1)).apply(text)
     val reduceByK = new ParReduceBy[(String,Int), String](_._1, (s1,s2) => (s1._1, s1._2 + s2._2))
-    var res:mutable.Buffer[(String,(String,Int))] = ArrayBuffer.empty[(String,(String,Int))]
+    var res:Buf[(String,(String,Int))] = Buf.empty[(String,(String,Int))]
     for (i <- 1 to 3)
       res = reduceByK.aggregate(mapped,res)
     res.foreach(println(_))
@@ -163,15 +164,15 @@ class ParallelFunctionsTest {
     println("====== test AndThen =====")
     val andThenF = groupBy.andThen(mapValues).asInstanceOf[ParCombinedFunc[(String,Int), _ ,(String,Int)]]
     val andThenF2 = andThenF.asInstanceOf[ParCombinedFunc[(String,Int), andThenF.mediateType.type ,(String,Int)]]
-    var res:mutable.Buffer[(String,Int)] = ArrayBuffer.empty[(String,Int)]
-    var partialRes:mutable.Buffer[andThenF.mediateType.type ] = ArrayBuffer.empty[andThenF.mediateType.type ]
+    var res:Buf[(String,Int)] = Buf.empty[(String,Int)]
+    var partialRes:Buf[andThenF.mediateType.type ] = Buf.empty[andThenF.mediateType.type ]
     for (i <- 1 to 3)
       partialRes = andThenF2.partialAggregate(mapped,partialRes)
     res = andThenF2.postF(partialRes)
     res.foreach(println(_))
     println("====== test Composition =====")
     val combined = mapValues.compose(groupBy)
-    res.clear()
+    res = null
     for (i <- 1 to 3)
       res = combined.aggregate(mapped,res)
     res.foreach(println(_))

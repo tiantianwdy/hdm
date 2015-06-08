@@ -15,26 +15,26 @@ object NettyClient {
   val serializer = new JavaSerializer(HDMContext.defaultConf).newInstance()
 
   def main(args:Array[String]): Unit ={
-    var blockFetcher = NettyConnectionManager.getInstance.getConnection("tiantian-HP-EliteBook-Folio-9470m", 9091)
+
     val blkHandler = (blk:Block[_]) => {
       println(s"received block ${blk.id} with size ${blk.data.length}.")
 //      blk.data.map(_.toString) foreach(println(_))
       HDMBlockManager().add(blk.id, blk)
     }
-//    val blockFetcher = new NettyBlockFetcher(serializer, blkHandler)
-//    blockFetcher.init()
-//    blockFetcher.connect("0.0.0.0", 9091)
-    blockFetcher.sendRequest(QueryBlockMsg("blk-002","tiantian-HP-EliteBook-Folio-9470m:9091"), blkHandler)
-//    Thread.sleep(100)
+    var blockFetcher = NettyConnectionManager.getInstance.getConnection("tiantian-HP-EliteBook-Folio-9470m", 9091)
+    val success = blockFetcher.sendRequest(QueryBlockMsg("blk-002","tiantian-HP-EliteBook-Folio-9470m:9091"), blkHandler)
 //    blockFetcher.waitForClose()
 //    NettyConnectionManager.getInstance.recycleConnection("tiantian-HP-EliteBook-Folio-9470m", 9091, blockFetcher)
     blockFetcher = NettyConnectionManager.getInstance.getConnection("tiantian-HP-EliteBook-Folio-9470m", 9091)
     blockFetcher.sendRequest(QueryBlockMsg("blk-001","tiantian-HP-EliteBook-Folio-9470m:9091"), blkHandler)
+
+    blockFetcher = NettyConnectionManager.getInstance.getConnection("tiantian-HP-EliteBook-Folio-9470m", 9091)
+    blockFetcher.sendRequest(QueryBlockMsg("blk-002","tiantian-HP-EliteBook-Folio-9470m:9091"), blkHandler)
 //    blockFetcher.waitForClose()
-    Thread.sleep(25000)
+    Thread.sleep(250000)
     val cachedBlk = HDMBlockManager().getBlock("blk-002")
     println(cachedBlk)
-//    blockFetcher.shutdown()
+    NettyConnectionManager.getInstance.clear()
   }
 
 }
