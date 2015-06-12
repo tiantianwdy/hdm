@@ -76,9 +76,9 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   def groupBy[K:ClassTag](f: R=> K): HDM[_,(K, Buf[R])] = {
     ClosureCleaner(f)
-
+    //todo add map side aggregation
     val pFunc = (t:R) => f(t).hashCode()
-    val parallel = new DFM[R,R](children = Seq(this), dependency = OneToN, func = new NullFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
+    val parallel = new DFM[R,R](children = Seq(this), dependency = OneToN, func = new NullFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = new HashPartitioner(4, pFunc))
 //    val parallel = this.copy(dependency = OneToN, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
     new DFM[R,(K, Buf[R])](children = Seq(parallel), dependency = NToOne, func = new ParGroupByFunc(f), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, Buf[R])](1))
 
@@ -100,6 +100,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 */
 
 
+
   }
 
 
@@ -107,7 +108,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
     ClosureCleaner(f)
     ClosureCleaner(r)
     val pFunc = (t:(K, R)) => t._1.hashCode()
-    val parallel = new DFM[R,(K, R)](children = Seq(this), dependency = OneToN, func = new ParReduceBy(f, r), distribution = distribution, location = location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
+    val parallel = new DFM[R,(K, R)](children = Seq(this), dependency = OneToN, func = new ParReduceBy(f, r), distribution = distribution, location = location, keepPartition = false, partitioner = new HashPartitioner(4, pFunc))
 //    val groupReduce = (elems:Seq[(K,R)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(r)).toSeq
     new DFM[(K, R),(K, R)](children = Seq(parallel), dependency = NToOne, func = new ReduceByKey(r), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, R)](1))
 
@@ -120,7 +121,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
     val mapAll = (elems:Buf[R]) => {
       elems.groupBy(f).mapValues(_.reduce(r)).toBuffer
     }
-    val parallel = new DFM[R,(K, R)](children = Seq(this), dependency = OneToN, func = new ParMapAllFunc(mapAll), distribution = distribution, location = location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
+    val parallel = new DFM[R,(K, R)](children = Seq(this), dependency = OneToN, func = new ParMapAllFunc(mapAll), distribution = distribution, location = location, keepPartition = false, partitioner = new HashPartitioner(4, pFunc))
     val groupReduce = (elems:Buf[(K,R)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(r)).toBuffer
     new DFM[(K, R),(K, R)](children = Seq(parallel), dependency = NToOne, func = new ParMapAllFunc(groupReduce), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, R)](1))
 
@@ -134,7 +135,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
     val mapAll = (elems:Buf[R]) => {
       elems.groupBy(f).mapValues(_.map(m).reduce(r)).toBuffer
     }
-    val parallel = new DFM[R,(K, V)](children = Seq(this), dependency = OneToN, func = new ParMapAllFunc(mapAll), distribution = distribution, location = location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
+    val parallel = new DFM[R,(K, V)](children = Seq(this), dependency = OneToN, func = new ParMapAllFunc(mapAll), distribution = distribution, location = location, keepPartition = false, partitioner = new HashPartitioner(4, pFunc))
     val groupReduce = (elems:Buf[(K,V)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(r)).toBuffer
     new DFM(children = Seq(parallel), dependency = NToOne, func = new ParMapAllFunc(groupReduce), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
 

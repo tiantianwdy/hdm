@@ -2,6 +2,7 @@ package org.nicta.wdy.hdm.functions
 
 
 import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.collections.BufUtils
 import org.nicta.wdy.hdm.executor.{ShuffleBlockAggregator, Aggregator}
 import org.nicta.wdy.hdm.model._
 
@@ -175,25 +176,6 @@ class ParGroupByFunc[T: ClassTag, K: ClassTag](val f: T => K) extends ParallelFu
   }
 
 
-  @deprecated("replcaced by follow up aggregator","0.0.1")
-  def aggregateOld(params: Buf[T], res: Buf[(K, Buf[T])]): Buf[(K, Buf[T])] = {
-    val tempMap = HashMap.empty[K,Buf[T]]
-    res foreach { e =>
-      tempMap += e._1 -> e._2
-    }
-    params foreach {elem =>
-      val k = f(elem)
-      if(tempMap.contains(k)){
-        val v = tempMap.apply(k)
-//        tempMap.update(k, v += elem)
-        tempMap.update(k, BufUtils.add(v,elem))
-      } else {
-        tempMap += k -> Buf(elem)
-      }
-    }
-    tempMap.toBuffer
-  }
-
   override def aggregate(params: Buf[T], res: Buf[(K, Buf[T])]): Buf[(K, Buf[T])] = { // 40% faster than non-optimized one
 //    val tempMap = res
     val tempMap = HashMap.empty[K,Buf[T]] ++= res
@@ -204,10 +186,30 @@ class ParGroupByFunc[T: ClassTag, K: ClassTag](val f: T => K) extends ParallelFu
 //        tempMap.update(k, v += elem)
         tempMap.update(k, BufUtils.add(v,elem))
       } else {
-        tempMap += k -> Buffer(elem)
+        tempMap += k -> Buf(elem)
       }
     }
 
+    tempMap.toBuffer
+  }
+
+
+  @deprecated("replcaced by follow up aggregator","0.0.1")
+  def aggregateOld(params: Buf[T], res: Buf[(K, Buf[T])]): Buf[(K, Buf[T])] = {
+    val tempMap = HashMap.empty[K,Buf[T]]
+    res foreach { e =>
+      tempMap += e._1 -> e._2
+    }
+    params foreach {elem =>
+      val k = f(elem)
+      if(tempMap.contains(k)){
+        val v = tempMap.apply(k)
+        //        tempMap.update(k, v += elem)
+        tempMap.update(k, BufUtils.add(v,elem))
+      } else {
+        tempMap += k -> Buf(elem)
+      }
+    }
     tempMap.toBuffer
   }
 

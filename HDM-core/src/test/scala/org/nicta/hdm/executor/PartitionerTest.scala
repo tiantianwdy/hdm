@@ -1,7 +1,7 @@
 package org.nicta.hdm.executor
 
 import org.junit.Test
-import org.nicta.wdy.hdm.executor.MappingPartitioner
+import org.nicta.wdy.hdm.executor.HashPartitioner
 
 /**
  * Created by tiantian on 2/01/15.
@@ -26,7 +26,7 @@ class PartitionerTest {
   @Test
   def testMapPartitioner(): Unit ={
     val pFunc = (t:String) => t.hashCode()
-    val p = new MappingPartitioner[String](4, pFunc)
+    val p = new HashPartitioner[String](4, pFunc)
     p.split(text).foreach(println(_))
 
   }

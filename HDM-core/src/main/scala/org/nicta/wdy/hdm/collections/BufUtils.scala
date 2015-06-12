@@ -1,6 +1,4 @@
-package org.nicta.wdy.hdm.model
-
-import java.util
+package org.nicta.wdy.hdm.collections
 
 import org.nicta.wdy.hdm.Buf
 
@@ -26,15 +24,6 @@ object BufUtils {
     combinedArr
   }
 
-  def toBuf[K,V](map:mutable.Map[K,V]):Buf[(K,V)] = {
-    if(classOf[Buf[(K,V)]] == classOf[Array[(K,V)]]){
-      map.toArray[(K,V)].asInstanceOf[Buf[(K,V)]]
-    } else {
-      map.toBuffer[(K,V)].asInstanceOf[Buf[(K,V)]]
-    }
-
-  }
-
   def combine[T: ClassTag](c1:mutable.Buffer[T], c2:mutable.Buffer[T]):mutable.Buffer[T] = {
 //    if(c1.length >= c2.length)
       c1 ++= c2
@@ -44,6 +33,7 @@ object BufUtils {
   def  add[T: ClassTag](c1:mutable.Buffer[T], elem:T):mutable.Buffer[T] = {
     c1 += elem
   }
+
 
   def combine[T: ClassTag](c1:Seq[T], c2:Seq[T]):Seq[T] = {
     val combinedArr = new Array[T](c1.length + c2.length)
@@ -57,6 +47,15 @@ object BufUtils {
     c1.copyToArray(combinedArr, 0, c1.length)
     combinedArr.update(c1.length, elem)
     combinedArr
+  }
+
+  def toBuf[K,V](map:mutable.Map[K,V]):Buf[(K,V)] = {
+    if(classOf[Buf[(K,V)]] == classOf[Array[(K,V)]]){
+      map.toArray[(K,V)].asInstanceOf[Buf[(K,V)]]
+    } else {
+      map.toBuffer[(K,V)].asInstanceOf[Buf[(K,V)]]
+    }
+
   }
 
 

@@ -2,6 +2,7 @@ package org.nicta.hdm.serializer
 
 import com.typesafe.config.Config
 import org.junit.Test
+import org.nicta.wdy.hdm.collections.CompactBuffer
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.serializer.JavaSerializer
 import org.nicta.wdy.hdm.storage.Block
@@ -26,12 +27,18 @@ class JavaSerilizerTest {
   val data = ArrayBuffer.empty[String] ++= text
 
   val data2 = ArrayBuffer.fill[Product2[String, Seq[Double]]](1000000){
-    ("test", Seq(0D))
+    ("test", new ArrayBuffer[Double](2)) //initail size = 2
   }
 
-  val data3 = ArrayBuffer.fill[(String, mutable.Buffer[Double])](1000000){
+  val data3 = ArrayBuffer.fill[(String, Seq[Double])](1000000){
     ("test", mutable.Buffer(1D))
   }
+
+  val data4 = ArrayBuffer.fill[Product2[String, Double]](1000000){
+    ("test",1D)
+  }
+
+  val data5 = new CompactBuffer[Product2[String, Double]] ++= data4
 
   val serilizer = new JavaSerializer(HDMContext.defaultConf).newInstance()
 
@@ -50,7 +57,7 @@ class JavaSerilizerTest {
 
   @Test
   def testJavaSerializingEfficiency(): Unit ={
-    val blk = Block(HDMContext.newLocalId(), data2)
+    val blk = Block(HDMContext.newLocalId(), data4)
     //test direct serialization
     val t1 = System.currentTimeMillis()
     val buf = serilizer.serialize(blk)
@@ -80,7 +87,8 @@ class JavaSerilizerTest {
   @Test
   def testEncodeSize() ={
     val t1 = System.currentTimeMillis()
-    val buf = serilizer.serialize(data2)
+    println(data5.bufferSize)
+    val buf = serilizer.serialize(data4)
     val t2 = System.currentTimeMillis()
     println(s"encode finished in ${t2 - t1} ms.")
     println(s"encoded size : ${buf.array().length} bytes.")

@@ -64,7 +64,7 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
 //            .addLast(new StringEncoder)
             .addLast("encoder", new NettyQueryEncoder4x(serializerInstance))
             .addLast("frameDecoder", NettyConnectionManager.getFrameDecoder())
-            .addLast("decoder", new NettyBlockDecoder4x(serializerInstance))
+            .addLast("decoder", new NettyBlockDecoder4x(serializerInstance, HDMContext.DEFAULT_COMPRESSOR))
             .addLast("handler", new NettyBlockFetcherHandler(workingSize, callbackMap))
         }
       })

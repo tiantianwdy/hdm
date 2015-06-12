@@ -18,7 +18,7 @@ import org.nicta.wdy.hdm.storage.Block
  */
 class NettyConnectionManager {
 
-  val connectionNumPerPeer = 4
+  val connectionNumPerPeer = HDMContext.NETTY_CLIENT_CONNECTIONS_PER_PEER
 
   private val connectionCacheMap = new ConcurrentHashMap[String, ConnectionPool]()
 

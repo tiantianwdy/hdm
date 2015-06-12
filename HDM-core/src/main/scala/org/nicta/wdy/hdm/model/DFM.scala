@@ -1,6 +1,5 @@
 package org.nicta.wdy.hdm.model
 
-import org.nicta.wdy.hdm._
 import org.nicta.wdy.hdm.executor.{KeepPartitioner, HDMContext, ClusterExecutorContext, Partitioner}
 import org.nicta.wdy.hdm.functions._
 import org.nicta.wdy.hdm.io.Path
@@ -9,7 +8,6 @@ import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
 import scala.concurrent.ExecutionContext
 import org.nicta.wdy.hdm.storage.{Declared, BlockState, BlockRef}
-import java.util.UUID
 
 /**
  * Created by Tiantian on 2014/5/25.

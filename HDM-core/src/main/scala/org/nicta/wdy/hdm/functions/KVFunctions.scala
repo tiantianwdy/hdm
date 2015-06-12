@@ -1,6 +1,7 @@
 package org.nicta.wdy.hdm.functions
 
 import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.collections.BufUtils
 import org.nicta.wdy.hdm.model._
 
 

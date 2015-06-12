@@ -10,6 +10,7 @@ import io.netty.util.ReferenceCountUtil
 import org.jboss.netty.buffer.ChannelBuffer
 import org.jboss.netty.channel.{Channel, ChannelHandlerContext}
 import org.jboss.netty.handler.codec.frame.FrameDecoder
+import org.nicta.wdy.hdm.io.CompressionCodec
 import org.nicta.wdy.hdm.message.QueryBlockMsg
 import org.nicta.wdy.hdm.serializer.SerializerInstance
 import org.nicta.wdy.hdm.storage.Block
@@ -44,14 +45,18 @@ class NettyBlockByteDecoder4x(serializer: SerializerInstance) extends ByteToMess
   }
 }
 
-class NettyBlockDecoder4x(serializer: SerializerInstance) extends MessageToMessageDecoder[ByteBuf] with Logging{
+class NettyBlockDecoder4x(serializer: SerializerInstance, compressor:CompressionCodec) extends MessageToMessageDecoder[ByteBuf] with Logging{
 
   override def decode(ctx: channel.ChannelHandlerContext, msg: ByteBuf, out: util.List[AnyRef]): Unit = try {
     log.debug("de-serializing msg:" + msg)
 //    val len = msg.readInt()
     log.debug("current decoding msg size:" + msg.readableBytes())
-    val buf = msg.nioBuffer()
     val start = System.currentTimeMillis()
+    val buf = if(compressor ne null) {
+      val bytes = new Array[Byte](msg.readableBytes())
+      msg.readBytes(bytes)
+      ByteBuffer.wrap(compressor.uncompress(bytes))
+    } else msg.nioBuffer()
     val obj = serializer.deserialize[Block[_]](buf)
     val end = System.currentTimeMillis() - start
     log.info(s"de-serialized data:${obj.data.size} in $end ms.")

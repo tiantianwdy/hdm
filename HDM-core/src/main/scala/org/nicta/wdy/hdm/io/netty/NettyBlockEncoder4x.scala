@@ -6,6 +6,8 @@ import java.nio.ByteBuffer
 import io.netty.buffer.{Unpooled, ByteBuf}
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.{MessageToByteEncoder, MessageToMessageEncoder}
+import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.io.CompressionCodec
 import org.nicta.wdy.hdm.message.{QueryBlockMsg, HDMBlockMsg}
 
 import org.nicta.wdy.hdm.serializer.SerializerInstance
@@ -27,12 +29,18 @@ import org.nicta.wdy.hdm.utils.Logging
   }
 }*/
 
-class NettyBlockByteEncoder4x(serializerInstance: SerializerInstance) extends MessageToByteEncoder[Block[_]] with Logging{
+class NettyBlockByteEncoder4x(serializerInstance: SerializerInstance, compressor:CompressionCodec) extends MessageToByteEncoder[Block[_]] with Logging{
 
   override def encode(ctx: ChannelHandlerContext, msg: Block[_], out: ByteBuf): Unit = {
-    val data = serializerInstance.serialize(msg).array()
+    val start = System.currentTimeMillis()
+    val data = if(compressor ne null) {
+      compressor.compress(serializerInstance.serialize(msg).array())
+    } else{
+      serializerInstance.serialize(msg).array()
+    }
 //    val buf = ctx.alloc().heapBuffer(data.length)
-    log.info(s"encoded block size:${data.length}")
+    val end = System.currentTimeMillis() - start
+    log.info(s"encoded data:${data.length} bytes, in $end ms.")
     out.writeInt(data.length + 4)
     out.writeBytes(data)
 //    out.writeBytes(buf)

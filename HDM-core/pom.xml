@@ -22,6 +22,7 @@
         <yarn.version>0.23.7</yarn.version>
         <hbase.version>0.94.6</hbase.version>
         <jetty.version>8.1.14.v20131031</jetty.version>
+        <snappy.version>1.1.1.6</snappy.version>
 
         <PermGen>256m</PermGen>
         <MaxPermGen>1024m</MaxPermGen>
@@ -278,6 +279,12 @@
             <groupId>com.google.protobuf</groupId>
             <artifactId>protobuf-java</artifactId>
             <version>${protobuf.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.xerial.snappy</groupId>
+            <artifactId>snappy-java</artifactId>
+            <version>${snappy.version}</version>
         </dependency>
 
         <dependency>

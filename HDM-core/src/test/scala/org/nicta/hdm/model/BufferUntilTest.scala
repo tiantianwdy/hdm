@@ -1,6 +1,6 @@
 package org.nicta.hdm.model
 
-import org.nicta.wdy.hdm.model.BufUtils
+import org.nicta.wdy.hdm.collections.BufUtils
 
 import scala.collection.mutable
 import org.junit.Test

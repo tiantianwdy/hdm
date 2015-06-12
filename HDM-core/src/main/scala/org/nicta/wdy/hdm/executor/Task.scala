@@ -7,6 +7,7 @@ import org.nicta.wdy.hdm.io.{HDMIOManager, DataParser, Path}
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.functions.{ParCombinedFunc, ParallelFunction, DDMFunction_1, SerializableFunction}
 import java.util.concurrent.{LinkedBlockingDeque, TimeUnit, Callable}
+import org.nicta.wdy.hdm.utils.Logging
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration.Duration
@@ -27,9 +28,8 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
                      keepPartition:Boolean = true,
                      partitioner: Partitioner[R] = null,
                      createTime:Long = System.currentTimeMillis())
-                     extends Serializable with Callable[Seq[DDM[_,R]]]{
+                     extends Serializable with Callable[Seq[DDM[_,R]]] with Logging{
 
-  val log = LoggerFactory.getLogger(classOf[Scheduler])
 
   final val inType = classTag[I]
 
@@ -41,7 +41,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
     if(dep == OneToOne || dep == OneToN)
       runSequenceTask()
     else
-      runShuffleTask()
+      runShuffleTaskAsync()
   } catch {
     case e : Throwable =>
       e.printStackTrace()
@@ -64,7 +64,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
 
     }
 
-  def runNettyShuffleTask()(implicit executionContext: ExecutionContext):Seq[DDM[_,R]] = {
+  def runShuffleTaskAsync():Seq[DDM[_,R]] = {
     log.info(s"Preparing input data for task: [${(taskId, func)}] ")
     val inputIter = input.iterator
     var res:Buf[R] = Buf.empty[R]
@@ -72,10 +72,9 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
     val fetchingCompleted = new AtomicBoolean(false)
     val inputQueue = new LinkedBlockingDeque[Block[_]]
     val blockHandler = (blk:Block[_]) => {
+      if (blockCounter.incrementAndGet() >= input.length) fetchingCompleted.set(true)
       inputQueue.offer(blk)
-      val count = blockCounter.incrementAndGet()
-      if(count >= input.length) fetchingCompleted.set(true)
-      log.info(s"Fetched block:${blk.id}, progress: ($count/${input.length}).")
+      log.info(s"Fetched block:${blk.id}, progress: (${blockCounter.get}/${input.length}).")
     }
 
     while (inputIter.hasNext) {
@@ -84,14 +83,19 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       HDMBlockManager.loadBlockAsync(input.location, blockHandler)
     }
 
-
     if (func.isInstanceOf[ParCombinedFunc[I,_,R]] ) {
       log.info(s"Running as shuffle aggregation..")
       val tempF = func.asInstanceOf[ParCombinedFunc[I,_,R]]
       val concreteFunc = tempF.asInstanceOf[ParCombinedFunc[I,tempF.mediateType.type,R]]
       var partialRes:Buf[tempF.mediateType.type ] = Buf.empty[tempF.mediateType.type ]
-      while (!fetchingCompleted.get() || !inputQueue.isEmpty) {
-        val block = inputQueue.take()
+      while (!fetchingCompleted.get()) {
+        val block = inputQueue.poll(60,TimeUnit.SECONDS)
+        partialRes = concreteFunc.partialAggregate(block.asInstanceOf[Block[I]].data, partialRes)
+      }
+      while (!inputQueue.isEmpty){ 
+      // make sure all the data accepted has been processed 
+      // there are some racing possibilities for multi-threads if the two conditions are tested together
+        val block = inputQueue.poll(60,TimeUnit.SECONDS)
         partialRes = concreteFunc.partialAggregate(block.asInstanceOf[Block[I]].data, partialRes)
       }
       log.trace(s"partial results: ${partialRes.take(10)}")
@@ -100,12 +104,17 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
 
     } else {
       log.info(s"Running as parallel aggregation..")
-      while (!fetchingCompleted.get() || !inputQueue.isEmpty) {
-        val block = inputQueue.take()
+      while (!fetchingCompleted.get()) {
+        val block = inputQueue.poll(60,TimeUnit.SECONDS)
+        res = func.aggregate(block.asInstanceOf[Block[I]].data, res)
+      }
+      while (!inputQueue.isEmpty) { // make sure all the data accepted has been processed
+      val block = inputQueue.poll(60,TimeUnit.SECONDS)
         res = func.aggregate(block.asInstanceOf[Block[I]].data, res)
       }
       log.trace(s"shuffle results: ${res.take(10)}")
     }
+
     val ddms = if(partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
       Seq(DDM[R](taskId, res))
     } else {

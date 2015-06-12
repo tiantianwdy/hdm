@@ -1,6 +1,7 @@
 package org.nicta.wdy.hdm.executor
 
 import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.io.SnappyCompressionCodec
 import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
 import org.nicta.wdy.hdm.serializer.{KryoSerializer, JavaSerializer, SerializerInstance}
@@ -51,6 +52,10 @@ object HDMContext extends  Context{
 
   lazy val DEFAULT_BLOCK_ID_LENGTH = defaultSerializer.serialize(newLocalId()).array().length
 
+  val DEFAULT_COMPRESSOR = null
+
+  val BLOCK_COMPRESS_IN_TRANSPORTATION = Try {defaultConf.getBoolean("hdm.io.network.block.compress")} getOrElse (false)
+
   val BLOCK_SERVER_PROTOCOL = Try {defaultConf.getString("hdm.io.network.protocol")} getOrElse ("netty")
 
   var NETTY_BLOCK_SERVER_PORT = Try {defaultConf.getInt("hdm.io.netty.server.port")} getOrElse (9091)
@@ -60,6 +65,8 @@ object HDMContext extends  Context{
   val NETTY_BLOCK_SERVER_THREADS = Try {defaultConf.getInt("hdm.io.netty.server.threads")} getOrElse(CORES)
 
   val NETTY_BLOCK_CLIENT_THREADS = Try {defaultConf.getInt("hdm.io.netty.client.threads")} getOrElse(CORES)
+
+  val NETTY_CLIENT_CONNECTIONS_PER_PEER = Try {defaultConf.getInt("hdm.io.netty.client.connection-per-peer")} getOrElse(CORES)
 
   val CORES = Runtime.getRuntime.availableProcessors
 

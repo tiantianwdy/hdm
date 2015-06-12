@@ -28,8 +28,8 @@ object NettyClient {
     blockFetcher = NettyConnectionManager.getInstance.getConnection("tiantian-HP-EliteBook-Folio-9470m", 9091)
     blockFetcher.sendRequest(QueryBlockMsg("blk-001","tiantian-HP-EliteBook-Folio-9470m:9091"), blkHandler)
 
-    blockFetcher = NettyConnectionManager.getInstance.getConnection("tiantian-HP-EliteBook-Folio-9470m", 9091)
-    blockFetcher.sendRequest(QueryBlockMsg("blk-002","tiantian-HP-EliteBook-Folio-9470m:9091"), blkHandler)
+/*    blockFetcher = NettyConnectionManager.getInstance.getConnection("tiantian-HP-EliteBook-Folio-9470m", 9091)
+    blockFetcher.sendRequest(QueryBlockMsg("blk-002","tiantian-HP-EliteBook-Folio-9470m:9091"), blkHandler)*/
 //    blockFetcher.waitForClose()
     Thread.sleep(250000)
     val cachedBlk = HDMBlockManager().getBlock("blk-002")

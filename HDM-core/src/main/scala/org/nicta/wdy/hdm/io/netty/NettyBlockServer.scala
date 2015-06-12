@@ -13,6 +13,7 @@ import io.netty.handler.codec.LengthFieldBasedFrameDecoder
 import io.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
 import io.netty.handler.codec.string.StringDecoder
 import io.netty.util.ReferenceCountUtil
+import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.message.QueryBlockMsg
 import org.nicta.wdy.hdm.serializer.SerializerInstance
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, BlockManager, Block}
@@ -43,7 +44,7 @@ class NettyBlockServer(val port:Int,
       .childHandler(new ChannelInitializer[SocketChannel] {
         override def initChannel(c: SocketChannel): Unit = {
           c.pipeline()
-          .addLast(new NettyBlockByteEncoder4x(serializerInstance))
+          .addLast(new NettyBlockByteEncoder4x(serializerInstance, HDMContext.DEFAULT_COMPRESSOR))
 //            .addLast(NettyConnectionManager.getFrameDecoder())
             .addLast(new NettyQueryDecoder4x(serializerInstance))
 //            .addLast(new StringDecoder)
