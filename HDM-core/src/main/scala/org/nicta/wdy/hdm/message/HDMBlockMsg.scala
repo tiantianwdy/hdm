@@ -20,7 +20,7 @@ case class AddBlockMsg(bl: Block[_], declare:Boolean = false) extends HDMBlockMs
 
 case class RemoveBlockMsg(id :String) extends HDMBlockMsg
 
-case class QueryBlockMsg (id:String, location:String) extends HDMBlockMsg
+case class QueryBlockMsg (blockIds:Seq[String], location:String) extends HDMBlockMsg
 
 case class BlockData(id:String, bl:Block[_]) extends HDMBlockMsg
 

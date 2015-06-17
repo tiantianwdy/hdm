@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.planing
 
-import org.nicta.wdy.hdm.executor.KeepPartitioner
-import org.nicta.wdy.hdm.functions.{ParGroupByFunc, FindByKey}
+import org.nicta.wdy.hdm.executor.{Partitioner, KeepPartitioner}
+import org.nicta.wdy.hdm.functions.{ParMapFunc, ParFindByFunc, ParGroupByFunc, FindByKey}
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.utils.Logging
 
@@ -66,7 +66,7 @@ class FunctionFusion extends LogicalOptimizer with Logging{
   }
 }
 
-class FilterLifting extends  LogicalOptimizer {
+class FilterLifting extends  LogicalOptimizer with Logging{
 
   /**
    * optimize the structure of HDM
@@ -77,7 +77,18 @@ class FilterLifting extends  LogicalOptimizer {
   override def optimize[I: ClassTag, R: ClassTag](cur: HDM[I, R]): HDM[_, R] = {
     if(cur.children == null) cur
     else {
-      if(cur.func.isInstanceOf[FindByKey[_,_]] &&  cur.children.forall(child => child.func.isInstanceOf[ParGroupByFunc[_,_]])){
+      if(cur.func.isInstanceOf[ParFindByFunc[_]] &&  cur.children.forall(child => child.func.isInstanceOf[ParMapFunc[_,_]])){
+        val filterFunc = cur.func.asInstanceOf[ParFindByFunc[I]]
+        val child = cur.children.head
+        val mapFunc = child.func.asInstanceOf[ParMapFunc[child.inType.type ,I]]
+        val nf = mapFunc.f.andThen(filterFunc.f)
+        val newChildren = cur.children.map{ c =>
+          c.children.map{_.asInstanceOf[HDM[_, child.inType.type]].filter(nf)}
+        }.flatten
+        log.info(s"Lift filter ${cur.func} in front of ${child.func} .")
+        new DFM(children = newChildren.map(optimize(_)), func = mapFunc, dependency = cur.dependency, partitioner = cur.partitioner.asInstanceOf[Partitioner[I]]).asInstanceOf[HDM[_, R]]
+      }
+/*      if(cur.func.isInstanceOf[FindByKey[_,_]] &&  cur.children.forall(child => child.func.isInstanceOf[ParGroupByFunc[_,_]])){
         val fbk = cur.func.asInstanceOf[FindByKey[_,_]]
         val nfbk = cur.func.asInstanceOf[FindByKey[I,fbk.kType.type]]
         val head = cur.children.head
@@ -86,7 +97,8 @@ class FilterLifting extends  LogicalOptimizer {
           c.asInstanceOf[HDM[_,I]].filter( e => nfbk.f(gb.f(e))).copy(dependency = OneToOne, partitioner = new KeepPartitioner[I](1))
         }
         head.asInstanceOf[HDM[I,R]].copy(children = newChildren)
-      }else {
+      }*/
+      else {
         val seq = cur.children.map(c => optimize(c.asInstanceOf[HDM[c.inType.type, I]]))
         cur.copy(children = seq)
       }

@@ -62,7 +62,7 @@ class Netty4Test {
     val blockFetcher = new NettyBlockFetcher(serializer)
     blockFetcher.init()
     blockFetcher.connect("127.0.0.1", 9091)
-    blockFetcher.sendRequest(QueryBlockMsg("blk-002", null), blkHandler)
+    blockFetcher.sendRequest(QueryBlockMsg(Seq("blk-002"), null), blkHandler)
     blockFetcher.waitForClose()
     val cachedBlk = HDMBlockManager().getBlock("blk-002")
     println(cachedBlk)

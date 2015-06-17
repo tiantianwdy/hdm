@@ -3,7 +3,8 @@ package org.nicta.hdm.io
 import com.baidu.bpit.akka.monitor.SystemMonitorService
 import org.junit.{Before, After, Test}
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.io.{HdfsParser, DataParser, HDFSUtils, Path}
+import org.nicta.wdy.hdm.io.hdfs.HDFSUtils
+import org.nicta.wdy.hdm.io.{HdfsParser, DataParser, Path}
 import org.nicta.wdy.hdm.model.HDM
 import org.nicta.wdy.hdm.planing.StaticPlaner
 import org.nicta.wdy.hdm.storage.Block

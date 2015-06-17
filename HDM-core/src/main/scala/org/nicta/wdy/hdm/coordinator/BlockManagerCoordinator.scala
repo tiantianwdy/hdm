@@ -81,11 +81,13 @@ class BlockManagerLeader extends WorkActor {
         log.warning(s"Cannot find reference of block: [${id}] ")
       }
 
-    case QueryBlockMsg(id, location) =>
-      val bl = blockManager.getBlock(id) //find from cache
-      if (bl != null)
-        sender ! BlockData(id, bl)
-      else context.actorSelection(location).tell(QueryBlockMsg(id, location), self) //find from remote
+    case QueryBlockMsg(ids, location) =>
+      ids.foreach { id =>
+        val bl = blockManager.getBlock(id) //find from cache
+        if (bl != null)
+          sender ! BlockData(id, bl)
+        else context.actorSelection(location).tell(QueryBlockMsg(Seq(id), location), self) //find from remote
+      }
 
     case BlockData(id, bl) =>
       blockManager.add(id, bl)
@@ -170,12 +172,13 @@ class BlockManagerFollower(val leaderPath: String) extends WorkActor {
 //        context.actorSelection(leaderPath).tell(RemoveBlockMsg(id), self)
       log.debug(s"A Block data has has been removed: [${id}] ")
 
-    case QueryBlockMsg(id, location) =>
-      val bl = blockManager.getBlock(id) //find from cache
-      if (bl != null)
-        sender ! BlockData(id, bl)
-      else context.actorSelection(location).tell(QueryBlockMsg(id, location), self) //find from remote
-
+    case QueryBlockMsg(ids, location) =>
+      ids.foreach{id =>
+        val bl = blockManager.getBlock(id) //find from cache
+        if (bl != null)
+          sender ! BlockData(id, bl)
+        else context.actorSelection(location).tell(QueryBlockMsg(Seq(id), location), self) //find from remote
+      }
     case BlockData(id, bl) =>
 //      blockManager.add(id, bl)
       HDMIOManager().blockReceived(id,sender().path.toString, bl)

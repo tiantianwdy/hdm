@@ -138,8 +138,30 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
 
    }
 
-   def testMapSelect(): Unit ={
+   def testMultiMapFilter(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, prefix:String): Unit ={
+     val path = Path(dataPath)
+     val hdm = HDM(path)
+     val kOffset = kIndex
+     val vOffset = vIndex
 
+     val start = System.currentTimeMillis()
+     val wordCount = hdm.map{ w =>
+       val as = w.split(",")
+       (as(kOffset), as(vOffset).toFloat)
+     }.map{d => (d._1.substring(2), d._2)}
+       .map{d => (d._1.substring(2), d._2)}
+       .map{d => (d._1.substring(2), d._2)}
+       .map{d => (d._1.substring(0,keyLen), d._2)}.filter(_._1.matches(prefix))
+
+     wordCount.compute(parallelism) onComplete  {
+       case Success(hdm) =>
+         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
+         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
+         System.exit(1)
+       case Failure(t) =>
+         println("Job failed because of: " + t)
+         t.printStackTrace()
+     }
    }
 
    def testGroupBy(dataPath:String, keyLen:Int = 3, parallelism:Int = 4): Unit ={

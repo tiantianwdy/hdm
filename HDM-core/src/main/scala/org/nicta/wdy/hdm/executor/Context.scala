@@ -167,7 +167,7 @@ object HDMContext extends  Context{
   }
 
   def queryBlock(id:String, location:String) = {
-    SmsSystem.forwardLocalMsg(BLOCK_MANAGER_NAME, QueryBlockMsg(id, location))
+    SmsSystem.forwardLocalMsg(BLOCK_MANAGER_NAME, QueryBlockMsg(Seq(id), location))
   }
 
   def removeBlock(id:String): Unit = {

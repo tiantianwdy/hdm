@@ -39,6 +39,8 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   val preferLocation:Path
 
+  var blockSize:Long
+
   val state: BlockState
 
   var parallelism: Int
@@ -214,6 +216,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
            distribution: Distribution = this.distribution,
            location: Path = this.location,
            preferLocation:Path = this.preferLocation,
+           blockSize:Long = this.blockSize,
            state: BlockState = this.state,
            parallelism: Int = this.parallelism,
            keepPartition: Boolean = this.keepPartition,

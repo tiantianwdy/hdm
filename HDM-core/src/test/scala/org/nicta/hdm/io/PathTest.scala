@@ -5,6 +5,7 @@ import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.functions.NullFunc
 import org.nicta.wdy.hdm.io.{DataParser, Path}
 import org.nicta.wdy.hdm.model.DDM
+import org.nicta.wdy.hdm.planing.PlanningUtils
 
 import scala.collection.mutable.ListBuffer
 
@@ -106,7 +107,7 @@ class PathTest {
   @Test
   def testPathGroupByDistance = {
     val paths = generatePath().toSeq
-    val grouped = Path.groupPathBySimilarity(paths, 15)
+    val grouped = PlanningUtils.groupPathBySimilarity(paths, 15)
     grouped foreach{ seq =>
       println("group:")
       seq.foreach(p => print(s"path: ${p} , " +
@@ -122,7 +123,7 @@ class PathTest {
   @Test
   def testPathGroupByBoundary = {
     val paths = generatePath().toSeq
-    val grouped = Path.groupPathByBoundary(paths, 8)
+    val grouped = PlanningUtils.groupPathByBoundary(paths, 8)
     println(s"total group:${grouped.size}")
     grouped foreach{ seq =>
       println(s"group size:${seq.size}")
@@ -150,7 +151,7 @@ class PathTest {
 //    val path = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/"
 //    val ddms = DataParser.explainBlocks(Path(path))
     val ddms = generatePath().map(path => new DDM(location = path, preferLocation = path, func = new NullFunc[String]))
-    val grouped = Path.groupDDMByBoundary(ddms, 32)
+    val grouped = PlanningUtils.groupDDMByBoundary(ddms, 32)
 //    val grouped = Path.groupDDMByLocation(ddms, 4)
     println(s"total group:${grouped.size}")
     grouped foreach{ddm =>

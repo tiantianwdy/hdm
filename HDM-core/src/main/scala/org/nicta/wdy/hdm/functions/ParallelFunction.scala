@@ -71,9 +71,25 @@ abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFu
 }
 
 
-class ParMapFunc [T:ClassTag,R:ClassTag](f: T=>R)  extends ParallelFunction[T,R] {
+class ParMapFunc [T:ClassTag,R:ClassTag](val f: T=>R)  extends ParallelFunction[T,R] {
 
   val dependency = PartialDep
+
+
+  override def andThen[U: ClassTag](func: ParallelFunction[R, U]): ParallelFunction[T, U] = {
+    if(func.isInstanceOf[ParMapFunc[_,_]]){
+      val nf = func.asInstanceOf[ParMapFunc[R,U]]
+      new ParMapFunc(f.andThen(nf.f))
+    } else if(func.isInstanceOf[ParFindByFunc[_]]){
+      val nf = func.asInstanceOf[ParFindByFunc[R]]
+      val mapAll = (seq:Buf[T]) => {
+        seq.filter(f.andThen(nf.f)).map(f)
+      }
+      new ParMapAllFunc(mapAll).asInstanceOf[ParallelFunction[T, U]]
+    } else {
+      super.andThen(func)
+    }
+  }
 
   override def apply(params: Buf[T]): Buf[R] = {
     params.map(f)
@@ -102,7 +118,7 @@ class ParMapAllFunc [T:ClassTag,R:ClassTag](f: Buf[T]=>Buf[R])  extends Parallel
 }
 
 
-class ParFindByFunc[T:ClassTag](f: T=> Boolean)  extends ParallelFunction[T,T] {
+class ParFindByFunc[T:ClassTag](val f: T=> Boolean)  extends ParallelFunction[T,T] {
 
   override val dependency: FuncDependency = PartialDep
 
@@ -116,25 +132,6 @@ class ParFindByFunc[T:ClassTag](f: T=> Boolean)  extends ParallelFunction[T,T] {
   }
 }
 
-
-class ParCombinedFunc [T:ClassTag,U:ClassTag,R:ClassTag](val dependency:FuncDependency, parallel: Buf[T]=>Buf[R],
-                                                         val preF: Buf[T]=>Buf[U],
-                                                         val aggregation:(Buf[T], Buf[U]) => Buf[U],
-                                                         val postF: Buf[U] => Buf[R])  extends ParallelFunction[T,R]  {
-
-  override def apply(params: Buf[T]): Buf[R] = {
-    parallel(params)
-  }
-
-  override def aggregate(params: Buf[T], res: Buf[R]): Buf[R] = ???
-
-
-  def partialAggregate(params: Buf[T], res: Buf[U]): Buf[U] = {
-    aggregation(params,res)
-  }
-
-  val mediateType = classTag[U]
-}
 
 
 class ParReduceFunc[T:ClassTag ,R >:T :ClassTag](f: (R, R) => R)  extends ParallelFunction[T, R]{
@@ -346,6 +343,26 @@ class NullFunc[T: ClassTag] extends ParallelFunction[T,T] {
   }
 
 }
+
+class ParCombinedFunc [T:ClassTag,U:ClassTag,R:ClassTag](val dependency:FuncDependency, parallel: Buf[T]=>Buf[R],
+                                                         val preF: Buf[T]=>Buf[U],
+                                                         val aggregation:(Buf[T], Buf[U]) => Buf[U],
+                                                         val postF: Buf[U] => Buf[R])  extends ParallelFunction[T,R]  {
+
+  override def apply(params: Buf[T]): Buf[R] = {
+    parallel(params)
+  }
+
+  override def aggregate(params: Buf[T], res: Buf[R]): Buf[R] = ???
+
+
+  def partialAggregate(params: Buf[T], res: Buf[U]): Buf[U] = {
+    aggregation(params,res)
+  }
+
+  val mediateType = classTag[U]
+}
+
 
 object ParallelFunction {
 

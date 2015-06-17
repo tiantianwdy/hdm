@@ -39,6 +39,7 @@ object NettyTestServer {
     HDMBlockManager.initBlockServer()
     HDMBlockManager().add("blk-001", Block("blk-001",data))
     HDMBlockManager().add("blk-002", Block("blk-002",data2))
+    HDMBlockManager().add("blk-003", Block("blk-003",data2))
 //    blockServer.init()
 //    blockServer.start()
 

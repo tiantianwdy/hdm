@@ -13,6 +13,10 @@ import scala.collection.parallel.ParSeq
  */
 class CollectionEfficiencyTest {
 
+  val data = ArrayBuffer.fill[(String, Double)](1000000){
+    ("0xb601998146d35e06", 1D)
+  }
+
   def generateTuple(num:Int, range:Int): Array[(String, String)] ={
     Array.fill(num){
       (Math.random()* range).toInt.toString -> 1.toString
@@ -112,4 +116,31 @@ class CollectionEfficiencyTest {
     println(s"Finished in $end ms: ${res.take(10).mkString("\n")}")
   }
 
+  @Test
+  def testMultipleFunctionEfficiency(): Unit ={
+    val f = (d:(String,Double)) => (d._1.substring(2), d._2)
+    val seq = data
+    val start = System.currentTimeMillis()
+    val result = seq.map{d => (d._1.substring(2), d._2)}
+      .map{d => (d._1.substring(2), d._2)}
+      .map{d => (d._1.substring(2), d._2)}
+      .map{d => (d._1.substring(2), d._2)}
+//      .map{d => (d._1.substring(0, 3), d._2)}
+    println(s"finished in ${result.take(10)} ms")
+    val end = System.currentTimeMillis() - start
+    println(s"finished in $end ms")
+
+  }
+
+  @Test
+  def testEmbededMuliFunction(): Unit ={
+    val f = (d:(String,Double)) => (d._1.substring(2), d._2)
+    val seq = data
+    val start = System.currentTimeMillis()
+    val result = seq.map{f.andThen(f).andThen(f).andThen(f)}
+//      .map{d => (d._1.substring(0, 3), d._2)}
+    println(s"finished in ${result.take(10)} ms")
+    val end = System.currentTimeMillis() - start
+    println(s"finished in $end ms")
+  }
 }

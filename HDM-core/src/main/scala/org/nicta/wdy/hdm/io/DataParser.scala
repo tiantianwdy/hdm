@@ -6,6 +6,7 @@ import java.util.concurrent.TimeUnit
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, FileSystem}
 import org.nicta.wdy.hdm.functions.NullFunc
+import org.nicta.wdy.hdm.io.hdfs.HDFSUtils
 import org.nicta.wdy.hdm.model.{HDM, DDM}
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, Block}
 import akka.serialization.Serializer
@@ -116,7 +117,7 @@ object DataParser extends Logging{
       case "hdm://" =>
         Seq(new DDM(id = path.name, location = path, func = new NullFunc[String]))
       case "hdfs://" =>
-        HDFSUtils.getBlockLocations(path).map(p => new DDM(location = p._1, preferLocation = p._2, func = new NullFunc[String]))
+        HDFSUtils.getBlockLocations(path).map(p => new DDM(location = p.path, preferLocation = p.location, blockSize = p.size, func = new NullFunc[String]))
       case "file://" =>
         Seq(new DDM(id = path.name, location = path, func = new NullFunc[String]))
       //      case "mysql://" =>

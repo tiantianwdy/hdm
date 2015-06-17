@@ -44,6 +44,11 @@ class ParallelFunctionsTest {
   }
 
   @Test
+  def testMultiMap(): Unit ={
+
+  }
+
+  @Test
   def testGroupByFunc(){
     val f = (d:String) => d match {
       case s if(s.length >= 3)=> s.substring(0,3)

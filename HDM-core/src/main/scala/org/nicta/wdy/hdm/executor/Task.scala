@@ -77,11 +77,20 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       log.info(s"Fetched block:${blk.id}, progress: (${blockCounter.get}/${input.length}).")
     }
 
-    while (inputIter.hasNext) {
+    //group block by host address
+    val blockByAddress = input.map(_.location).groupBy{p =>
+      p.address
+    }.map(bl => (Path(bl._1), bl._2.map(_.name)))
+
+    for(blocks <- blockByAddress ){
+      log.info(s"Fetching block from ${blocks._1} ...")
+      HDMBlockManager.loadBlockAsync(blocks._1, blocks._2, blockHandler)
+    }
+/*    while (inputIter.hasNext) {
       val input = inputIter.next()
       log.info(s"Fetching block:${input.location} ...")
       HDMBlockManager.loadBlockAsync(input.location, blockHandler)
-    }
+    }*/
 
     if (func.isInstanceOf[ParCombinedFunc[I,_,R]] ) {
       log.info(s"Running as shuffle aggregation..")

@@ -2,7 +2,7 @@ package org.nicta.wdy.hdm.io
 
 import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.model.DDM
-import org.nicta.wdy.hdm.planing.Utils
+import org.nicta.wdy.hdm.planing.PlanningUtils
 
 import scala.util.Try
 import scala.collection.mutable.Buffer
@@ -100,6 +100,12 @@ object Path {
     }
   }
 
+  /**
+   *
+   * @param paths
+   * @param targetSet
+   * @return
+   */
   def calculateDistance(paths: Seq[Path], targetSet: Seq[Path]):Seq[Double] = {
     paths.map{p => // for each path compute the distance vector of target Set
       val vec = targetSet.map(t =>Path.calculateDistance(p, t) )
@@ -107,77 +113,50 @@ object Path {
     }
   }
 
+  def calculateWeightedDistance(paths: Seq[Path], targetSet: Seq[Path], weights:Seq[Float]):Seq[Double] = {
+    require(weights.length == targetSet.length)
+    paths.map{p => // for each path compute the distance vector to target Set
+      calculateMeanDistance(p, targetSet, weights )
+    }
+  }
+  
+  def calculateMeanDistance(path: Path, targets: Seq[Path], weights:Seq[Float]):Double = {
+    require(weights.length == targets.length)
+    val vector =  for(i <- 0 until targets.length) yield {
+      weights(i) * Path.calculateDistance(path, targets(i))
+    }
+    vector.sum
+  }
+
   /**
-   * find out cloest the path that has minimum distance to target Set
+   * find out closest the path that has minimum distance to target Set
    * @param paths
    * @param targetSet
    * @return
    */
   def findClosestLocation(paths: Seq[Path], targetSet: Seq[Path]): Path = {
+//    val weights = Seq.fill(paths.length)(1F)
     val distanceVec = calculateDistance(paths, targetSet)
     val minimum = distanceVec.min
     paths(distanceVec.indexOf(minimum))
   }
 
-  def groupPathBySimilarity(paths:Seq[Path], n:Int) = {
-    val avg = paths.size/n
-    paths.sortWith( (p1,p2) => path2Int(p1) < path2Int(p2)).grouped(avg.toInt).toSeq
+  /**
+   *  find out the closet cluster for the given path.
+   * @param path the given path
+   * @param targetSet the matching clusters
+   * @param weights weights of every cluster
+   * @return the index of the closest cluster
+   */
+  def findClosestCluster(path: Path, targetSet: Seq[Seq[Path]], weights:Seq[Seq[Float]]): Int = {
+    val distanceVec =  for(idx <- 0 until targetSet.length) yield {
+      calculateMeanDistance(path, targetSet(idx), weights(idx))
+    }
+    val minimum = distanceVec.min
+    distanceVec.indexOf(minimum)
   }
 
-  def groupDDMByLocation(ddms:Seq[DDM[String,String]], n:Int) = {
-//    val avg = ddms.size/n
-//    ddms.sortWith( (p1,p2) => path2Int(p1.preferLocation) < path2Int(p2.preferLocation)).grouped(avg.toInt).toSeq
-    val ddmMap = ddms.map(d => (d.preferLocation -> d)).toMap
-    val paths = ddms.map(_.preferLocation)
-    val grouped = groupPathBySimilarity(paths, n)
-    grouped.map{seq =>
-      seq.map(p => ddmMap(p))
-    }
-  }
 
-  def groupPathByBoundary(paths:Seq[Path], n:Int) = {
-    val sorted = paths.sortWith( (p1,p2) => path2Int(p1) < path2Int(p2)).iterator
-    val boundery = 256 << 8 + 256
-    val ddmBuffer = Buffer.empty[Buffer[Path]]
-    var buffer = Buffer.empty[Path]
-    val total = paths.size.toFloat
-
-    if(sorted.hasNext){
-      var cur = sorted.next()
-      buffer += cur
-      while (sorted.hasNext) {
-        val next = sorted.next()
-        if ((path2Int(next) - path2Int(cur)) >= boundery ){
-          ddmBuffer += buffer
-          buffer = Buffer.empty[Path] += next
-        } else {
-          buffer += next
-        }
-        cur = next
-      }
-      ddmBuffer += buffer
-    }
-    // subGrouping in each bounded group
-    val distribution = ddmBuffer.map(seq => Math.round( (seq.size/total) * n))
-    val finalRes = Buffer.empty[Buffer[Path]]
-    for{
-      i <- 0 until ddmBuffer.size
-    }{
-      val seq = ddmBuffer(i)
-      val groupSize = distribution(i)
-      finalRes ++= (Utils.orderKeepingGroup(seq, groupSize))
-    }
-    finalRes
-  }
-
-  def groupDDMByBoundary(ddms:Seq[DDM[String,String]], n:Int) ={
-    val ddmMap = ddms.map(d => (d.preferLocation -> d)).toMap
-    val paths = ddms.map(_.preferLocation)
-    val grouped = groupPathByBoundary(paths, n)
-    grouped.map{seq =>
-      seq.map(p => ddmMap(p))
-    }
-  }
 
   def path2Int(p:Path):Long = {
     Try {

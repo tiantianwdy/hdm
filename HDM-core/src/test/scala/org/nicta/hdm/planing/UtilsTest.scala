@@ -2,7 +2,7 @@ package org.nicta.hdm.planing
 
 import org.junit.Test
 import org.nicta.wdy.hdm.io.Path
-import org.nicta.wdy.hdm.planing.Utils
+import org.nicta.wdy.hdm.planing.PlanningUtils
 
 /**
  * Created by tiantian on 19/04/15.
@@ -26,7 +26,7 @@ class UtilsTest {
 
     for(i <- 1 to nodes.size){
       println(s"==== After sliding $i positions ====")
-      Utils.seqSlide(nodes, i) foreach(println(_))
+      PlanningUtils.seqSlide(nodes, i) foreach(println(_))
     }
   }
 

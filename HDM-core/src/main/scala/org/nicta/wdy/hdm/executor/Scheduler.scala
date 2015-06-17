@@ -257,6 +257,25 @@ object Scheduler extends Logging{
       ""
   }
 
+  def findPreferredTask(tasks: Seq[Task[_, _]], candidate: Path): Int = try {
+    val inputLocations = tasks.map {
+      _.input.flatMap { hdm =>
+        val nhdm = HDMBlockManager().getRef(hdm.id)
+        if (nhdm.preferLocation == null)
+          nhdm.blocks.map(Path(_))
+        else Seq(nhdm.preferLocation)
+      }
+    }
+    val weights = tasks.map{ t=>
+      t.input.map{ _.blockSize / 1024 * 1024F // MB
+    }}
+    Path.findClosestCluster(candidate, inputLocations, weights)
+  } catch {
+    case e: Throwable =>
+      log.error(s"failed to find task for worker:$candidate")
+      0
+  }
+
 
   def getAllAvailableWorkers(candidateMap: mutable.Map[String, AtomicInteger]): Seq[Path] = {
 

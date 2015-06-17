@@ -191,17 +191,21 @@ object HDMBlockManager extends Logging{
     }
   }
 
-  def loadBlockAsync(path:Path, blockHandler: Block[_] => Unit) ={
+  def loadBlockAsync(path:Path, blockIds:Seq[String],  blockHandler: Block[_] => Unit): Unit ={
     if (defaultManager.isCached(path.name)){
       log.info(s"block:${path.name} is at local")
       blockHandler.apply(defaultManager.getBlock(path.name))
     } else { // change to support of different protocol
       val blockFetcher = NettyConnectionManager.getInstance.getConnection(path.host, path.port)
       //
-      val success = blockFetcher.sendRequest(QueryBlockMsg(path.name, path.host + ":" + path.port), blockHandler)
+      val success = blockFetcher.sendRequest(QueryBlockMsg(blockIds, path.host + ":" + path.port), blockHandler)
       if(!success) throw new RuntimeException("send block request failed to path:" + path)
 //      NettyConnectionManager.getInstance.recycleConnection(path.host, path.port, blockFetcher)
     }
+  }
+
+  def loadBlockAsync(path:Path, blockHandler: Block[_] => Unit): Unit ={
+    loadBlockAsync(path, Seq(path.name),  blockHandler)
   }
 
   def loadOrDeclare[T: ClassTag](br:DDM[_,T]) :Block[T] = {

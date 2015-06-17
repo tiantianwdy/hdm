@@ -24,7 +24,7 @@ import org.nicta.wdy.hdm.utils.Logging
  */
 class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Logging{
 
-  private var f: Channel = _
+  private var channel: Channel = _
   private var bt:Bootstrap = _
   private var workerGroup:EventLoopGroup = _
   private val allocator = NettyConnectionManager.createPooledByteBufAllocator(true)
@@ -38,14 +38,19 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
 
     override def run(): Unit = {
       while(running.get()){
-        workingSize.acquire(1)
+
         val req = requestsQueue.take()
-//        handler.set(req.callback)
-        callbackMap.put(req.msg.id, req.callback)
+        workingSize.acquire(1)
+        req.msg.blockIds foreach {id =>
+          callbackMap.put(id, req.callback)
+        }
         try{
-          val success = f.writeAndFlush(req.msg).sync().awaitUninterruptibly(60,TimeUnit.SECONDS)
-          if(!success) log.error("send block request failed to address:" + f.remoteAddress())
+          channel.writeAndFlush(req.msg).addListener(NettyChannelListener(channel, System.currentTimeMillis()))
 //          Thread.sleep(100)
+        } catch {
+          case e =>
+            log.error("send block request failed to address:" + channel.remoteAddress())
+            channel.close()
         }
       }
     }
@@ -71,8 +76,8 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
         .option[java.lang.Boolean](ChannelOption.SO_KEEPALIVE, true)
         .option[java.lang.Boolean](ChannelOption.TCP_NODELAY, true)
         .option[java.lang.Integer](ChannelOption.CONNECT_TIMEOUT_MILLIS, 120*1000)
-        .option[java.lang.Integer](ChannelOption.SO_RCVBUF, 1024)
         .option[ByteBufAllocator](ChannelOption.ALLOCATOR, allocator)
+      //        .option[java.lang.Integer](ChannelOption.SO_RCVBUF, 1024)
 
 
     } finally {
@@ -86,7 +91,7 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
     if(bt ne null){
       val cf = bt.connect(host,port)
       cf.awaitUninterruptibly(60*1000)
-      f = cf.channel()
+      channel = cf.channel()
     } else
       log.error("Netty bootstrap is not initiated!")
   }
@@ -107,14 +112,14 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
   }
 
   def isConnected()={
-    if(f eq null) false
-    else f.isActive || f.isOpen
+    if(channel eq null) false
+    else channel.isActive || channel.isOpen
   }
 
   def isRunning = running.get()
 
   def waitForClose() = {
-    if(f ne null) f.closeFuture().sync()
+    if(channel ne null) channel.closeFuture().sync()
   }
 
 
@@ -122,7 +127,7 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
     log.info("A netty client is shutting down...")
     stopScheduling()
   } finally {
-    if(f ne null) f.close().sync()
+    if(channel ne null) channel.close().sync()
     if(workerGroup ne null) workerGroup.shutdownGracefully()
     bt = null
   }

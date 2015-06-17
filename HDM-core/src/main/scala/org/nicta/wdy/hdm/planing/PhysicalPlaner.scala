@@ -61,7 +61,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
 //        val inputs = groupPaths.map(seq => seq.map(b => blockMap(b.toString)))
 
         // group by location similarity
-        val inputs = Path.groupDDMByBoundary(children, defParallel)
+        val inputs = PlanningUtils.groupDDMByBoundary(children, defParallel)
         val func = target.func.asInstanceOf[ParallelFunction[String,R]]
 
         val mediator = inputs.map(seq => new DFM(id = leafHdm.id + "_b" + inputs.indexOf(seq), children = seq, dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner))
@@ -80,7 +80,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
           for( subIndex <- 0 until pNum) yield {
 //            inputIds.map{bid => bid + "_p" + subIndex}
             val dis = subIndex * pNum % inputIds.size
-            Utils.seqSlide(inputIds, dis).map{bid => bid + "_p" + subIndex} // slide partitions to avoid network contesting in shuffle
+            PlanningUtils.seqSlide(inputIds, dis).map{bid => bid + "_p" + subIndex} // slide partitions to avoid network contesting in shuffle
           }.toIndexedSeq
         }
         for(index <- 0 until groupedIds.size) inputArray(index % defParallel) ++= groupedIds(index)

@@ -47,9 +47,10 @@ object StaticPlaner extends HDMPlaner{
   /**
    * ordered optimizers
    */
-  val logicOptimizers:Seq[LogicalOptimizer] = Seq{
+  val logicOptimizers:Seq[LogicalOptimizer] = Seq(
+    new FilterLifting(),
     new FunctionFusion()
-  }
+  )
 
   val physicalOptimizers:Seq[PhysicalOptimizer] = Seq.empty[PhysicalOptimizer]
 
@@ -58,7 +59,7 @@ object StaticPlaner extends HDMPlaner{
     var optimized = hdm
     // optimization
     logicOptimizers foreach { optimizer =>
-      optimized = optimizer.optimize(hdm)
+      optimized = optimizer.optimize(optimized)
     }
     // logical planning
     val logicPlan = logicalPlanner.plan(optimized, maxParallelism)

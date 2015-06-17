@@ -35,6 +35,10 @@ object HDMBenchmark {
     testTag match {
       case "map" =>
         benchmark.testMap(data, len, parallelism)
+      case "multiMap" =>
+        benchmark.testMultipleMap(data, len, parallelism)
+      case "multiMapFilter" =>
+        benchmark.testMultiMapFilter(data, len, parallelism, "a")
       case "groupBy" =>
         benchmark.testGroupBy(data, len, parallelism)
       case "reduceByKey" =>
@@ -47,8 +51,6 @@ object HDMBenchmark {
         benchmark.testTop(data, len, parallelism)
       case "mapCount" =>
         benchmark.testMapCount(data, parallelism)
-      case "select" =>
-        benchmark.testMapSelect()
       case x =>
     }
   }

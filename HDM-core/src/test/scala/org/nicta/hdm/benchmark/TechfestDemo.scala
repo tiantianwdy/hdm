@@ -76,7 +76,9 @@ class TechfestDemo {
     HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
     HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1500)
-    benchmark.testGroupBy(data,len, parallelism)
+//    benchmark.testGroupBy(data,len, parallelism)
+//    benchmark.testMultipleMap(data,len, parallelism)
+    benchmark.testMultiMapFilter(data,len, parallelism, "a")
 //    benchmark.testFindByKey(data,len, parallelism, "a")
 //    benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)

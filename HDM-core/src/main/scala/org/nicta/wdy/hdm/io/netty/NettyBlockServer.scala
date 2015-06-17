@@ -35,8 +35,8 @@ class NettyBlockServer(val port:Int,
 
   def init(): Unit ={
 
-    bossGroup = new NioEventLoopGroup(1)
-    workerGroup = new NioEventLoopGroup(nThreads)
+    bossGroup = new NioEventLoopGroup(nThreads)
+    workerGroup = bossGroup
     try{
       bt = new ServerBootstrap()
       bt.group(bossGroup, workerGroup)
@@ -53,11 +53,11 @@ class NettyBlockServer(val port:Int,
             .addLast(new NettyBlockServerHandler(blockManager))
         }
       })
-      .option[java.lang.Integer](ChannelOption.SO_BACKLOG, 128)
-      .option[java.lang.Integer](ChannelOption.SO_SNDBUF, 1024)
         .option[ByteBufAllocator](ChannelOption.ALLOCATOR, allocator)
-      .childOption[java.lang.Boolean](ChannelOption.SO_KEEPALIVE, true)
         .childOption[ByteBufAllocator](ChannelOption.ALLOCATOR, allocator)
+//      .option[java.lang.Integer](ChannelOption.SO_BACKLOG, 128)
+//      .option[java.lang.Integer](ChannelOption.SO_SNDBUF, 1024)
+//      .childOption[java.lang.Boolean](ChannelOption.SO_KEEPALIVE, true)
 
     } finally {
 
@@ -70,7 +70,6 @@ class NettyBlockServer(val port:Int,
     //bind and start
     f = bt.bind(addr).syncUninterruptibly()
     log.info("Netty server is started at " + addr.getHostString + ":" + port)
-//    f.channel().closeFuture().sync()
   }
 
 
@@ -96,10 +95,11 @@ class NettyBlockServerHandler(blockManager: HDMBlockManager) extends  ChannelInb
   override def channelRead(ctx: ChannelHandlerContext, msg: Any): Unit = try {
     log.info("received a message:" + msg)
     val query = msg.asInstanceOf[QueryBlockMsg]
-    val blk = blockManager.getBlock(query.id)
-    if(blk ne null){
-      ctx.write(blk)
-      ctx.flush()
+    query.blockIds.foreach{id =>
+      val blk = blockManager.getBlock(id)
+      if(blk ne null){
+        ctx.writeAndFlush(blk).addListener(NettyChannelListener(ctx.channel(), System.currentTimeMillis()))
+      }
     }
   } catch {
     case e: Throwable => e.printStackTrace()
