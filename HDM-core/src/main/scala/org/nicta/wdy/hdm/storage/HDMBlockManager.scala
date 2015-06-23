@@ -6,12 +6,13 @@ import com.baidu.bpit.akka.monitor.SystemMonitorService
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.netty.{NettyBlockServer, NettyConnectionManager, NettyBlockFetcher}
 import org.nicta.wdy.hdm.io.{DataParser, Path}
-import org.nicta.wdy.hdm.message.QueryBlockMsg
+import org.nicta.wdy.hdm.message.{FetchSuccessResponse, QueryBlockMsg}
 import org.nicta.wdy.hdm.model.{DFM, HDM, DDM}
 import java.util.concurrent.ConcurrentHashMap
 
 import org.nicta.wdy.hdm.utils.Logging
 import org.nicta.wdy.hdm.Buf
+import scala.concurrent.Future
 import scala.reflect.ClassTag
 
 /**
@@ -191,21 +192,21 @@ object HDMBlockManager extends Logging{
     }
   }
 
-  def loadBlockAsync(path:Path, blockIds:Seq[String],  blockHandler: Block[_] => Unit): Unit ={
+  def loadBlockAsync(path:Path, blockIds:Seq[String],  blockHandler: Block[_] => Unit, remoteHandler: FetchSuccessResponse => Unit): Unit ={
     if (defaultManager.isCached(path.name)){
       log.info(s"block:${path.name} is at local")
       blockHandler.apply(defaultManager.getBlock(path.name))
     } else { // change to support of different protocol
       val blockFetcher = NettyConnectionManager.getInstance.getConnection(path.host, path.port)
       //
-      val success = blockFetcher.sendRequest(QueryBlockMsg(blockIds, path.host + ":" + path.port), blockHandler)
+      val success = blockFetcher.sendRequest(QueryBlockMsg(blockIds, path.host + ":" + path.port), remoteHandler)
       if(!success) throw new RuntimeException("send block request failed to path:" + path)
 //      NettyConnectionManager.getInstance.recycleConnection(path.host, path.port, blockFetcher)
     }
   }
 
-  def loadBlockAsync(path:Path, blockHandler: Block[_] => Unit): Unit ={
-    loadBlockAsync(path, Seq(path.name),  blockHandler)
+  def loadBlockAsync(path:Path, blockHandler: Block[_] => Unit, remoteHandler: FetchSuccessResponse => Unit): Unit ={
+    loadBlockAsync(path, Seq(path.name), blockHandler,  remoteHandler)
   }
 
   def loadOrDeclare[T: ClassTag](br:DDM[_,T]) :Block[T] = {
@@ -228,12 +229,11 @@ object HDMBlockManager extends Logging{
 //      blk.data.clear
   }
 
-  def forceGC(): Unit ={
+  def forceGC(): Unit = {
     val start = System.currentTimeMillis()
-    val beforeMem = HDMBlockManager.freeMemMB()
+    val memBefore = HDMBlockManager.freeMemMB()
     System.gc()
     val end = System.currentTimeMillis() - start
-    log.info(s"JVM GC took $end ms.")
-    log.info(s"Free mem recycled by GC:${HDMBlockManager.freeMemMB() - beforeMem} MB.")
+    log.info(s"JVM GC took $end ms. Memory recycled:${HDMBlockManager.freeMemMB() - memBefore} MB.")
   }
 }

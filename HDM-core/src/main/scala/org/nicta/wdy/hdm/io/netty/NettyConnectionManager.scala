@@ -72,8 +72,21 @@ object NettyConnectionManager extends Logging{
 
   val localHost = InetAddress.getLocalHost.getHostName
 
-  def createPooledByteBufAllocator(allowDirectBuffers:Boolean) = {
-    new PooledByteBufAllocator(allowDirectBuffers && PlatformDependent.directBufferPreferred())
+  def createPooledByteBufAllocator(allowDirectBuffers:Boolean, cores:Int) = {
+    val heapArena = cores
+    val directArena = if(allowDirectBuffers) cores else 0
+    val pageSize = 8192
+    val maxOrder = 11
+    val tinySize = if(allowDirectBuffers) 512 else 0
+    val smallSize = if(allowDirectBuffers) 256 else 0
+    val normal = if(allowDirectBuffers) 64 else 0
+    new PooledByteBufAllocator(allowDirectBuffers && PlatformDependent.directBufferPreferred(),
+      heapArena,
+      directArena,
+      pageSize,
+      maxOrder,
+      tinySize, smallSize, normal
+    )
   }
 
   def getFrameDecoder(): ChannelInboundHandlerAdapter = {

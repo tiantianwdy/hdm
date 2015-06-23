@@ -1,6 +1,7 @@
 package org.nicta.hdm.serializer
 
 import com.typesafe.config.Config
+import io.netty.buffer.Unpooled
 import org.junit.Test
 import org.nicta.wdy.hdm.collections.CompactBuffer
 import org.nicta.wdy.hdm.executor.HDMContext
@@ -75,13 +76,19 @@ class JavaSerilizerTest {
     val blk = Block(HDMContext.newLocalId(), data2)
     //test direct serialization
     val t1 = System.currentTimeMillis()
-    val buf = Block.encode(blk)
+    val buf = Block.encodeToBuf(blk)
     val t2 = System.currentTimeMillis()
-    println(s"encode finished in ${t2 - t1} ms.")
-    val nBlk = Block.decode(buf)
+    println(s"encode data ${buf.readableBytes()} bytes, finished in ${t2 - t1} ms.")
+    val len = buf.readInt() - 4
+    val buffer = buf.nioBuffer(4, len)
+    val nBuf = Unpooled.wrappedBuffer(buffer)
+    val resp = Block.decodeResponse(nBuf, HDMContext.DEFAULT_COMPRESSOR)
     val t3 = System.currentTimeMillis()
-    println(s"encoded size : ${buf.array().length} bytes.")
-    println(s"decode finished in ${t3 - t2} ms.")
+    println(s"decode size : ${resp.length} bytes,finished in ${t3 - t2} ms.")
+    val respBlk = serilizer.deserialize[Block[_]](resp.data)
+    val t4 = System.currentTimeMillis()
+    println(s"deserialize data: ${respBlk.data.length}, finished in ${t4 - t2} ms.")
+
   }
 
   @Test

@@ -11,7 +11,7 @@ import org.jboss.netty.buffer.ChannelBuffer
 import org.jboss.netty.channel.{Channel, ChannelHandlerContext}
 import org.jboss.netty.handler.codec.frame.FrameDecoder
 import org.nicta.wdy.hdm.io.CompressionCodec
-import org.nicta.wdy.hdm.message.QueryBlockMsg
+import org.nicta.wdy.hdm.message.{FetchSuccessResponse, QueryBlockMsg}
 import org.nicta.wdy.hdm.serializer.SerializerInstance
 import org.nicta.wdy.hdm.storage.Block
 import org.nicta.wdy.hdm.utils.Logging
@@ -27,22 +27,21 @@ class NettyBlockDecoder3x(serializer: SerializerInstance) extends FrameDecoder{
   }
 }
 
-class NettyBlockByteDecoder4x(serializer: SerializerInstance) extends ByteToMessageDecoder with Logging{
+class NettyBlockByteDecoder4x(serializer: SerializerInstance, compressor:CompressionCodec) extends MessageToMessageDecoder[ByteBuf]  with Logging{
 
-  override def decode(ctx: channel.ChannelHandlerContext, in: ByteBuf, out: util.List[AnyRef]): Unit = {
-    if(in.readableBytes() < 4) return
-    val dataLength = in.getInt(in.readerIndex())
-    in.retain()
-    if(in.readableBytes() >= dataLength) try {
-      log.debug("expected decoding msg size:" + dataLength)
-      log.debug("current decoding msg size:" + in.readableBytes())
-      val obj = serializer.deserialize[Block[_]](in.nioBuffer(4, dataLength))
-      out.add(obj)
-    } finally {
-      ReferenceCountUtil.release(in)
-      in.clear()
-    }
+  override def decode(ctx: channel.ChannelHandlerContext, msg: ByteBuf, out: util.List[AnyRef]): Unit = try {
+    log.debug("de-serializing msg:" + msg)
+    log.debug("current decoding msg size:" + msg.readableBytes())
+    val start = System.currentTimeMillis()
+    val obj = Block.decodeResponse(msg.copy(), compressor)
+    val end = System.currentTimeMillis() - start
+    log.info(s"de-serialized data:${obj.length} bytes in $end ms.")
+    out.add(obj)
+  } finally {
+    msg.clear()
+    //      ReferenceCountUtil.release(msg)
   }
+
 }
 
 class NettyBlockDecoder4x(serializer: SerializerInstance, compressor:CompressionCodec) extends MessageToMessageDecoder[ByteBuf] with Logging{

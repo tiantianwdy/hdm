@@ -48,9 +48,9 @@ object HDMContext extends  Context{
 
   lazy val PLANER_PARALLEL_NETWORK_FACTOR = Try {defaultConf.getInt("hdm.planner.parallelism.network.factor")} getOrElse (CORES)
 
-  lazy val defaultSerializer:SerializerInstance = new JavaSerializer(defaultConf).newInstance()
-
   lazy val DEFAULT_BLOCK_ID_LENGTH = defaultSerializer.serialize(newLocalId()).array().length
+
+  val defaultSerializer:SerializerInstance = new JavaSerializer(defaultConf).newInstance()
 
   val DEFAULT_COMPRESSOR = null
 

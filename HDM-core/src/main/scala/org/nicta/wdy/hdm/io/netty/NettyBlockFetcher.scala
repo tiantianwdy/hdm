@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.io.netty
 
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicReference}
+import java.util.concurrent.atomic.{AtomicInteger, AtomicBoolean, AtomicReference}
 import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingDeque, Semaphore, TimeUnit}
 
 import io.netty.bootstrap.Bootstrap
@@ -14,10 +14,12 @@ import io.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
 import io.netty.handler.codec.string.StringEncoder
 import io.netty.util.ReferenceCountUtil
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.message.{NettyFetchRequest, QueryBlockMsg}
+import org.nicta.wdy.hdm.message.{FetchSuccessResponse, NettyFetchRequest, QueryBlockMsg}
 import org.nicta.wdy.hdm.serializer.SerializerInstance
 import org.nicta.wdy.hdm.storage.Block
 import org.nicta.wdy.hdm.utils.Logging
+
+import scala.collection.mutable.ArrayBuffer
 
 /**
  * Created by tiantian on 27/05/15.
@@ -27,25 +29,32 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
   private var channel: Channel = _
   private var bt:Bootstrap = _
   private var workerGroup:EventLoopGroup = _
-  private val allocator = NettyConnectionManager.createPooledByteBufAllocator(true)
+  private val allocator = NettyConnectionManager.createPooledByteBufAllocator(false, HDMContext.NETTY_BLOCK_CLIENT_THREADS)
   private val workingSize = new Semaphore(1)
+  private val outGoingMsg = new AtomicInteger(0)
 //  private val handler = new AtomicReference[Block[_] => Unit]()
   private val requestsQueue = new LinkedBlockingDeque[NettyFetchRequest]()
   private val running = new AtomicBoolean(false)
-  private val callbackMap = new ConcurrentHashMap[String, Block[_] => Unit]
+  private val callbackMap = new ConcurrentHashMap[String, FetchSuccessResponse => Unit]
 
   private val workingThread:Thread = new Thread {
 
     override def run(): Unit = {
       while(running.get()){
-
-        val req = requestsQueue.take()
         workingSize.acquire(1)
-        req.msg.blockIds foreach {id =>
-          callbackMap.put(id, req.callback)
-        }
+        val blkIds = ArrayBuffer.empty[String]
+        //merge multiple fetch messages into one
+        do {
+          val req = requestsQueue.take()
+          req.msg.blockIds foreach {id =>
+            callbackMap.put(id, req.callback)
+          }
+          blkIds ++= req.msg.blockIds
+        } while(!requestsQueue.isEmpty)
+        outGoingMsg.addAndGet(blkIds.length)
+        val msg = QueryBlockMsg(blkIds, channel.remoteAddress().toString)
         try{
-          channel.writeAndFlush(req.msg).addListener(NettyChannelListener(channel, System.currentTimeMillis()))
+          channel.writeAndFlush(msg).addListener(NettyChannelListener(channel, System.currentTimeMillis()))
 //          Thread.sleep(100)
         } catch {
           case e =>
@@ -58,7 +67,6 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
 
   def init(): Unit ={
     workerGroup = new NioEventLoopGroup(HDMContext.NETTY_BLOCK_CLIENT_THREADS)
-
     try{
       bt = new Bootstrap()
       bt.group(workerGroup)
@@ -69,8 +77,8 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
 //            .addLast(new StringEncoder)
             .addLast("encoder", new NettyQueryEncoder4x(serializerInstance))
             .addLast("frameDecoder", NettyConnectionManager.getFrameDecoder())
-            .addLast("decoder", new NettyBlockDecoder4x(serializerInstance, HDMContext.DEFAULT_COMPRESSOR))
-            .addLast("handler", new NettyBlockFetcherHandler(workingSize, callbackMap))
+            .addLast("decoder", new NettyBlockByteDecoder4x(serializerInstance, HDMContext.DEFAULT_COMPRESSOR))
+            .addLast("handler", new NettyBlockFetcherHandler(outGoingMsg, workingSize, callbackMap))
         }
       })
         .option[java.lang.Boolean](ChannelOption.SO_KEEPALIVE, true)
@@ -78,8 +86,6 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
         .option[java.lang.Integer](ChannelOption.CONNECT_TIMEOUT_MILLIS, 120*1000)
         .option[ByteBufAllocator](ChannelOption.ALLOCATOR, allocator)
       //        .option[java.lang.Integer](ChannelOption.SO_RCVBUF, 1024)
-
-
     } finally {
 //      workerGroup.shutdownGracefully()
     }
@@ -106,8 +112,8 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
     workingThread.stop()
   }
 
-  def sendRequest(msg:QueryBlockMsg, blockHandler: Block[_] => Unit ): Boolean ={
-    requestsQueue.offer(NettyFetchRequest(msg, blockHandler))
+  def sendRequest(msg:QueryBlockMsg, callback: FetchSuccessResponse => Unit ): Boolean ={
+    requestsQueue.offer(NettyFetchRequest(msg, callback))
     true
   }
 
@@ -132,7 +138,7 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
     bt = null
   }
 
-  def setHandler(msgId:String, handler: Block[_] => Unit)  = this.callbackMap.put(msgId, handler)
+  def setHandler(msgId:String, handler: FetchSuccessResponse => Unit)  = this.callbackMap.put(msgId, handler)
 
 }
 
@@ -141,22 +147,27 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
  * @param workingSize
  * @param callbackMap
  */
-class NettyBlockFetcherHandler(val workingSize:Semaphore, val callbackMap:ConcurrentHashMap[String, Block[_] => Unit]) extends  ChannelInboundHandlerAdapter with Logging{
+class NettyBlockFetcherHandler(val outgoingMsg: AtomicInteger, val workingSize:Semaphore, val callbackMap:ConcurrentHashMap[String, FetchSuccessResponse => Unit]) extends  ChannelInboundHandlerAdapter with Logging{
 
   override def channelActive(ctx: ChannelHandlerContext): Unit = super.channelActive(ctx)
 
 
   override def channelRead(ctx: ChannelHandlerContext, msg: Any): Unit = try {
     log.info("received a response:" + msg.getClass)
-    val blk = msg.asInstanceOf[Block[_]]
-    val callback = callbackMap.get(blk.id)
-    if(callback ne null) callback.apply(blk)
-//    blockHandler.get().apply(blk)
+    msg match {
+      case blk:Block[_] =>
+        val callback = callbackMap.get(blk.id)
+//        if(callback ne null) callback.apply(blk)
+      case fetchResponse:FetchSuccessResponse =>
+        val callback = callbackMap.get(fetchResponse.id)
+        if(callback ne null) callback.apply(fetchResponse)
+    }
   } catch {
     case e: Throwable =>  e.printStackTrace()
   } finally {
 //    ReferenceCountUtil.release(msg)
-    workingSize.release(1)
+    if(outgoingMsg.decrementAndGet() <= 0)
+      workingSize.release(1)
   }
 
 

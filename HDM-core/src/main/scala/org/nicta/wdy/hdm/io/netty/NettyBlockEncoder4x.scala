@@ -47,6 +47,26 @@ class NettyBlockByteEncoder4x(serializerInstance: SerializerInstance, compressor
   }
 }
 
+class NettyBlockResponseEncoder4x(serializerInstance: SerializerInstance, compressor:CompressionCodec) extends MessageToByteEncoder[Block[_]] with Logging{
+
+  override def encode(ctx: ChannelHandlerContext, msg: Block[_], out: ByteBuf): Unit = {
+    val start = System.currentTimeMillis()
+    val idData = serializerInstance.serialize(msg.id).array()
+    val data = if(compressor ne null) {
+      compressor.compress(serializerInstance.serialize(msg).array())
+    } else{
+      serializerInstance.serialize(msg).array()
+    }
+    //    val buf = ctx.alloc().heapBuffer(data.length)
+    val end = System.currentTimeMillis() - start
+    log.info(s"encoded data:${data.length} bytes, in $end ms.")
+    out.writeInt(data.length + idData.length + 8)
+    out.writeInt(idData.length)
+    out.writeBytes(idData)
+    out.writeBytes(data)
+  }
+}
+
 class NettyQueryByteEncoder4x(serializerInstance: SerializerInstance) extends MessageToByteEncoder[QueryBlockMsg]{
 
   override def encode(ctx: ChannelHandlerContext, msg: QueryBlockMsg, out: ByteBuf): Unit = {

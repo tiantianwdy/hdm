@@ -1,5 +1,6 @@
 package org.nicta.hdm.serializer
 
+import io.netty.buffer.Unpooled
 import org.junit.Test
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.serializer.KryoSerializer
@@ -66,11 +67,15 @@ class KryoSerilizerTest {
     val blk = Block(HDMContext.newLocalId(), data2)
     //test direct serialization
     val t1 = System.currentTimeMillis()
-    val buf = Block.encode(blk)(serilizer)
+    val buf = Block.encodeToBuf(blk)
     val t2 = System.currentTimeMillis()
     println(s"encode finished in ${t2 - t1} ms.")
-    val nBlk = Block.decode(buf)(serilizer)
+    val len = buf.readInt() - 4
+    val nBuf = Unpooled.buffer(len)
+    buf.readBytes(nBuf, 4, len)
+    val nBlk = Block.decodeResponse(nBuf, HDMContext.DEFAULT_COMPRESSOR)
     val t3 = System.currentTimeMillis()
+    println(s"encoded size : ${buf.array().length} bytes.")
     println(s"decode finished in ${t3 - t2} ms.")
   }
 

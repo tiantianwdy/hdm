@@ -4,10 +4,11 @@ import java.util.concurrent.atomic.{AtomicInteger, AtomicBoolean}
 
 import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.io.{HDMIOManager, DataParser, Path}
+import org.nicta.wdy.hdm.message.FetchSuccessResponse
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.functions.{ParCombinedFunc, ParallelFunction, DDMFunction_1, SerializableFunction}
 import java.util.concurrent.{LinkedBlockingDeque, TimeUnit, Callable}
-import org.nicta.wdy.hdm.utils.Logging
+import org.nicta.wdy.hdm.utils.{Utils, Logging}
 import org.slf4j.LoggerFactory
 
 import scala.concurrent.duration.Duration
@@ -66,25 +67,37 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
 
   def runShuffleTaskAsync():Seq[DDM[_,R]] = {
     log.info(s"Preparing input data for task: [${(taskId, func)}] ")
-    val inputIter = input.iterator
     var res:Buf[R] = Buf.empty[R]
     val blockCounter = new AtomicInteger(0)
+    val countDownWatch = new AtomicInteger(0)
     val fetchingCompleted = new AtomicBoolean(false)
-    val inputQueue = new LinkedBlockingDeque[Block[_]]
+    val inputQueue = new LinkedBlockingDeque[AnyRef]
     val blockHandler = (blk:Block[_]) => {
-      if (blockCounter.incrementAndGet() >= input.length) fetchingCompleted.set(true)
+      if (blockCounter.incrementAndGet() >= input.length) {
+        fetchingCompleted.set(true)
+      }
       inputQueue.offer(blk)
       log.info(s"Fetched block:${blk.id}, progress: (${blockCounter.get}/${input.length}).")
+    }
+
+    val fetchHandler = (resp:FetchSuccessResponse) => {
+      if (blockCounter.incrementAndGet() >= input.length) {
+        fetchingCompleted.set(true)
+      }
+      inputQueue.offer(resp)
+      log.info(s"Received fetch response:${resp.id} with size ${resp.length}, progress: (${blockCounter.get}/${input.length}).")
     }
 
     //group block by host address
     val blockByAddress = input.map(_.location).groupBy{p =>
       p.address
     }.map(bl => (Path(bl._1), bl._2.map(_.name)))
+    //randomize the request to avoid IO contense
+    val remoteBlocks = Utils.randomize(blockByAddress.toSeq)
 
-    for(blocks <- blockByAddress ){
+    for(blocks <- remoteBlocks){
       log.info(s"Fetching block from ${blocks._1} ...")
-      HDMBlockManager.loadBlockAsync(blocks._1, blocks._2, blockHandler)
+      HDMBlockManager.loadBlockAsync(blocks._1, blocks._2, blockHandler, fetchHandler)
     }
 /*    while (inputIter.hasNext) {
       val input = inputIter.next()
@@ -92,20 +105,34 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       HDMBlockManager.loadBlockAsync(input.location, blockHandler)
     }*/
 
-    if (func.isInstanceOf[ParCombinedFunc[I,_,R]] ) {
+    if (func.isInstanceOf[ParCombinedFunc[I, _, R]]) {
       log.info(s"Running as shuffle aggregation..")
-      val tempF = func.asInstanceOf[ParCombinedFunc[I,_,R]]
-      val concreteFunc = tempF.asInstanceOf[ParCombinedFunc[I,tempF.mediateType.type,R]]
-      var partialRes:Buf[tempF.mediateType.type ] = Buf.empty[tempF.mediateType.type ]
+      val tempF = func.asInstanceOf[ParCombinedFunc[I, _, R]]
+      val concreteFunc = tempF.asInstanceOf[ParCombinedFunc[I, tempF.mediateType.type, R]]
+      var partialRes: Buf[tempF.mediateType.type] = Buf.empty[tempF.mediateType.type]
       while (!fetchingCompleted.get()) {
-        val block = inputQueue.poll(60,TimeUnit.SECONDS)
+        val received = inputQueue.poll(60, TimeUnit.SECONDS)
+        log.info(s"start processing FetchResponse: ${received}.")
+        val block = received match {
+          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
+          case blk: Block[_] => blk.asInstanceOf[Block[_]]
+        }
         partialRes = concreteFunc.partialAggregate(block.asInstanceOf[Block[I]].data, partialRes)
+        val count = countDownWatch.incrementAndGet()
+        log.info(s"finished shuffle aggregation: $count/${input.length}.")
       }
-      while (!inputQueue.isEmpty){ 
-      // make sure all the data accepted has been processed 
-      // there are some racing possibilities for multi-threads if the two conditions are tested together
-        val block = inputQueue.poll(60,TimeUnit.SECONDS)
+      while (!inputQueue.isEmpty) {
+        // make sure all the data accepted has been processed
+        // there are some racing possibilities for multi-threads if the two conditions are tested together
+        val received = inputQueue.poll(60, TimeUnit.SECONDS)
+        log.info(s"start processing FetchResponse: ${received}.")
+        val block = received match {
+          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
+          case blk: Block[_] => blk.asInstanceOf[Block[_]]
+        }
         partialRes = concreteFunc.partialAggregate(block.asInstanceOf[Block[I]].data, partialRes)
+        val count = countDownWatch.incrementAndGet()
+        log.info(s"finished shuffle aggregation: $count/${input.length}.")
       }
       log.trace(s"partial results: ${partialRes.take(10)}")
       res = concreteFunc.postF(partialRes)
@@ -114,17 +141,32 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
     } else {
       log.info(s"Running as parallel aggregation..")
       while (!fetchingCompleted.get()) {
-        val block = inputQueue.poll(60,TimeUnit.SECONDS)
+        val received = inputQueue.poll(60, TimeUnit.SECONDS)
+        log.info(s"start processing FetchResponse: ${received}.")
+        val block = received match {
+          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
+          case blk: Block[_] => blk.asInstanceOf[Block[_]]
+        }
         res = func.aggregate(block.asInstanceOf[Block[I]].data, res)
+        val count = countDownWatch.incrementAndGet()
+        log.info(s"finished parallel aggregation: $count/${input.length}.")
       }
-      while (!inputQueue.isEmpty) { // make sure all the data accepted has been processed
-      val block = inputQueue.poll(60,TimeUnit.SECONDS)
+      while (!inputQueue.isEmpty) {
+        // make sure all the data accepted has been processed
+        val received = inputQueue.poll(60, TimeUnit.SECONDS)
+        log.info(s"start processing FetchResponse: ${received}.")
+        val block = received match {
+          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
+          case blk: Block[_] => blk.asInstanceOf[Block[_]]
+        }
         res = func.aggregate(block.asInstanceOf[Block[I]].data, res)
+        val count = countDownWatch.incrementAndGet()
+        log.info(s"finished parallel aggregation: $count/${input.length}.")
       }
       log.trace(s"shuffle results: ${res.take(10)}")
     }
 
-    val ddms = if(partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
+    val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
       Seq(DDM[R](taskId, res))
     } else {
       partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq

@@ -350,6 +350,8 @@ class ClusterExecutorFollower(leaderPath: String) extends WorkActor {
 
   implicit val executorService: ExecutionContext = HDMContext.executionContext
 
+  val runningTasks = new AtomicInteger(0)
+
   override def initParams(params: Any): Int = {
     super.initParams(params)
     context.actorSelection(leaderPath) ! JoinMsg(self.path.toString, HDMContext.slot.get())
@@ -363,15 +365,24 @@ class ClusterExecutorFollower(leaderPath: String) extends WorkActor {
   override def process: PartialFunction[Any, Unit] = {
     case AddTaskMsg(task) =>
       log.info(s"received a task: ${task.taskId + "_" + task.func}")
+      runningTasks.incrementAndGet()
       val startTime = System.currentTimeMillis()
       ClusterExecutor.runTaskSynconized(task) onComplete {
         case Success(results) =>
           context.actorSelection(leaderPath) ! TaskCompleteMsg(task.appId, task.taskId, task.func.toString, results)
           log.info(s"A task [${task.taskId + "_" + task.func}] has been completed in ${System.currentTimeMillis() - startTime} ms.")
-          log.info(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
-        case Failure(t) => log.error(t.toString); sender ! Seq.empty[Seq[String]]
+          //recycle memory when workers are free
+//          if(runningTasks.decrementAndGet() <= 0) Future {
+//              Thread.sleep(64)
+//              HDMBlockManager.forceGC()
+//          }
+        case Failure(t) =>
+          t.printStackTrace()
+          sender ! Seq.empty[Seq[String]]
+//          if(runningTasks.decrementAndGet() <= 0) {
+//            HDMBlockManager.forceGC()
+//          }
       }
-
     case x => unhandled(x)
   }
 
