@@ -134,7 +134,7 @@ class ParFindByFunc[T:ClassTag](val f: T=> Boolean)  extends ParallelFunction[T,
 
 
 
-class ParReduceFunc[T:ClassTag ,R >:T :ClassTag](f: (R, R) => R)  extends ParallelFunction[T, R]{
+class ParReduceFunc[T:ClassTag ,R >:T :ClassTag](val f: (R, R) => R)  extends ParallelFunction[T, R]{
 
   val dependency = PartialDep
 

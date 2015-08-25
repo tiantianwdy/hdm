@@ -7,10 +7,9 @@
         <groupId>org.nicta</groupId>
         <version>0.0.1</version>
     </parent>
-
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>HDM-benchmark</artifactId>
+    <artifactId>data-model-converter</artifactId>
 
     <properties>
         <mesos.version>0.13.0</mesos.version>
@@ -280,6 +279,20 @@
         </dependency>
 
         <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-core_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.spark</groupId>
+            <artifactId>spark-streaming_${scala.binary.version}</artifactId>
+            <version>${spark.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+
+        <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
             <version>${hadoop.version}</version>
@@ -313,5 +326,6 @@
         </dependency>
 
     </dependencies>
+
 
 </project>

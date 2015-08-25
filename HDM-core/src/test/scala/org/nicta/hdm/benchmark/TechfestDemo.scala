@@ -42,7 +42,7 @@ class TechfestDemo {
 
     val wordCount = hdm.map{ w =>
       val as = w.split(",");
-      (as(1).substring(0,3), as(3).toFloat)
+      (as(0).substring(0,3), as(1).toFloat)
     }
 //      .groupBy(_._1)
         .reduceByKey(_ + _)
@@ -78,9 +78,9 @@ class TechfestDemo {
     Thread.sleep(1500)
 //    benchmark.testGroupBy(data,len, parallelism)
 //    benchmark.testMultipleMap(data,len, parallelism)
-    benchmark.testMultiMapFilter(data,len, parallelism, "a")
+//    benchmark.testMultiMapFilter(data,len, parallelism, "a")
 //    benchmark.testFindByKey(data,len, parallelism, "a")
-//    benchmark.testReduceByKey(data,len, parallelism)
+    benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)
     Thread.sleep(50000000)
   }

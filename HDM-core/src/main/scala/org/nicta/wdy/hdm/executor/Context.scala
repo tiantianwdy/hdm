@@ -101,7 +101,8 @@ object HDMContext extends  Context{
 
   def startAsMaster(port:Int = 8999, conf: Config = defaultConf, slots:Int = 0){
     SmsSystem.startAsMaster(port, isLinux, conf)
-    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorLeader", slots)
+//    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorLeader", slots)
+    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.executor.HDMClusterLeaderActor", slots)
     SmsSystem.addActor(BLOCK_MANAGER_NAME, "localhost","org.nicta.wdy.hdm.coordinator.BlockManagerLeader", null)
     SmsSystem.addActor(JOB_RESULT_DISPATCHER, "localhost","org.nicta.wdy.hdm.coordinator.ResultHandler", null)
     leaderPath.set(SmsSystem.rootPath)
@@ -122,9 +123,13 @@ object HDMContext extends  Context{
     SmsSystem.startAsSlave(masterPath, port, isLinux, conf)
     SmsSystem.addActor(BLOCK_MANAGER_NAME, "localhost","org.nicta.wdy.hdm.coordinator.BlockManagerFollower", masterPath+"/"+BLOCK_MANAGER_NAME)
     SmsSystem.addActor(JOB_RESULT_DISPATCHER, "localhost","org.nicta.wdy.hdm.coordinator.ResultHandler", null)
-    if(localExecution)
-      SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorFollower", masterPath+"/"+CLUSTER_EXECUTOR_NAME)
     leaderPath.set(masterPath)
+    if(localExecution){
+      this.NETTY_BLOCK_SERVER_PORT = blockPort
+      SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorFollower", masterPath+"/"+CLUSTER_EXECUTOR_NAME)
+      if(BLOCK_SERVER_INIT) HDMBlockManager.initBlockServer()
+    }
+
   }
 
   def init(leader:String = "localhost", slots:Int = CORES) {
@@ -146,6 +151,14 @@ object HDMContext extends  Context{
   }
 
 
+  def getServerBackend():HDMServerBackend = {
+    val appManager = new AppManager
+    val blockManager = HDMBlockManager()
+    val promiseManager = new DefPromiseManager
+    val resourceManager = new DefResourceManager
+    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
+    new HDMServerBackend(appManager, blockManager, scheduler, planer, resourceManager, promiseManager)
+  }
 
   def explain(hdm:HDM[_, _],parallelism:Int) = {
 //    val hdmOpt = new FunctionFusion().optimize(hdm)

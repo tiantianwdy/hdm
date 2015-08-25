@@ -45,9 +45,11 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
 
   implicit val executorService: ExecutionContext = HDMContext.executionContext
 
+  implicit val timeout = Timeout(5L, TimeUnit.MINUTES)
+
   val blockManager = HDMBlockManager()
 
-  val ioManager = new AkkaIOManager
+//  val ioManager = new AkkaIOManager
 
   val appManager = new AppManager
 
@@ -67,7 +69,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
   val isRunning = new AtomicBoolean(false)
 
 
-  implicit val timeout = Timeout(5L, TimeUnit.MINUTES)
+
 
 
   override def initParams(params: Any): Int = {
@@ -96,7 +98,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
       }
       log.info(s"A task has been added from [${sender.path}}]; id: ${task.taskId}} ")
 
-     //deprecated
+     //deprecated, replaced by SubmitJobMsg
     case AddHDMsMsg(appId, hdms, resultHandler) =>
       val senderPath = sender.path
       val fullPath = ActorPath.fromString(resultHandler).toStringWithAddress(senderPath.address)
@@ -114,6 +116,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
           log.info(s"A job has failed. result has been send to [${resultHandler}}]; appId: ${appId}} ")
       }
       log.info(s"A job has been added from [${sender.path}}]; id: ${appId}} ")
+
 
     case SubmitJobMsg(appId, hdm, resultHandler, parallel) =>
       val senderPath = sender.path

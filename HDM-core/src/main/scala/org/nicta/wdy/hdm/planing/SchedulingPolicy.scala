@@ -13,10 +13,10 @@ trait SchedulingPolicy {
    * @param inputs
    * @param resources
    * @param loadFactor
-   * @param computeFactor
+   * @param computationFactor
    * @return
    */
-  def plan(inputs:Seq[Partition], resources:Seq[String], loadFactor:Float, computeFactor:Float):mutable.Map[String, Seq[String]]
+  def plan(inputs:Seq[Partition], resources:Seq[String], loadFactor:Float, computationFactor:Float):mutable.Map[String, mutable.Buffer[String]]
 
 }
 
@@ -30,8 +30,8 @@ class MinMinScheduling extends SchedulingPolicy{
    * @param computeFactor
    * @return
    */
-  override def plan(inputs: Seq[Partition], resources: Seq[String], loadFactor: Float, computeFactor: Float): mutable.Map[String, Seq[String]] = {
-    val results = mutable.Map.empty[String, Seq[String]]
+  override def plan(inputs: Seq[Partition], resources: Seq[String], loadFactor: Float, computeFactor: Float): mutable.Map[String, mutable.Buffer[String]] = {
+    val results = mutable.Map.empty[String, mutable.Buffer[String]]
     val computationTimeMatrix = mutable.HashMap.empty[String, Vector[Float]]
     val jobCompletionTimeMatrix = mutable.HashMap.empty[String, Vector[Float]]
     computationTimeMatrix ++= inputs.map(p => (p.id -> calculateComputationTIme(p, resources,loadFactor, computeFactor)))
@@ -54,7 +54,7 @@ class MinMinScheduling extends SchedulingPolicy{
    */
   def calculateComputationTIme(p:Partition, resources: Seq[String], loadFactor: Float, computeFactor: Float):Vector[Float] = {
     resources.map{r =>
-      val loadTime = if(p.locationIdx == r) p.size else loadFactor * p.size
+      val loadTime = if(p.locationIdx == resources.indexOf(r)) p.size else loadFactor * p.size
       val computeTime = computeFactor * p.size
       loadTime + computeTime
     }.toVector
@@ -70,7 +70,7 @@ class MinMinScheduling extends SchedulingPolicy{
     val minTimeOnRes =  completionMatrix.map { v =>
       v._1 -> VectorUtils.minWithIndex(v._2)
     }.toVector
-    val comp = (d1:(String,(String,Float)), d2:(String,(String,Float))) => d1._2._2 < d2._2._2
+    val comp = (d1:(String,(Int,Float)), d2:(String,(Int,Float))) => d1._2._2 < d2._2._2
     val minTimeOfTask = VectorUtils.minObjectsWithIndex(minTimeOnRes, comp)
     val idx = minTimeOfTask._1
     // (taskId, resourceId)
