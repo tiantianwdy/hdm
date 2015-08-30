@@ -34,11 +34,14 @@ class MinMinScheduling extends SchedulingPolicy{
     val results = mutable.Map.empty[String, mutable.Buffer[String]]
     val computationTimeMatrix = mutable.HashMap.empty[String, Vector[Float]]
     val jobCompletionTimeMatrix = mutable.HashMap.empty[String, Vector[Float]]
-    computationTimeMatrix ++= inputs.map(p => (p.id -> calculateComputationTIme(p, resources,loadFactor, computeFactor)))
+    //initialize time matrices
+    computationTimeMatrix ++= inputs.map(p => (p.id -> calculateComputationTIme(p, resources, loadFactor, computeFactor)))
     jobCompletionTimeMatrix ++= inputs.map(p => (p.id -> calculateComputationTIme(p, resources, loadFactor, computeFactor)))
+    //find next scheduled job
     val candidate = findNextMatching(jobCompletionTimeMatrix) // return (taskId, resourceId)
     results.getOrElseUpdate(candidate._1, mutable.Buffer.empty[String]) += candidate._2
     val selected = (candidate._1, resources.indexOf(candidate._2))// return (taskId, resource index)
+    //update time matrices and remove selected jobs
     updateMatrix(computationTimeMatrix, jobCompletionTimeMatrix, selected)
     results
   }
@@ -77,6 +80,15 @@ class MinMinScheduling extends SchedulingPolicy{
     (minTimeOnRes(idx)._1, minTimeOfTask._2._1)
   }
 
+  /**
+   * remove selected task from computation time matrix,
+   * update expected completion time by adding the time offset of selected task.
+   *
+   * @param timeMatrix absolute execution time for each task on a set of resources
+   * @param completionMatrix the current estimated completion time matrix for all the tasks on given set of resources
+   * @param selected selected task with index
+   *
+   */
   def updateMatrix(timeMatrix: mutable.HashMap[String, Vector[Float]], completionMatrix:mutable.HashMap[String, Vector[Float]], selected: (String, Int)):Unit ={
     val rIdx = selected._2
     val time = timeMatrix.get(selected._1).get.apply(rIdx)
