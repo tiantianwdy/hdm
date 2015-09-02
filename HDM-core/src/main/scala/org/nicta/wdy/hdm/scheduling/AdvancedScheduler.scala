@@ -1,52 +1,75 @@
-package org.nicta.wdy.hdm.executor
+package org.nicta.wdy.hdm.scheduling
 
-import java.util.concurrent.{TimeUnit, ConcurrentHashMap, LinkedBlockingQueue, Semaphore}
+import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue, TimeUnit}
 import java.util.concurrent.atomic.AtomicBoolean
 
+
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.{Future, Promise, ExecutionContext}
+import scala.reflect.ClassTag
+
 import akka.actor.ActorSystem
-import akka.pattern.{ask, pipe}
 import akka.util.Timeout
+import akka.pattern._
 
 import org.nicta.wdy.hdm.coordinator.ClusterExecutor
-import org.nicta.wdy.hdm.functions.{ParallelFunction, ParUnionFunc}
+import org.nicta.wdy.hdm.executor._
+import org.nicta.wdy.hdm.functions.{ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.message.AddTaskMsg
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 import org.nicta.wdy.hdm.utils.Logging
 
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future, Promise}
-import scala.reflect.ClassTag
 
 /**
- * Created by tiantian on 24/08/15.
+ * Created by tiantian on 1/09/15.
  */
-class DefScheduler(val blockManager:HDMBlockManager,
-                   val promiseManager:PromiseManager,
-                   val resourceManager: ResourceManager,
-                   val actorSys:ActorSystem)(implicit val executorService:ExecutionContext) extends Scheduler with Logging{
+class AdvancedScheduler(val blockManager:HDMBlockManager,
+                        val promiseManager:PromiseManager,
+                        val resourceManager: ResourceManager,
+                        val actorSys:ActorSystem)(implicit val executorService:ExecutionContext) extends Scheduler with Logging{
 
   implicit val timeout = Timeout(5L, TimeUnit.MINUTES)
 
-//  private val workingSize = new Semaphore(0)
+  //  private val workingSize = new Semaphore(0)
 
   private val isRunning = new AtomicBoolean(false)
+
+  private val nonEmptyLock = new ReentrantLock()
 
   private val taskQueue = new LinkedBlockingQueue[Task[_, _]]()
 
   private val appBuffer: java.util.Map[String, ListBuffer[Task[_, _]]] = new ConcurrentHashMap[String, ListBuffer[Task[_, _]]]()
 
+  val schedulingPolicy:SchedulingPolicy = new MinMinScheduling
 
 
   override def startup(): Unit = {
     isRunning.set(true)
     while (isRunning.get) {
-      val task = taskQueue.take()
-      log.info(s"A task has been scheduling: [${task.taskId + "__" + task.func.toString}}] ")
-      scheduleTask(task)
+      import scala.collection.JavaConversions._
+      if(taskQueue.isEmpty)
+        nonEmptyLock.wait()
+      val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
+      val tasks = taskQueue.iterator().map { task =>
+        val inputLocations = HDMBlockManager().getLocations(task.input.map(_.id))
+        SchedulingTask(task.taskId, inputLocations, null, 0, task.dep)
+      }.toSeq
+      val plans = schedulingPolicy.plan(tasks, candidates, 1F, 10F ,20F)
+      val scheduledTasks = taskQueue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,Task[_,_]]
+      plans.foreach(tuple => {
+        scheduledTasks.get(tuple._1) match {
+          case Some(task) =>
+            taskQueue.remove(task)
+            scheduleTask(task, tuple._2)
+          case None => //do nothing
+        }
+      })
     }
   }
+
 
   override def stop(): Unit = {
     isRunning.set(false)
@@ -55,6 +78,7 @@ class DefScheduler(val blockManager:HDMBlockManager,
   override def init(): Unit = {
     isRunning.set(false)
     taskQueue.clear()
+    nonEmptyLock.notifyAll()
     val totalSlots = resourceManager.getAllResources().map(_._2.get()).sum
     resourceManager.release(totalSlots)
   }
@@ -103,7 +127,7 @@ class DefScheduler(val blockManager:HDMBlockManager,
   }
 
 
-  override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R]): Promise[HDM[I, R]] = {
+  override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R], workerPath:String): Promise[HDM[I, R]] = {
     val promise = promiseManager.getPromise(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
     val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
 
@@ -115,51 +139,16 @@ class DefScheduler(val blockManager:HDMBlockManager,
       val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
       val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
       resourceManager.require(1)
-      var workerPath = findPreferredWorker(updatedTask)
-      while (workerPath == null || workerPath == ""){ // wait for available workers
-        log.info(s"no worker available for task[${task.taskId + "__" + task.func.toString}}] ")
-        workerPath = findPreferredWorker(updatedTask)
-        Thread.sleep(50)
-      }
-      log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "__" + task.func.toString}}] ")
+      resourceManager.decResource(workerPath, 1)
+      log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "_" + task.func.toString}}] ")
       val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskSynconized(updatedTask)
       else runRemoteTask(workerPath, updatedTask)
 
-      /*      future onComplete {
-              case Success(blkUrls) =>
-                taskSucceeded(task.appId, task.taskId,task. func.toString, blkUrls)
-                followerMap.get(workerPath).incrementAndGet()
-              case Failure(t) => println(t.toString)
-            }*/
     }
     log.info(s"A task has been scheduled: [${task.taskId + "_" + task.func.toString}}] ")
     promise
   }
 
-  //todo wrap as scheduling policy
-  private def findPreferredWorker(task: Task[_, _]): String = try {
-
-    //    val inputLocations = task.input.flatMap(hdm => HDMBlockManager().getRef(hdm.id).blocks).map(Path(_))
-    val inputLocations = task.input.flatMap { hdm =>
-      val nhdm = HDMBlockManager().getRef(hdm.id)
-      if (nhdm.preferLocation == null)
-        nhdm.blocks.map(Path(_))
-      else Seq(nhdm.preferLocation)
-    }
-    log.info(s"Block prefered input locations:${inputLocations.mkString(",")}")
-    val candidates =
-      if (task.dep == OneToN || task.dep == OneToOne) Scheduler.getAllAvailableWorkers(resourceManager.getAllResources()) // for parallel tasks
-      else Scheduler.getFreestWorkers(resourceManager.getAllResources()) // for shuffle tasks
-
-    //find closest worker from candidates
-    if (candidates.size > 0) {
-      val workerPath = Path.findClosestLocation(candidates, inputLocations).toString
-      resourceManager.decResource(workerPath, 1) // reduce slots of worker
-      workerPath
-    } else ""
-  } catch {
-    case e: Throwable => log.error(s"failed to find worker for task:${task.taskId}"); ""
-  }
 
   private def runRemoteTask[I: ClassTag, R: ClassTag](workerPath: String, task: Task[I, R]): Future[Seq[String]] = {
     val future = (actorSys.actorSelection(workerPath) ? AddTaskMsg(task)).mapTo[Seq[String]]
@@ -194,6 +183,7 @@ class DefScheduler(val blockManager:HDMBlockManager,
           if ((tasks ne null) && !tasks.isEmpty) {
             seq --= tasks
             tasks.foreach(taskQueue.put(_))
+            nonEmptyLock.notify()
             log.info(s"New tasks have has been triggered: [${tasks.map(t => (t.taskId, t.func)) mkString (",")}}] ")
           }
         }
@@ -202,3 +192,4 @@ class DefScheduler(val blockManager:HDMBlockManager,
 
   }
 }
+

@@ -8,6 +8,7 @@ import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.message._
 import org.nicta.wdy.hdm.model.HDM
 import org.nicta.wdy.hdm.planing.HDMPlaner
+import org.nicta.wdy.hdm.scheduling.Scheduler
 import org.nicta.wdy.hdm.storage.HDMBlockManager
 
 import scala.collection.mutable.ListBuffer

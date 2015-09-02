@@ -56,6 +56,16 @@ trait HDMBlockManager {
 
   def checkAllStates(ids:Seq[String], state:BlockState):Boolean
 
+
+  def getLocations(ids:Seq[String]):Seq[Path] = {
+    ids.map { id =>
+      val hdm = getRef(id)
+      if (hdm.preferLocation == null)
+        hdm.blocks.map(Path(_))
+      else Seq(hdm.preferLocation)
+    }.flatten
+  }
+
 }
 
 

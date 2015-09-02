@@ -8,6 +8,7 @@ import com.baidu.bpit.akka.monitor.SystemMonitorService
 import com.baidu.bpit.akka.server.SmsSystem
 import org.apache.commons.logging.LogFactory
 import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.scheduling.Scheduler
 import org.nicta.wdy.hdm.utils.Logging
 import org.slf4j.{LoggerFactory, Logger}
 
@@ -168,7 +169,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
     stop()
   }
 
-  override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R]): Promise[HDM[I, R]] = {
+  override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R], worker:String): Promise[HDM[I, R]] = {
     val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
     val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
 
@@ -211,7 +212,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
     while (isRunning.get) {
       val task = taskQueue.take()
       log.info(s"A task has been scheduling: [${task.taskId + "__" + task.func.toString}}] ")
-      scheduleTask(task)
+      scheduleTask(task, "")
     }
   }
 

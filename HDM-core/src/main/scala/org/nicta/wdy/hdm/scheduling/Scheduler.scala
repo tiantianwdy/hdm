@@ -1,26 +1,24 @@
-package org.nicta.wdy.hdm.executor
+package org.nicta.wdy.hdm.scheduling
 
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
-import java.util.concurrent.{Semaphore, TimeUnit, ConcurrentHashMap, LinkedBlockingQueue}
+import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue, Semaphore, TimeUnit}
 
 import akka.pattern.ask
 import akka.util.Timeout
 import com.baidu.bpit.akka.actors.worker.WorkActor
-
 import org.nicta.wdy.hdm.coordinator.ClusterExecutor
+import org.nicta.wdy.hdm.executor.{HDMContext, AppManager, Task, Partitioner}
 import org.nicta.wdy.hdm.functions.{ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.{AkkaIOManager, Path}
 import org.nicta.wdy.hdm.message.AddTaskMsg
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 import org.nicta.wdy.hdm.utils.Logging
-import org.slf4j.LoggerFactory
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{ExecutionContext, Future, Promise}
 import scala.reflect.ClassTag
-import scala.util.{Failure, Success}
 
 /**
   * Created by Tiantian on 2014/12/1.
@@ -41,7 +39,7 @@ trait Scheduler {
 
   def stop()
 
-  protected def scheduleTask [I:ClassTag, R:ClassTag](task:Task[I,R]):Promise[HDM[I,R]]
+  protected def scheduleTask [I:ClassTag, R:ClassTag](task:Task[I,R], workerPath:String):Promise[HDM[I, R]]
 
 }
 
@@ -76,7 +74,42 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
 
   implicit val timeout = Timeout(5L, TimeUnit.MINUTES)
 
-  override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R]): Promise[HDM[I, R]] = {
+  override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R], workerPath:String): Promise[HDM[I, R]] = {
+    val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
+    val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+
+    if (task.func.isInstanceOf[ParUnionFunc[_]]) {
+      //copy input blocks directly
+      //      val blks = task.input.map(h => blockManager.getRef(h.id))
+      taskSucceeded(task.appId, task.taskId, task.func.toString, blks)
+    } else {
+      // run job, assign to remote or local node to execute this task
+      val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
+      val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
+      workingSize.acquire(1)
+      log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "__" + task.func.toString}}] ")
+      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskSynconized(updatedTask)
+      else runRemoteTask(workerPath, updatedTask)
+      log.info(s"A task has been scheduled: [${task.taskId + "__" + task.func.toString}}] ")
+    }
+
+    promise
+  }
+
+  override def stop(): Unit = {
+    isRunning.set(false)
+  }
+
+  override def startup(): Unit = {
+    isRunning.set(true)
+    while (isRunning.get) {
+      val task = taskQueue.take()
+      log.info(s"A task has been scheduling: [${task.taskId + "__" + task.func.toString}}] ")
+      schedule(task)
+    }
+  }
+
+  private def schedule[I: ClassTag, R: ClassTag](task: Task[I, R]): Promise[HDM[I, R]] = {
     val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
     val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
 
@@ -98,30 +131,10 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
       log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "__" + task.func.toString}}] ")
       val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskSynconized(updatedTask)
       else runRemoteTask(workerPath, updatedTask)
-
-//      future onComplete {
-//        case Success(blkUrls) =>
-//          candidatesMap.get(workerPath).incrementAndGet()
-//          workingSize.release(1)
-//          taskSucceeded(task.appId, task.taskId,task. func.toString, blkUrls)
-//        case Failure(t) => println(t.toString)
-//      }
+      log.info(s"A task has been scheduled: [${task.taskId + "__" + task.func.toString}}] ")
     }
-    log.info(s"A task has been scheduled: [${task.taskId + "__" + task.func.toString}}] ")
+
     promise
-  }
-
-  override def stop(): Unit = {
-    isRunning.set(false)
-  }
-
-  override def startup(): Unit = {
-    isRunning.set(true)
-    while (isRunning.get) {
-      val task = taskQueue.take()
-      log.info(s"A task has been scheduling: [${task.taskId + "__" + task.func.toString}}] ")
-      scheduleTask(task)
-    }
   }
 
   override def init(): Unit = {
