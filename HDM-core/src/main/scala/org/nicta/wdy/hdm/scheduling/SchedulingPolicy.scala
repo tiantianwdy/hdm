@@ -24,7 +24,7 @@ trait SchedulingPolicy {
 
 }
 
-case class SchedulingTask(id:String, inputs:Seq[Path], inputSizes:Seq[Int], locationIdx:Int, dep:DataDependency) {
+case class SchedulingTask(id:String, inputs:Seq[Path], inputSizes:Seq[Int],  dep:DataDependency) {
 
   require(inputs.length == inputSizes.length)
 

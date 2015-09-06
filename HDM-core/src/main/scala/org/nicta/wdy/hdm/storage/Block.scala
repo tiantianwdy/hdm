@@ -66,6 +66,11 @@ object Block {
       blk.size
   }
 
+  def byteSize(elems:Seq[_]):Int = {
+    if(elems == null || elems.isEmpty) 0
+    else sizeOf(elems.head) * elems.size
+  }
+
   def encodeToBuf(blk:Block[_])(implicit serializer:SerializerInstance = HDMContext.defaultSerializer):ByteBuf = {
     val idBuf = serializer.serialize(blk.id).array()
     val dataBuf = serializer.serialize(blk).array()

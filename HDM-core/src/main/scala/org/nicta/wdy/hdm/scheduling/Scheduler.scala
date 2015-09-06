@@ -255,7 +255,7 @@ object Scheduler extends Logging{
     }
 //    log.info(s"Block prefered input locations:${inputLocations.mkString(",")}")
     val candidates =
-      if (task.dep == OneToN || task.dep == OneToOne) Scheduler.getAllAvailableWorkers(candidatesMap) // for parallel tasks
+      if (task.dep == OneToN || task.dep == OneToOne) Scheduler.getAvailablePaths(candidatesMap) // for parallel tasks
       else Scheduler.getFreestWorkers(candidatesMap) // for shuffle tasks
 
     //find closest worker from candidates
@@ -290,9 +290,14 @@ object Scheduler extends Logging{
   }
 
 
-  def getAllAvailableWorkers(candidateMap: mutable.Map[String, AtomicInteger]): Seq[Path] = {
+  def getAvailablePaths(candidateMap: mutable.Map[String, AtomicInteger]): Seq[Path] = {
 
     candidateMap.filter(t => t._2.get() > 0).map(s => Path(s._1)).toSeq
+  }
+  
+  def getAllAvailableWorkers(candidateMap: mutable.Map[String, AtomicInteger]): Seq[Path] = {
+
+    candidateMap.filter(t => t._2.get() > 0).map(s => Seq.fill(s._2.get()){Path(s._1)}).flatten.toSeq
   }
 
   def getFreestWorkers(candidateMap: mutable.Map[String, AtomicInteger]): Seq[Path] = {

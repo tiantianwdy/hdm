@@ -12,7 +12,7 @@ class DefaultClusterPlaner {
 
 }
 
-@Deprecated
+@deprecated(message = "replaced with StaticPlanner", since = "0.0.1")
 object ClusterPlaner extends HDMPlaner { // need to be execute on cluster leader
 
 

@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.scheduling
 
 import java.util.concurrent.locks.ReentrantLock
-import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue, TimeUnit}
+import java.util.concurrent.{Semaphore, ConcurrentHashMap, LinkedBlockingQueue, TimeUnit}
 import java.util.concurrent.atomic.AtomicBoolean
 
 
@@ -37,7 +37,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
   private val isRunning = new AtomicBoolean(false)
 
-  private val nonEmptyLock = new ReentrantLock()
+  private val nonEmptyLock = new Semaphore(0)
 
   private val taskQueue = new LinkedBlockingQueue[Task[_, _]]()
 
@@ -49,14 +49,19 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
   override def startup(): Unit = {
     isRunning.set(true)
     while (isRunning.get) {
-      import scala.collection.JavaConversions._
-      if(taskQueue.isEmpty)
-        nonEmptyLock.wait()
+      if(taskQueue.isEmpty) {
+        nonEmptyLock.acquire()
+      }
       val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
+      import scala.collection.JavaConversions._
+
       val tasks = taskQueue.iterator().map { task =>
-        val inputLocations = HDMBlockManager().getLocations(task.input.map(_.id))
-        SchedulingTask(task.taskId, inputLocations, null, 0, task.dep)
+        val ids = task.input.map(_.id)
+        val inputLocations = HDMBlockManager().getLocations(ids)
+        val inputSize = HDMBlockManager().getblockSizes(ids)
+        SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
       }.toSeq
+
       val plans = schedulingPolicy.plan(tasks, candidates, 1F, 10F ,20F)
       val scheduledTasks = taskQueue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,Task[_,_]]
       plans.foreach(tuple => {
@@ -78,7 +83,9 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
   override def init(): Unit = {
     isRunning.set(false)
     taskQueue.clear()
-    nonEmptyLock.notifyAll()
+/*    synchronized[Unit]{
+      nonEmptyLock.notifyAll()
+    }*/
     val totalSlots = resourceManager.getAllResources().map(_._2.get()).sum
     resourceManager.release(totalSlots)
   }
@@ -182,8 +189,16 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           )
           if ((tasks ne null) && !tasks.isEmpty) {
             seq --= tasks
-            tasks.foreach(taskQueue.put(_))
-            nonEmptyLock.notify()
+            tasks.foreach( t =>
+              if (t.func.isInstanceOf[ParUnionFunc[_]]) {
+                //copy input blocks directly
+                val blks = t.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+                taskSucceeded(t.appId, t.taskId, t.func.toString, blks)
+              } else {
+                taskQueue.put(t)
+              }
+            )
+              nonEmptyLock.release()
             log.info(s"New tasks have has been triggered: [${tasks.map(t => (t.taskId, t.func)) mkString (",")}}] ")
           }
         }

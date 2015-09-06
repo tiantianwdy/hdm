@@ -4,7 +4,7 @@ import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.io.SnappyCompressionCodec
 import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
-import org.nicta.wdy.hdm.scheduling.DefScheduler
+import org.nicta.wdy.hdm.scheduling.{AdvancedScheduler, DefScheduler}
 import org.nicta.wdy.hdm.serializer.{KryoSerializer, JavaSerializer, SerializerInstance}
 
 import scala.concurrent.{Promise, Future}
@@ -157,7 +157,8 @@ object HDMContext extends  Context{
     val blockManager = HDMBlockManager()
     val promiseManager = new DefPromiseManager
     val resourceManager = new DefResourceManager
-    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
+//    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
+    val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
     new HDMServerBackend(appManager, blockManager, scheduler, planer, resourceManager, promiseManager)
   }
 

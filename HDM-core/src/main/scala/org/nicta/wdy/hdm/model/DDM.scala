@@ -31,7 +31,6 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
 
 
 
-
   def this(){
    this(elems = null)
   }
@@ -83,6 +82,7 @@ object DDM {
   def apply[T: ClassTag](id:String, elems: Seq[T], broadcast:Boolean = false): DDM[T,T] = {
     val ddm = new DDM[T,T](id= id,
       func = new NullFunc[T],
+      blockSize = Block.byteSize(elems),
       state = Computed,
       location = Path(HDMContext.localBlockPath + "/" + id))
     HDMContext.addBlock(Block(ddm.id, elems), false)
@@ -104,6 +104,7 @@ object DDM {
           //need to be thread safe for reflection
           new DDM[T, T](id = id,
             func = new NullFunc[T],
+            blockSize = Block.byteSize(seq),
             state = Computed,
             location = Path(HDMContext.localBlockPath + "/" + id))
         }

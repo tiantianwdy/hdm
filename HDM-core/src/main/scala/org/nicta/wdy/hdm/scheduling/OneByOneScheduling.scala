@@ -30,7 +30,7 @@ class OneByOneScheduling extends SchedulingPolicy with Logging{
 
   private def findPreferredWorker(task: SchedulingTask, candidates:Seq[Path]): String = try {
 
-    log.info(s"Block prefered input locations:${task.inputs.mkString(",")}")
+    log.debug(s"Block prefered input locations:${task.inputs.mkString(",")}")
 
     //find closest worker from candidates
     if (candidates.size > 0) {

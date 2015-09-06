@@ -34,13 +34,13 @@ class MinExecutionScheduling(val comparison:(Float, Float) => Boolean) extends S
     //initialize time matrices
     computationTimeMatrix ++= inputs.map(p => (p.id -> calculateComputationTIme(p, resources, computeFactor, ioFactor, networkFactor)))
     jobCompletionTimeMatrix ++= inputs.map(p => (p.id -> calculateComputationTIme(p, resources, computeFactor, ioFactor, networkFactor)))
-    computationTimeMatrix foreach (println)
-    jobCompletionTimeMatrix foreach (println)
+//    computationTimeMatrix foreach (println)
+//    jobCompletionTimeMatrix foreach (println)
     //find next scheduled job
     while (computationTimeMatrix.nonEmpty) {
       val selected = findNextMatching(jobCompletionTimeMatrix) // return (taskId, resourceIdx)
       val candidate = selected._1 -> resources.apply(selected._2).toString //transform to (taskId, resource)
-      log.info(s"find next candidate: $candidate")
+      log.debug(s"find next candidate: $candidate")
       results += candidate
       //update time matrices and remove selected jobs
       updateMatrix(computationTimeMatrix, jobCompletionTimeMatrix, selected)
@@ -85,12 +85,12 @@ class MinExecutionScheduling(val comparison:(Float, Float) => Boolean) extends S
     val minTimeOnRes = completionMatrix.map { v =>
       v._1 -> SchedulingUtils.minWithIndex(v._2)
     }.toVector
-    println("min execution time vector:")
-    minTimeOnRes foreach (println(_))
+    log.trace("min execution time vector:")
+//    minTimeOnRes foreach (println(_))
     //find the minimum value among minimum execution time vector
     val comp = (d1: (String, (Int, Float)), d2: (String, (Int, Float))) => comparison(d1._2._2, d2._2._2)
     val minTimeOfTask = SchedulingUtils.minObjectsWithIndex(minTimeOnRes, comp)
-    println(s"find min task:${minTimeOfTask._2} with expected execution time ${minTimeOfTask._2._2._2}")
+    log.debug(s"find min task:${minTimeOfTask._2} with expected execution time ${minTimeOfTask._2._2._2}")
     val idx = minTimeOfTask._1
     // (taskId, resourceIdx)
     (minTimeOnRes(idx)._1, minTimeOfTask._2._2._1)

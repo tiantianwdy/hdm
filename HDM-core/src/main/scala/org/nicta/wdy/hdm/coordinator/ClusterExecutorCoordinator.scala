@@ -327,7 +327,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
     }
     log.info(s"Block prefered input locations:${inputLocations.mkString(",")}")
     val candidates =
-      if (task.dep == OneToN || task.dep == OneToOne) Scheduler.getAllAvailableWorkers(followerMap) // for parallel tasks
+      if (task.dep == OneToN || task.dep == OneToOne) Scheduler.getAvailablePaths(followerMap) // for parallel tasks
       else Scheduler.getFreestWorkers(followerMap) // for shuffle tasks
 
     //find closest worker from candidates

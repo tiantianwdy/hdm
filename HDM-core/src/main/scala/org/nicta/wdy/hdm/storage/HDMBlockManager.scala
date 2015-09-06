@@ -66,6 +66,19 @@ trait HDMBlockManager {
     }.flatten
   }
 
+  def getblockSizes(ids:Seq[String]):Seq[Int] = {
+    ids.map { id =>
+      val hdm = getRef(id)
+      hdm match {
+        case dfm:DFM[_,_] =>
+          val ddms = dfm.blocks.map(Path(_).name)
+          getblockSizes(ddms)
+        case ddm:DDM[_,_] =>
+          Seq(ddm.blockSize.toInt)
+      }
+    }.flatten
+  }
+
 }
 
 

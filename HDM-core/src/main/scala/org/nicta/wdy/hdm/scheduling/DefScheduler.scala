@@ -151,7 +151,7 @@ class DefScheduler(val blockManager:HDMBlockManager,
     }
     log.info(s"Block prefered input locations:${inputLocations.mkString(",")}")
     val candidates =
-      if (task.dep == OneToN || task.dep == OneToOne) Scheduler.getAllAvailableWorkers(resourceManager.getAllResources()) // for parallel tasks
+      if (task.dep == OneToN || task.dep == OneToOne) Scheduler.getAvailablePaths(resourceManager.getAllResources()) // for parallel tasks
       else Scheduler.getFreestWorkers(resourceManager.getAllResources()) // for shuffle tasks
 
     //find closest worker from candidates
