@@ -12,8 +12,6 @@ import scala.reflect.ClassTag
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import akka.pattern._
-
-import org.nicta.wdy.hdm.coordinator.ClusterExecutor
 import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions.{ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path
@@ -29,7 +27,8 @@ import org.nicta.wdy.hdm.utils.Logging
 class AdvancedScheduler(val blockManager:HDMBlockManager,
                         val promiseManager:PromiseManager,
                         val resourceManager: ResourceManager,
-                        val actorSys:ActorSystem)(implicit val executorService:ExecutionContext) extends Scheduler with Logging{
+                        val actorSys:ActorSystem,
+                        val schedulingPolicy:SchedulingPolicy)(implicit val executorService:ExecutionContext) extends Scheduler with Logging{
 
   implicit val timeout = Timeout(5L, TimeUnit.MINUTES)
 
@@ -42,8 +41,6 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
   private val taskQueue = new LinkedBlockingQueue[Task[_, _]]()
 
   private val appBuffer: java.util.Map[String, ListBuffer[Task[_, _]]] = new ConcurrentHashMap[String, ListBuffer[Task[_, _]]]()
-
-  val schedulingPolicy:SchedulingPolicy = new MinMinScheduling
 
 
   override def startup(): Unit = {

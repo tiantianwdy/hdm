@@ -4,7 +4,7 @@ import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.io.SnappyCompressionCodec
 import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
-import org.nicta.wdy.hdm.scheduling.{AdvancedScheduler, DefScheduler}
+import org.nicta.wdy.hdm.scheduling.{SchedulingPolicy, MinMinScheduling, AdvancedScheduler, DefScheduler}
 import org.nicta.wdy.hdm.serializer.{KryoSerializer, JavaSerializer, SerializerInstance}
 
 import scala.concurrent.{Promise, Future}
@@ -73,6 +73,14 @@ object HDMContext extends  Context{
 
   val MAX_MEM_GC_SIZE = Try {defaultConf.getInt("hdm.memory.gc.max.byte")} getOrElse(1024 * 1024 * 1024) // about 256MB
 
+  val SCHEDULING_POLICY_CLASS = Try {defaultConf.getString("hdm.scheduling.policy.class")} getOrElse ("org.nicta.wdy.hdm.scheduling.MinMinScheduling")
+
+  val SCHEDULING_FACTOR_CPU = Try {defaultConf.getInt("hdm.scheduling.policy.factor.cpu")} getOrElse (1)
+
+  val SCHEDULING_FACTOR_IO = Try {defaultConf.getInt("hdm.scheduling.policy.factor.io")} getOrElse (10)
+
+  val SCHEDULING_FACTOR_NETWORK = Try {defaultConf.getInt("hdm.scheduling.policy.factor.network")} getOrElse (20)
+
   val slot = new AtomicInteger(1)
 
   val isLinux = System.getProperty("os.name").toLowerCase().contains("linux")
@@ -103,7 +111,7 @@ object HDMContext extends  Context{
   def startAsMaster(port:Int = 8999, conf: Config = defaultConf, slots:Int = 0){
     SmsSystem.startAsMaster(port, isLinux, conf)
 //    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorLeader", slots)
-    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.executor.HDMClusterLeaderActor", slots)
+    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.HDMClusterLeaderActor", slots)
     SmsSystem.addActor(BLOCK_MANAGER_NAME, "localhost","org.nicta.wdy.hdm.coordinator.BlockManagerLeader", null)
     SmsSystem.addActor(JOB_RESULT_DISPATCHER, "localhost","org.nicta.wdy.hdm.coordinator.ResultHandler", null)
     leaderPath.set(SmsSystem.rootPath)
@@ -113,7 +121,7 @@ object HDMContext extends  Context{
     this.slot.set(slots)
     this.NETTY_BLOCK_SERVER_PORT = blockPort
     SmsSystem.startAsSlave(masterPath, port, isLinux, conf)
-    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorFollower", masterPath+"/"+CLUSTER_EXECUTOR_NAME)
+    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.HDMClusterWorkerActor", masterPath+"/"+CLUSTER_EXECUTOR_NAME)
     SmsSystem.addActor(BLOCK_MANAGER_NAME, "localhost","org.nicta.wdy.hdm.coordinator.BlockManagerFollower", masterPath+"/"+BLOCK_MANAGER_NAME)
     SmsSystem.addActor(JOB_RESULT_DISPATCHER, "localhost","org.nicta.wdy.hdm.coordinator.ResultHandler", null)
     leaderPath.set(masterPath)
@@ -127,7 +135,7 @@ object HDMContext extends  Context{
     leaderPath.set(masterPath)
     if(localExecution){
       this.NETTY_BLOCK_SERVER_PORT = blockPort
-      SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorFollower", masterPath+"/"+CLUSTER_EXECUTOR_NAME)
+      SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.HDMClusterWorkerActor", masterPath+"/"+CLUSTER_EXECUTOR_NAME)
       if(BLOCK_SERVER_INIT) HDMBlockManager.initBlockServer()
     }
 
@@ -157,8 +165,9 @@ object HDMContext extends  Context{
     val blockManager = HDMBlockManager()
     val promiseManager = new DefPromiseManager
     val resourceManager = new DefResourceManager
+    val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
 //    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
-    val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
+    val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system, schedulingPolicy)
     new HDMServerBackend(appManager, blockManager, scheduler, planer, resourceManager, promiseManager)
   }
 
@@ -168,13 +177,13 @@ object HDMContext extends  Context{
     planer.plan(hdm, parallelism)
   }
 
-  def compute(hdm:HDM[_, _], parallelism:Int):Future[HDM[_,_]] =    {
+  def compute(hdm:HDM[_, _], parallelism:Int):Future[HDM[_,_]] = {
 //    addJob(hdm.id, explain(hdm, parallelism))
     submitJob(hdm.id, hdm, parallelism)
   }
 
   def declareHdm(hdms:Seq[HDM[_,_]], declare:Boolean = true) = {
-     SmsSystem.forwardLocalMsg(BLOCK_MANAGER_NAME, AddRefMsg(hdms, declare))
+    SmsSystem.forwardLocalMsg(BLOCK_MANAGER_NAME, AddRefMsg(hdms, declare))
   }
 
   def addBlock(block:Block[_], declare:Boolean) = {

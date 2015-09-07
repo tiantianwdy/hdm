@@ -40,6 +40,7 @@ import org.nicta.wdy.hdm.message.LeaveMsg
 /**
  * Created by Tiantian on 2014/12/18.
  */
+@deprecated(message = "replaced by HDMClusterLeaderActor", since = "0.0.1")
 class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
 
   import scala.collection.JavaConversions._
@@ -342,118 +343,6 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
 
 }
 
-/**
- *
- *
- *
- *
- * @param leaderPath
- */
-class ClusterExecutorFollower(leaderPath: String) extends WorkActor {
 
 
-  implicit val executorService: ExecutionContext = HDMContext.executionContext
-
-  val runningTasks = new AtomicInteger(0)
-
-  override def initParams(params: Any): Int = {
-    super.initParams(params)
-    context.actorSelection(leaderPath) ! JoinMsg(self.path.toString, HDMContext.slot.get())
-    1
-  }
-
-  /**
-   *
-   * process business message
-   */
-  override def process: PartialFunction[Any, Unit] = {
-    case AddTaskMsg(task) =>
-      log.info(s"received a task: ${task.taskId + "_" + task.func}")
-      runningTasks.incrementAndGet()
-      val startTime = System.currentTimeMillis()
-      ClusterExecutor.runTaskSynconized(task) onComplete {
-        case Success(results) =>
-          context.actorSelection(leaderPath) ! TaskCompleteMsg(task.appId, task.taskId, task.func.toString, results)
-          log.info(s"A task [${task.taskId + "_" + task.func}] has been completed in ${System.currentTimeMillis() - startTime} ms.")
-          //recycle memory when workers are free
-//          if(runningTasks.decrementAndGet() <= 0) Future {
-//              Thread.sleep(64)
-//              HDMBlockManager.forceGC()
-//          }
-        case Failure(t) =>
-          t.printStackTrace()
-          sender ! Seq.empty[Seq[String]]
-//          if(runningTasks.decrementAndGet() <= 0) {
-//            HDMBlockManager.forceGC()
-//          }
-      }
-    case x => unhandled(x)
-  }
-
-  override def postStop(): Unit = {
-    super.postStop()
-    context.actorSelection(leaderPath) ! LeaveMsg(self.path.toString)
-  }
-
-}
-
-object ClusterExecutor extends Logging{
-
-
-  val blockManager = HDMBlockManager()
-
-  val ioManager = HDMIOManager()
-
-  def runTaskSynconized[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[DDM[_,_]]] = {
-    if (task.dep == OneToOne || task.dep == OneToN)
-      Future {
-        task.call()
-//        task.runTaskIteratively().map(bl => bl.toURL)
-      }
-    else
-      Future {
-        task.runShuffleTaskAsync()
-//        task.runTaskIteratively()
-      }
-//      runTaskConcurrently(task)
-  }
-
-  def runTaskConcurrently[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[DDM[_,_]]] = {
-    // prepare input data from cluster
-    log.info(s"Preparing input data for task: [${(task.taskId, task.func)}] ")
-    val input = task.input
-      //.map(in => blockManager.getRef(in.id)) // update the states of input blocks
-//    val updatedTask = task.copy(input = input.asInstanceOf[Seq[HDM[_, I]]])
-//    val remoteBlocks = input.filterNot(ddm => blockManager.isCached(ddm.id))
-    val futureBlocks = input.map { ddm =>
-      if (!blockManager.isCached(ddm.id)) {
-        ddm.location.protocol match {
-          case Path.AKKA =>
-            //todo replace with using data parsers readAsync
-            log.info(s"Asking block ${ddm.location.name} from ${ddm.location.parent}")
-            ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
-          case Path.HDFS => Future {
-            val bl = DataParser.readBlock(ddm.location)
-            //          blockManager.add(ddm.id, bl)
-            //          ddm.id
-            bl
-          }
-        }
-      } else Future {
-        blockManager.getBlock(ddm.id)
-      }
-    }
-
-      Future.sequence(futureBlocks) map { in =>
-        log.info(s"Input data preparing finished, the task starts running: [${(task.taskId, task.func)}] ")
-        val results = task.runWithInput(in)
-        log.info(s"Task completed, with output id: [${results.map(_.toURL)}] ")
-        results
-      }
-
-  }
-  
-
-    
-}
 

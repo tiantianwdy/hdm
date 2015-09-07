@@ -6,7 +6,6 @@ import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue, TimeUnit}
 import akka.actor.ActorSystem
 import akka.pattern.ask
 import akka.util.Timeout
-import org.nicta.wdy.hdm.coordinator.ClusterExecutor
 import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions.{ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path

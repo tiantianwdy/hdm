@@ -2,8 +2,7 @@ package org.nicta.hdm.executor
 
 import com.baidu.bpit.akka.server.SmsSystem
 import org.junit.Test
-import org.nicta.wdy.hdm.coordinator.ClusterExecutor
-import org.nicta.wdy.hdm.executor.{ClusterExecutorContext, Task, HDMContext}
+import org.nicta.wdy.hdm.executor.{ClusterExecutor, ClusterExecutorContext, Task, HDMContext}
 import org.nicta.wdy.hdm.functions.ParallelFunction
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.{DFM, DDM, HDM}

@@ -6,8 +6,7 @@ import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue, Semaphore, 
 import akka.pattern.ask
 import akka.util.Timeout
 import com.baidu.bpit.akka.actors.worker.WorkActor
-import org.nicta.wdy.hdm.coordinator.ClusterExecutor
-import org.nicta.wdy.hdm.executor.{HDMContext, AppManager, Task, Partitioner}
+import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions.{ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.{AkkaIOManager, Path}
 import org.nicta.wdy.hdm.message.AddTaskMsg
