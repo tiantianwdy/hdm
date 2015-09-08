@@ -53,13 +53,17 @@ class NettyBlockResponseEncoder4x(serializerInstance: SerializerInstance, compre
     val start = System.currentTimeMillis()
     val idData = serializerInstance.serialize(msg.id).array()
     val data = if(compressor ne null) {
-      compressor.compress(serializerInstance.serialize(msg).array())
+      val compressed = compressor.compress(serializerInstance.serialize(msg).array())
+      val end = System.currentTimeMillis() - start
+      log.info(s"compressed data${compressed.length}, in $end ms.")
+      compressed
     } else{
-      serializerInstance.serialize(msg).array()
+      val serialized = serializerInstance.serialize(msg).array()
+      val end = System.currentTimeMillis() - start
+      log.info(s"encoded data:${serialized.length} bytes, in $end ms.")
+      serialized
     }
     //    val buf = ctx.alloc().heapBuffer(data.length)
-    val end = System.currentTimeMillis() - start
-    log.info(s"encoded data:${data.length} bytes, in $end ms.")
     out.writeInt(data.length + idData.length + 8)
     out.writeInt(idData.length)
     out.writeBytes(idData)

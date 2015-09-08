@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.executor
 
 import org.nicta.wdy.hdm.Buf
-import org.nicta.wdy.hdm.io.SnappyCompressionCodec
+import org.nicta.wdy.hdm.io.{CompressionCodec, SnappyCompressionCodec}
 import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
 import org.nicta.wdy.hdm.scheduling.{SchedulingPolicy, MinMinScheduling, AdvancedScheduler, DefScheduler}
@@ -53,9 +53,9 @@ object HDMContext extends  Context{
 
   val defaultSerializer:SerializerInstance = new JavaSerializer(defaultConf).newInstance()
 
-  val DEFAULT_COMPRESSOR = null
+  val DEFAULT_COMPRESSOR = new SnappyCompressionCodec(defaultConf)
 
-  val BLOCK_COMPRESS_IN_TRANSPORTATION = Try {defaultConf.getBoolean("hdm.io.network.block.compress")} getOrElse (false)
+  val BLOCK_COMPRESS_IN_TRANSPORTATION = Try {defaultConf.getBoolean("hdm.io.network.block.compress")} getOrElse (true)
 
   val BLOCK_SERVER_PROTOCOL = Try {defaultConf.getString("hdm.io.network.protocol")} getOrElse ("netty")
 
@@ -169,6 +169,11 @@ object HDMContext extends  Context{
 //    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
     val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system, schedulingPolicy)
     new HDMServerBackend(appManager, blockManager, scheduler, planer, resourceManager, promiseManager)
+  }
+
+  def getCompressor(): CompressionCodec ={
+    if(BLOCK_COMPRESS_IN_TRANSPORTATION) DEFAULT_COMPRESSOR
+    else null
   }
 
   def explain(hdm:HDM[_, _],parallelism:Int) = {

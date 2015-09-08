@@ -96,15 +96,19 @@ object Block {
   def decodeResponse(buf:ByteBuf, compressor:CompressionCodec)(implicit serializer:SerializerInstance = HDMContext.defaultSerializer):FetchSuccessResponse = {
     val length = buf.readableBytes()
     val idLen = buf.readInt()
+    val (data, dataLen) = if(compressor ne null) {
+      val bytes = new Array[Byte](length)
+      buf.getBytes(0, bytes)
+      val actualData = compressor.uncompress(bytes.drop(4 + idLen))
+      (ByteBuffer.wrap(actualData), actualData.length)
+    } else {
+      val bufLen = length - idLen - 4
+      val dataBuf = buf.nioBuffer(4 + idLen, bufLen)
+      (dataBuf, bufLen)
+    }
     val idBuf = buf.nioBuffer(4, idLen)
-    val dataLen = length - idLen - 4
-    val dataBuf = buf.nioBuffer(4 + idLen, dataLen)
-    val data = if(compressor ne null) {
-      val bytes = dataBuf.array()
-      ByteBuffer.wrap(compressor.uncompress(bytes))
-    } else dataBuf
     val id = serializer.deserialize[String](idBuf)
-    new FetchSuccessResponse(id, dataLen, dataBuf)
+    new FetchSuccessResponse(id, dataLen, data)
   }
 
 //  def decodeBlock(buf:ByteBuffer)(implicit serializer:SerializerInstance = HDMContext.defaultSerializer):Block[_] = {

@@ -1,6 +1,7 @@
 package org.nicta.wdy.hdm.io
 
 import java.io.{InputStream, OutputStream}
+import java.nio.ByteBuffer
 
 import com.typesafe.config.Config
 import org.xerial.snappy.{SnappyInputStream, SnappyOutputStream, Snappy}
@@ -14,7 +15,11 @@ trait CompressionCodec {
 
   def compress(bytes: Array[Byte]):Array[Byte]
 
+  def compress(buf: ByteBuffer, length:Int): ByteBuffer
+
   def uncompress(bytes: Array[Byte]):Array[Byte]
+
+  def uncompress(buf: ByteBuffer, length:Int): ByteBuffer
 
   def compressedOutputStream(s: OutputStream): OutputStream
 
@@ -36,8 +41,21 @@ class SnappyCompressionCodec(conf: Config) extends CompressionCodec {
     Snappy.compress(bytes)
   }
 
+  override def compress(buf: ByteBuffer, length:Int): ByteBuffer = {
+    val compressed = ByteBuffer.allocate(length)
+    Snappy.compress(buf,compressed)
+    compressed
+  }
+
   override def uncompress(bytes: Array[Byte]): Array[Byte] = {
     Snappy.uncompress(bytes)
+  }
+
+
+  override def uncompress(buf: ByteBuffer, length: Int): ByteBuffer = {
+    val uncompressed = ByteBuffer.allocate(length)
+    Snappy.uncompress(buf, uncompressed)
+    uncompressed
   }
 
   override def compressedOutputStream(s: OutputStream): OutputStream = {

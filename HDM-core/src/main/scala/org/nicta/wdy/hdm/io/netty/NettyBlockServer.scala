@@ -44,7 +44,7 @@ class NettyBlockServer(val port:Int,
       .childHandler(new ChannelInitializer[SocketChannel] {
         override def initChannel(c: SocketChannel): Unit = {
           c.pipeline()
-          .addLast(new NettyBlockResponseEncoder4x(serializerInstance, HDMContext.DEFAULT_COMPRESSOR))
+          .addLast(new NettyBlockResponseEncoder4x(serializerInstance, HDMContext.getCompressor()))
 //            .addLast(NettyConnectionManager.getFrameDecoder())
             .addLast(new NettyQueryDecoder4x(serializerInstance))
 //            .addLast(new StringDecoder)
