@@ -3,6 +3,7 @@ package org.nicta.wdy.hdm.executor
 import java.util
 
 import org.nicta.wdy.hdm.collections.CompactBuffer
+import org.nicta.wdy.hdm.functions.TeraSortPartitioning
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
@@ -23,7 +24,9 @@ trait Partitioner[T] extends Serializable{
 }
 
 
-class RandomPartitioner[T:ClassTag](var partitionNum:Int, val pFunc: T => Int = null ) extends  Partitioner[T] {
+class RandomPartitioner[T:ClassTag](var partitionNum:Int) extends  Partitioner[T] {
+
+  val pFunc: T => Int = null
 
   override def split(data: Seq[T]): Map[Int,Seq[T]] = {
 
@@ -34,14 +37,13 @@ class RandomPartitioner[T:ClassTag](var partitionNum:Int, val pFunc: T => Int = 
 
 class HashPartitioner[T:ClassTag] (var partitionNum:Int, val pFunc: T => Int ) extends  Partitioner[T] {
 
- import scala.collection.JavaConversions._
 
   override def split(data: Seq[T]): Map[Int, _ <: Seq[T]] = {
 
     val mapBuffer = new HashMap[Int, CompactBuffer[T]]()
     for (d <- data) {
-      val k = Math.abs(pFunc(d)) % partitionNum
-      val bullet = mapBuffer.getOrElseUpdate(k, CompactBuffer.empty[T])
+      val partitionId = Math.abs(pFunc(d)) % partitionNum
+      val bullet = mapBuffer.getOrElseUpdate(partitionId, CompactBuffer.empty[T])
       bullet += d
     }
     mapBuffer
@@ -52,4 +54,14 @@ class HashPartitioner[T:ClassTag] (var partitionNum:Int, val pFunc: T => Int ) e
 class KeepPartitioner[T](var partitionNum:Int , val pFunc: T => Int = null) extends  Partitioner[T] {
 
   override def split(data: Seq[T]): Map[Int, Seq[T]] = ???
+}
+
+
+class TeraSortPartitioner[T: ClassTag] (partitionNum:Int) extends HashPartitioner[T](partitionNum, null){
+
+  val partitioning = new TeraSortPartitioning(partitionNum)
+
+  override val pFunc = (d:T) => partitioning.partitionIndex(d)
+
+
 }

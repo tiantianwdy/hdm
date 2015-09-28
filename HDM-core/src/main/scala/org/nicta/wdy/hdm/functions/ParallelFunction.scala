@@ -1,6 +1,9 @@
 package org.nicta.wdy.hdm.functions
 
 
+import java.util
+
+import org.apache.hadoop.util.MergeSort
 import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.collections.BufUtils
 import org.nicta.wdy.hdm.executor.{ShuffleBlockAggregator, Aggregator}
@@ -363,6 +366,29 @@ class ParCombinedFunc [T:ClassTag,U:ClassTag,R:ClassTag](val dependency:FuncDepe
   val mediateType = classTag[U]
 }
 
+
+class SortFunc[T <: AnyRef : ClassTag](implicit ordering: Ordering[T]) extends ParallelFunction[T,T] {
+
+  override val dependency: FuncDependency = FullDep
+
+  override def aggregate(params: Buf[T], res: Buf[T]): Buf[T] = {
+    //assume res has been sorted while params has not been unsorted
+    //todo change to support AnyVal
+      val array = params.toArray
+      util.Arrays.sort(array, ordering)
+      val resArray = res.toArray
+      val newRes = Array.concat(resArray, array)
+      util.Arrays.sort(newRes, ordering)
+      newRes.toBuffer
+  }
+
+  override def apply(params: Buf[T]): Buf[T] = {
+    val array = params.toArray
+    util.Arrays.sort(array, ordering)
+    array.toBuffer[T]
+  }
+
+}
 
 object ParallelFunction {
 
