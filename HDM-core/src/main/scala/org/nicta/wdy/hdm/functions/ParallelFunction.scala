@@ -8,10 +8,13 @@ import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.collections.BufUtils
 import org.nicta.wdy.hdm.executor.{ShuffleBlockAggregator, Aggregator}
 import org.nicta.wdy.hdm.model._
+import org.nicta.wdy.hdm.utils.SortingUtils
 
 import scala.collection.mutable
 import scala.collection.mutable.{HashMap, Buffer, ArrayBuffer}
 import scala.reflect._
+import scala.util.Sorting
+
 //import scala.reflect.runtime.universe.WeakTypeTag
 
 
@@ -367,25 +370,63 @@ class ParCombinedFunc [T:ClassTag,U:ClassTag,R:ClassTag](val dependency:FuncDepe
 }
 
 
-class SortFunc[T <: AnyRef : ClassTag](implicit ordering: Ordering[T]) extends ParallelFunction[T,T] {
+class SortFunc[T : ClassTag](val sortBeforeMerge:Boolean = false)(implicit ordering: Ordering[T]) extends ParallelFunction[T,T] {
 
   override val dependency: FuncDependency = FullDep
 
-  override def aggregate(params: Buf[T], res: Buf[T]): Buf[T] = {
-    //assume res has been sorted while params has not been unsorted
-    //todo change to support AnyVal
-      val array = params.toArray
-      util.Arrays.sort(array, ordering)
-      val resArray = res.toArray
-      val newRes = Array.concat(resArray, array)
-      util.Arrays.sort(newRes, ordering)
-      newRes.toBuffer
-  }
 
   override def apply(params: Buf[T]): Buf[T] = {
-    val array = params.toArray
-    util.Arrays.sort(array, ordering)
-    array.toBuffer[T]
+    if(classTag[T] == classTag[Int]){
+      val array = params.toArray.asInstanceOf[Array[Int]]
+      Sorting.quickSort(array)
+      array.toBuffer.asInstanceOf[Buf[T]]
+    } else {
+      val array = params.toArray
+      Sorting.quickSort(array)
+      array.toBuffer
+    }
+  }
+
+  override def aggregate(params: Buf[T], sorted: Buf[T]): Buf[T] = {
+    //assume previous result is sorted
+    //todo change to support AnyVal
+    classTag[T] match {
+      case ct: ClassTag[Int] =>
+//        println("sorting array of Int")
+        val array = params.toArray.asInstanceOf[Array[Int]]
+        if(sortBeforeMerge) //if params has not been sorted
+          Sorting.quickSort(array)
+        val resArray = sorted.toArray.asInstanceOf[Array[Int]]
+        SortingUtils.mergeSorted(resArray, array).toBuffer.asInstanceOf[Buf[T]]
+      case other:Any =>
+        println("sorting array of Any")
+        val array = params.toArray
+        if(sortBeforeMerge)//if params has not been sorted
+          Sorting.quickSort(array)
+        val resArray = sorted.toArray
+        SortingUtils.mergeSorted(resArray, array).toBuffer
+    }
+  }
+
+  def aggregateSorting(params: Buf[T], res: Buf[T]): Buf[T] = {
+    //assume both res and params have not been unsorted
+    //todo change to support AnyVal
+    classTag[T] match {
+      case ct:ClassTag[Int] =>
+        val array = params.toArray.asInstanceOf[Array[Int]]
+        //        Sorting.quickSort(array)
+        val resArray = res.toArray.asInstanceOf[Array[Int]]
+        val newRes = Array.concat(resArray, array)
+        Sorting.quickSort(newRes)
+        newRes.toBuffer.asInstanceOf[Buf[T]]
+      case other:Any =>
+        val array = params.toArray
+        //        Sorting.quickSort(array)
+        val resArray = res.toArray
+        val newRes = Array.concat(resArray, array)
+        Sorting.quickSort(newRes)
+        newRes.toBuffer
+    }
   }
 
 }

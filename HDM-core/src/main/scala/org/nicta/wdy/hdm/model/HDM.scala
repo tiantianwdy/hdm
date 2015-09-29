@@ -159,9 +159,9 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
   }
 
   def sorted()(implicit ordering: Ordering[R]): HDM[_, R] = {
-    val parallel = new DFM[R, R](children = Seq(this), dependency = OneToOne, func = new NullFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = new TeraSortPartitioner[R](4))
-    val sortByFunc = (elems:Buf[R]) =>  elems.sorted(ordering)
-    new DFM[R,R](children = Seq(parallel), dependency = NToOne, func = new ParMapAllFunc(sortByFunc), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[R](1), parallelism = 1)
+    val parallel = new DFM[R, R](children = Seq(this), dependency = OneToOne, func = new SortFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = new TeraSortPartitioner[R](4))
+//    val sortByFunc = (elems:Buf[R]) =>  elems.sorted(ordering)
+    new DFM[R,R](children = Seq(parallel), dependency = NToOne, func = new SortFunc[R], distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[R](1), parallelism = 1)
   }
 
   def flatMap[U](f: R => U): HDM[R,U] = ???
