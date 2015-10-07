@@ -16,7 +16,7 @@
             <maxHistory>7</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>[%level] [%d{dd/MM/yyyy HH:mm:ss.SSS}] [%thread] [%logger{5}] -%msg%n</pattern>
+            <pattern>[%level] [%d{dd/MM/yyyy HH:mm:ss.SSS}] [%thread] [%logger{5}] - %msg%n</pattern>
         </encoder>
     </appender>
 
@@ -27,7 +27,7 @@
             <maxHistory>7</maxHistory>
         </rollingPolicy>
         <encoder>
-            <pattern>[%level] [%d{dd/MM/yyyy HH:mm:ss.SSS}] [%thread] [%logger{5}] -%msg%n</pattern>
+            <pattern>[%level] [%d{dd/MM/yyyy HH:mm:ss.SSS}] [%thread] [%logger{5}] - %msg%n</pattern>
         </encoder>
     </appender>
 

@@ -33,7 +33,7 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
      wordCount.compute(parallelism) onComplete  {
        case Success(hdm) =>
          println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-         hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+//         hdm.asInstanceOf[HDM[_,_]].sample(Right(20)).foreach(println(_))
        case Failure(t) =>
          println("Job failed because of: " + t)
          t.printStackTrace()
@@ -199,20 +199,19 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
        val as = w.split(",")
        if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
        else (as(kOffset), as(vOffset).toFloat)
-     }
-       .reduceByKey(_ + _)
-//       .groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+     }.reduceByKey(_ + _)
 
+     onEvent(wordCount, "sample")(parallelism)
 
-     wordCount.compute(parallelism) onComplete  {
-       case Success(hdm) =>
-         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
-         System.exit(1)
-       case Failure(t) =>
-         println("Job failed because of: " + t)
-         t.printStackTrace()
-     }
+//     wordCount.compute(parallelism) onComplete  {
+//       case Success(hdm) =>
+//         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
+//         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
+//         System.exit(1)
+//       case Failure(t) =>
+//         println("Job failed because of: " + t)
+//         t.printStackTrace()
+//     }
 
    }
 
@@ -294,6 +293,22 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
         t.printStackTrace()
     }
 
+  }
+
+
+  def onEvent(hdm:HDM[_,_], action:String)(implicit parallelism:Int) = action match {
+    case "compute" =>
+      val start = System.currentTimeMillis()
+      hdm.compute(parallelism).map { hdm =>
+          println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received response: ${hdm.id}")
+          hdm.blocks.foreach(println(_))
+      }
+    case "sample" =>
+//      val start = System.currentTimeMillis()
+      hdm.sample(25).map(iter => iter.foreach(println(_)))
+    case "collect" =>
+      hdm.collect.map(itr => println(itr.size))
+    case x =>
   }
 
  }

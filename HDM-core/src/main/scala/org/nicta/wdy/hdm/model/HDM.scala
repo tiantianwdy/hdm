@@ -13,7 +13,7 @@ import org.nicta.wdy.hdm.functions._
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, BlockState, BlockRef}
 
-import scala.util.Try
+import scala.util.{Left, Random, Try}
 
 /**
  * Created by Tiantian on 2014/5/23.
@@ -22,6 +22,8 @@ import scala.util.Try
  */
 abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
+  @transient
+  implicit val executionContext = HDMContext.executionContext //todo to changed to get from dynamic hdmcontext
 
   val id :String
 
@@ -57,11 +59,22 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   def elements:  Seq[_<:HDM[_, T]] = children
 
+  def andThen[U:ClassTag](hdm: HDM[R,U]):HDM[T,U]
+
   //  functional operations
 
   def map[U:ClassTag](f: R => U): HDM[R,U] = {
     ClosureCleaner(f)
     new DFM[R,U](children = Seq(this), dependency = OneToOne, func = new ParMapFunc(f), distribution = distribution, location = location)
+  }
+
+  protected[hdm] def mapPartitions[U:ClassTag](mapAll:Buf[R] => Buf[U],
+                                               dep:DataDependency = OneToOne,
+                                               keepPartition:Boolean = true,
+                                               partitioner:Partitioner[U] = new KeepPartitioner[U](1)): HDM[R, U] = {
+
+    new DFM[R, U](children = Seq(this), dependency = dep, func = new ParMapAllFunc(mapAll), distribution = distribution, location = location, keepPartition = keepPartition, partitioner = partitioner)
+
   }
 
   def reduce[R1>: R :ClassTag](t:R1)(f: (R1, R1) => R): HDM[_,R1] =  { //parallel func is different with aggregation func
@@ -84,7 +97,6 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 //    val parallel = this.copy(dependency = OneToN, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
     new DFM[R,(K, Buf[R])](children = Seq(parallel), dependency = NToOne, func = new ParGroupByFunc(f), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, Buf[R])](1))
 
-
 /*
   val pFunc = (t:(K, Seq[R])) => t._1.hashCode()
     val parallel = new DFM[R,(K, Seq[R])](children = Seq(this), dependency = OneToN, func = new ParGroupByFunc(f), distribution = distribution, location = location, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
@@ -100,8 +112,6 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
       }
     new DFM[(K, Seq[R]),(K, Seq[R])](children = Seq(parallel), dependency = NToOne, func = new ParMapAllFunc(combineByKey), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, Seq[R])](1))
 */
-
-
 
   }
 
@@ -145,7 +155,8 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   def count(): HDM[_, Int] = {
     val countFunc = (elems:Buf[R]) =>  Buf(elems.size)
-    val parallel = new DFM[R,Int](children = Seq(this), dependency = OneToOne, func = new ParMapAllFunc(countFunc), distribution = distribution, location = location, keepPartition = false, partitioner = new KeepPartitioner[Int](1))
+//    val parallel = new DFM[R,Int](children = Seq(this), dependency = OneToOne, func = new ParMapAllFunc(countFunc), distribution = distribution, location = location, keepPartition = false, partitioner = new KeepPartitioner[Int](1))
+    val parallel = this.mapPartitions(countFunc)
     val reduceFunc = (l1:Int, l2 :Int) => l1 + l2
     new DFM[Int,Int](children = Seq(parallel), dependency = NToOne, func = new ParReduceFunc(reduceFunc), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[Int](1), parallelism = 1)
 
@@ -153,7 +164,8 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   def top(k:Int)(implicit ordering: Ordering[R]): HDM[_, R] = {
     val topFunc = (elems:Buf[R]) =>  elems.sorted(ord = ordering.reverse)
-    val parallel = new DFM[R, R](children = Seq(this), dependency = OneToOne, func = new ParMapAllFunc(topFunc), distribution = distribution, location = location, keepPartition = false, partitioner = new KeepPartitioner[R](1))
+//    val parallel = new DFM[R, R](children = Seq(this), dependency = OneToOne, func = new ParMapAllFunc(topFunc), distribution = distribution, location = location, keepPartition = false, partitioner = new KeepPartitioner[R](1))
+    val parallel = this.mapPartitions(topFunc)
     new DFM[R,R](children = Seq(parallel), dependency = NToOne, func = new ParMapAllFunc(topFunc), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[R](1), parallelism = 1)
 
   }
@@ -194,7 +206,6 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   def shuffle(partitioner: Partitioner[R]):HDM[R,R]    = ???
 
-  def collect():Future[Iterator[R]] = ???
 
   def withPartitioner(partitioner: Partitioner[R]):HDM[T,R] = ???
 
@@ -211,8 +222,46 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
   def toURL = location.toString
 
 
-  def compute(parallelism:Int):Future[HDM[_, _]]  =  HDMContext.compute(this, parallelism)
+  // actions
 
+  def compute(implicit parallelism:Int):Future[HDM[_, _]]  =  HDMContext.compute(this, parallelism)
+
+
+  def collect(implicit parallelism:Int):Future[Iterator[R]] = {
+    compute(parallelism).map(hdm => HDMAction.collect[R](hdm))
+  }
+
+  def sample(size:Int)(implicit parallelism:Int):Future[Iterator[R]] = sample(Right(size))
+
+  def sample(percentage:Double)(implicit parallelism:Int):Future[Iterator[R]] = sample(Left(percentage))
+
+  def sample(proportion:Either[Double, Int])(implicit parallelism:Int):Future[Iterator[R]] = {
+    proportion match {
+      case Left(percentage) =>
+        val sampleFunc = (in:Buf[R]) => {
+          val size = (percentage * in.size).toInt
+          Random.shuffle(in).take(size)
+        }
+        sample(sampleFunc)
+      case Right(size) =>
+        this.collect(parallelism).map(data => data.take(size))
+    }
+  }
+
+  def sample(sampleFunc:Buf[R] => Buf[R]):Future[Iterator[R]] = {
+    this.mapPartitions(sampleFunc).collect(parallelism)
+  }
+
+
+//  def sample(size: Int = 10): Seq[String] = {
+//    val ddms = blocks.map( url =>
+//      HDMBlockManager().getBlock(Path(url).name))
+//    if(ddms != null && !ddms.isEmpty)
+//      ddms.map(_.data.asInstanceOf[mutable.Buffer[R]]).flatten.take(size).map(_.toString)
+//    else Seq.empty[String]
+//  }
+
+  // end of actions
 
   def copy(id: String = this.id,
            children:Seq[HDM[_, T]]= this.children,
@@ -227,21 +276,6 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
            parallelism: Int = this.parallelism,
            keepPartition: Boolean = this.keepPartition,
            partitioner: Partitioner[R] = this.partitioner):HDM[T,R]
-
-
-  def andThen[U:ClassTag](hdm: HDM[R,U]):HDM[T,U]
-
-
-  def sample(size: Int = 10): Seq[String] = {
-    // todo change to distributed version
-    val ddms = blocks.map( url =>
-      HDMBlockManager().getBlock(Path(url).name))
-    if(ddms != null && !ddms.isEmpty)
-      //todo ask blocks from remote block manager
-      ddms.map(_.data.asInstanceOf[mutable.Buffer[R]]).flatten.take(size).map(_.toString)
-    else Seq.empty[String]
-  }
-
 
 
   override def toString: String = {

@@ -53,7 +53,7 @@ class TaskTest extends ClusterTestSuite {
     hdm.compute(4) onComplete {
       case Success(hdm) =>
         println("Job completed and received response:" + hdm)
-        hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+//        hdm.asInstanceOf[HDM[_,_]].sample(10).foreach(println(_))
       case Failure(t) =>
         println("Job failed because of: " + t)
         t.printStackTrace()

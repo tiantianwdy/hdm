@@ -106,7 +106,7 @@ class HDMClusterTest extends ClusterTestSuite{
         wordCount.compute(4) onComplete  {
           case Success(hdm) =>
             println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-            hdm.asInstanceOf[HDM[_,_]].sample().foreach(println(_))
+//            hdm.asInstanceOf[HDM[_,_]].sample(10).foreach(println(_))
           case Failure(t) =>
             println("Job failed because of: " + t)
             t.printStackTrace()

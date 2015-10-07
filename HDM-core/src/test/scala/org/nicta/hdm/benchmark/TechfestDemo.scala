@@ -51,10 +51,10 @@ class TechfestDemo {
 //      .groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
 
-    wordCount.compute(2) onComplete {
+    wordCount.sample(20)(2) onComplete {
       case Success(hdm) =>
         println("Job completed and received response:" + hdm)
-        hdm.asInstanceOf[HDM[_, _]].sample().foreach(println(_))
+        hdm.foreach(println(_))
       case Failure(t) =>
         println("Job failed because of: " + t)
         t.printStackTrace()
@@ -83,6 +83,11 @@ class TechfestDemo {
     benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)
     Thread.sleep(50000000)
+  }
+
+  @Test
+  def testActions() = {
+
   }
 
 

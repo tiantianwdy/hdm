@@ -69,11 +69,11 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
   val children: Seq[HDM[_,T]] = null
 
 
-  override def sample(size:Int = 10): Seq[String]={
-//    val len = Math.min(elems.length, size)
-    val res = HDMBlockManager().getBlock(id).data.take(size)
-    res.map(_.toString)
-  }
+//  override def sample(size:Int = 10): Seq[String]={
+////    val len = Math.min(elems.length, size)
+//    val res = HDMBlockManager().getBlock(id).data.take(size)
+//    res.map(_.toString)
+//  }
 
 }
 
