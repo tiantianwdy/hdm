@@ -134,6 +134,7 @@ object HDMContext extends  Context{
     SmsSystem.addActor(JOB_RESULT_DISPATCHER, "localhost","org.nicta.wdy.hdm.coordinator.ResultHandler", null)
     leaderPath.set(masterPath)
     if(localExecution){
+      this.slot.set(CORES)
       this.NETTY_BLOCK_SERVER_PORT = blockPort
       SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.HDMClusterWorkerActor", masterPath+"/"+CLUSTER_EXECUTOR_NAME)
       if(BLOCK_SERVER_INIT) HDMBlockManager.initBlockServer()
