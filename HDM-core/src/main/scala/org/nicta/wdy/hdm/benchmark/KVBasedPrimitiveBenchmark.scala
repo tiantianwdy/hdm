@@ -23,24 +23,17 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
    }
 
 
-   def testCount(dataPath:String,  parallelism:Int = 4): Unit ={
+   def testCount(dataPath:String,  parallelism:Int = 4) ={
      val path = Path(dataPath)
      val hdm = HDM(path)
 
      val start = System.currentTimeMillis()
      val wordCount = hdm.count()
 
-     wordCount.compute(parallelism) onComplete  {
-       case Success(hdm) =>
-         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-//         hdm.asInstanceOf[HDM[_,_]].sample(Right(20)).foreach(println(_))
-       case Failure(t) =>
-         println("Job failed because of: " + t)
-         t.printStackTrace()
-     }
+     wordCount
    }
 
-   def testTop(dataPath:String,  k:Int,  parallelism:Int = 4): Unit ={
+   def testTop(dataPath:String,  k:Int,  parallelism:Int = 4) ={
      val path = Path(dataPath)
      val hdm = HDM(path)
      val kOffset = kIndex
@@ -52,18 +45,10 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
        as(vOffset).toFloat
      }.top(k)
 
-     wordCount.compute(parallelism) onComplete  {
-       case Success(hdm) =>
-         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
-         System.exit(1)
-       case Failure(t) =>
-         println("Job failed because of: " + t)
-         t.printStackTrace()
-     }
+     wordCount
    }
 
-   def testMap(dataPath:String, keyLen:Int = 3, parallelism:Int = 4): Unit ={
+   def testMap(dataPath:String, keyLen:Int = 3, parallelism:Int = 4) = {
      val path = Path(dataPath)
      val hdm = HDM(path)
      val kOffset = kIndex
@@ -75,18 +60,10 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
        if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
        else (as(kOffset), as(vOffset).toFloat)
      }
-     wordCount.compute(parallelism) onComplete  {
-       case Success(hdm) =>
-         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
-         System.exit(1)
-       case Failure(t) =>
-         println("Job failed because of: " + t)
-         t.printStackTrace()
-     }
+     wordCount
    }
 
-  def testMultipleMap(dataPath:String, keyLen:Int = 3, parallelism:Int = 4): Unit = {
+  def testMultipleMap(dataPath:String, keyLen:Int = 3, parallelism:Int = 4) = {
     val path = Path(dataPath)
     val hdm = HDM(path)
     val kOffset = kIndex
@@ -101,18 +78,10 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
       .map{d => (d._1.substring(2), d._2)}
       .map{d => (d._1.substring(0,keyLen), d._2)}
 
-    wordCount.compute(parallelism) onComplete  {
-      case Success(hdm) =>
-        println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-        hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
-        System.exit(1)
-      case Failure(t) =>
-        println("Job failed because of: " + t)
-        t.printStackTrace()
-    }
+    wordCount
   }
 
-   def testMapCount(dataPath:String,  parallelism:Int = 4): Unit ={
+   def testMapCount(dataPath:String,  parallelism:Int = 4) ={
      val path = Path(dataPath)
      val hdm = HDM(path)
      val kOffset = kIndex
@@ -123,14 +92,7 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
        val as = w.split(",")
        (as(kOffset), as(vOffset).toFloat)
      }.count()
-     wordCount.compute(parallelism) onComplete  {
-       case Success(hdm) =>
-         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
-       case Failure(t) =>
-         println("Job failed because of: " + t)
-         t.printStackTrace()
-     }
+     wordCount
    }
 
    def testMapAll(): Unit ={
@@ -138,7 +100,7 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
 
    }
 
-   def testMultiMapFilter(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, prefix:String): Unit ={
+   def testMultiMapFilter(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, prefix:String) ={
      val path = Path(dataPath)
      val hdm = HDM(path)
      val kOffset = kIndex
@@ -153,18 +115,10 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
        .map{d => (d._1.substring(2), d._2)}
        .map{d => (d._1.substring(0,keyLen), d._2)}.filter(_._1.matches(prefix))
 
-     wordCount.compute(parallelism) onComplete  {
-       case Success(hdm) =>
-         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
-         System.exit(1)
-       case Failure(t) =>
-         println("Job failed because of: " + t)
-         t.printStackTrace()
-     }
+     wordCount
    }
 
-   def testGroupBy(dataPath:String, keyLen:Int = 3, parallelism:Int = 4): Unit ={
+   def testGroupBy(dataPath:String, keyLen:Int = 3, parallelism:Int = 4) ={
 
      val path = Path(dataPath)
      val hdm = HDM(path)
@@ -177,18 +131,10 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
        if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
        else (as(kOffset), as(vOffset).toFloat)
      }.groupBy(_._1)
-     wordCount.compute(parallelism) onComplete  {
-       case Success(hdm) =>
-         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
-         System.exit(1)
-       case Failure(t) =>
-         println("Job failed because of: " + t)
-         t.printStackTrace()
-     }
+     wordCount
    }
 
-   def testReduceByKey(dataPath:String, keyLen:Int = 3, parallelism:Int = 4): Unit ={
+   def testReduceByKey(dataPath:String, keyLen:Int = 3, parallelism:Int = 4) ={
      val path = Path(dataPath)
      val hdm = HDM(path)
      val kOffset = kIndex
@@ -201,21 +147,11 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
        else (as(kOffset), as(vOffset).toFloat)
      }.reduceByKey(_ + _)
 
-     onEvent(wordCount, "sample")(parallelism)
-
-//     wordCount.compute(parallelism) onComplete  {
-//       case Success(hdm) =>
-//         println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-//         hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
-//         System.exit(1)
-//       case Failure(t) =>
-//         println("Job failed because of: " + t)
-//         t.printStackTrace()
-//     }
+     wordCount
 
    }
 
-  def testGroupMapValues(dataPath:String, keyLen:Int = 3, parallelism:Int = 4): Unit ={
+  def testGroupMapValues(dataPath:String, keyLen:Int = 3, parallelism:Int = 4) ={
     val path = Path(dataPath)
     val hdm = HDM(path)
     val kOffset = kIndex
@@ -229,19 +165,11 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
     }.groupBy(_._1).mapValues(_.map(_._2).reduce(_ + _))
       //.map(t => (t._1, t._2.map(_._2).reduce(_+_)))
 
-    wordCount.compute(parallelism) onComplete  {
-      case Success(hdm) =>
-        println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-        hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
-        System.exit(1)
-      case Failure(t) =>
-        println("Job failed because of: " + t)
-        t.printStackTrace()
-    }
+    wordCount
 
   }
 
-  def testFindByKey(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, key:String): Unit ={
+  def testFindByKey(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, key:String) ={
     val path = Path(dataPath)
     val hdm = HDM(path)
     val kOffset = kIndex
@@ -258,19 +186,11 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
 
 
 
-    wordCount.compute(parallelism) onComplete  {
-      case Success(hdm) =>
-        println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-        hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
-        System.exit(1)
-      case Failure(t) =>
-        println("Job failed because of: " + t)
-        t.printStackTrace()
-    }
+    wordCount
 
   }
 
-  def testFindByValue(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, value:Int): Unit ={
+  def testFindByValue(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, value:Int) ={
     val path = Path(dataPath)
     val hdm = HDM(path)
     val kOffset = kIndex
@@ -284,32 +204,10 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
     }.groupBy(_._1).findValuesByKey(_._2 > value)
 
 
-    wordCount.compute(parallelism) onComplete  {
-      case Success(hdm) =>
-        println(s"Job completed in ${System.currentTimeMillis()- start} ms. And received response: ${hdm.id}")
-        hdm.asInstanceOf[HDM[_,_]].blocks.foreach(println(_))
-      case Failure(t) =>
-        println("Job failed because of: " + t)
-        t.printStackTrace()
-    }
+    wordCount
 
   }
 
-
-  def onEvent(hdm:HDM[_,_], action:String)(implicit parallelism:Int) = action match {
-    case "compute" =>
-      val start = System.currentTimeMillis()
-      hdm.compute(parallelism).map { hdm =>
-          println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received response: ${hdm.id}")
-          hdm.blocks.foreach(println(_))
-      }
-    case "sample" =>
-//      val start = System.currentTimeMillis()
-      hdm.sample(25).map(iter => iter.foreach(println(_)))
-    case "collect" =>
-      hdm.collect.map(itr => println(itr.size))
-    case x =>
-  }
 
  }
 

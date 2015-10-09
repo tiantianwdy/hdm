@@ -1,7 +1,7 @@
 package org.nicta.hdm.benchmark
 
 import org.junit.{After, Test}
-import org.nicta.wdy.hdm.benchmark.KVBasedPrimitiveBenchmark
+import org.nicta.wdy.hdm.benchmark.{IterationBenchmark, KVBasedPrimitiveBenchmark}
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.executor.HDMContext._
 import com.baidu.bpit.akka.messages.{AddMsg, Query}
@@ -63,9 +63,23 @@ class TechfestDemo {
     Thread.sleep(50000000)
   }
 
+  @Test
+  def testIterations(): Unit ={
+    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
+    //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
+    val parallelism = 1
+    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    HDMContext.init(leader = context)
+    Thread.sleep(1500)
+
+    val benchmark = new IterationBenchmark
+    benchmark.testGeneralIteration(data, parallelism)
+  }
+
 
   @Test
-  def testBenchMark(): Unit ={
+  def testPrimitiveBenchMark(): Unit ={
     val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
 //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
@@ -76,19 +90,37 @@ class TechfestDemo {
     HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
     HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1500)
+    val hdm =
 //    benchmark.testGroupBy(data,len, parallelism)
 //    benchmark.testMultipleMap(data,len, parallelism)
 //    benchmark.testMultiMapFilter(data,len, parallelism, "a")
 //    benchmark.testFindByKey(data,len, parallelism, "a")
     benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)
+
+    onEvent(hdm, "collect")(parallelism)
     Thread.sleep(50000000)
   }
 
-  @Test
-  def testActions() = {
-
+  def onEvent(hdm:HDM[_,_], action:String)(implicit parallelism:Int) = action match {
+    case "compute" =>
+      val start = System.currentTimeMillis()
+      hdm.compute(parallelism).map { hdm =>
+        println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received response: ${hdm.id}")
+        hdm.blocks.foreach(println(_))
+      }
+      System.exit(0)
+    case "sample" =>
+      //      val start = System.currentTimeMillis()
+      hdm.sample(25).map(iter => iter.foreach(println(_)))
+    case "collect" =>
+      val start = System.currentTimeMillis()
+      val itr = hdm.collect()
+      println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received results: ${itr.size}")
+    case x =>
   }
+
+
 
 
   @After

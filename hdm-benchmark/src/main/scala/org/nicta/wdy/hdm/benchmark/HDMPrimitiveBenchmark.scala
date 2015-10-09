@@ -32,7 +32,7 @@ object HDMBenchmark {
     HDMContext.init(leader = context, slots = 0)//not allow local running
     Thread.sleep(100)
 
-    testTag match {
+    val hdm = testTag match {
       case "map" =>
         benchmark.testMap(data, len, parallelism)
       case "multiMap" =>
@@ -51,8 +51,25 @@ object HDMBenchmark {
         benchmark.testTop(data, len, parallelism)
       case "mapCount" =>
         benchmark.testMapCount(data, parallelism)
-      case x =>
     }
+    onEvent(hdm, "compute")(parallelism)
+
   }
 
+
+  def onEvent(hdm:HDM[_,_], action:String)(implicit parallelism:Int) = action match {
+    case "compute" =>
+      val start = System.currentTimeMillis()
+      hdm.compute(parallelism).map { hdm =>
+        println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received response: ${hdm.id}")
+        hdm.blocks.foreach(println(_))
+      }
+      System.exit(0)
+    case "sample" =>
+      //      val start = System.currentTimeMillis()
+      hdm.sample(25).map(iter => iter.foreach(println(_)))
+    case "collect" =>
+      hdm.traverse.map(itr => println(itr.size))
+    case x =>
+  }
 }
