@@ -27,6 +27,8 @@ trait ResourceManager {
 
   def release(value:Int)
 
+  def waitForNonEmpty()
+
 
 }
 
@@ -38,6 +40,7 @@ class DefResourceManager extends ResourceManager{
   val followerMap: java.util.Map[String, AtomicInteger] = new ConcurrentHashMap[String, AtomicInteger]
 
   val workingSize = new Semaphore(0)
+
 
   def init(): Unit = {
     followerMap.clear()
@@ -56,6 +59,7 @@ class DefResourceManager extends ResourceManager{
 
   override def decResource(resId: String, value: Int): Unit = {
     if(followerMap.containsKey(resId)){
+      workingSize.acquire(value)
       if(value < 2)
         followerMap.get(resId).decrementAndGet()
       else {
@@ -71,6 +75,7 @@ class DefResourceManager extends ResourceManager{
       else {
         followerMap.get(resId).getAndAdd(value)
       }
+      workingSize.release(value)
     }
   }
 
@@ -86,5 +91,9 @@ class DefResourceManager extends ResourceManager{
     workingSize.release(value)
   }
 
-
+  override def waitForNonEmpty(): Unit = {
+    while (workingSize.availablePermits() < 0) {
+      Thread.sleep(100)
+    }
+  }
 }

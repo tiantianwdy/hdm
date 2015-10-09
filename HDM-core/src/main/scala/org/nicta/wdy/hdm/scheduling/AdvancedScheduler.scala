@@ -49,10 +49,11 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       if(taskQueue.isEmpty) {
         nonEmptyLock.acquire()
       }
+      resourceManager.waitForNonEmpty()
       val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
       import scala.collection.JavaConversions._
 
-      val tasks = taskQueue.iterator().map { task =>
+      val tasks = taskQueue.map { task =>
         val ids = task.input.map(_.id)
         val inputLocations = HDMBlockManager().getLocations(ids)
         val inputSize = HDMBlockManager().getblockSizes(ids)
@@ -142,7 +143,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       // run job, assign to remote or local node to execute this task
       val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
       val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
-      resourceManager.require(1)
+//      resourceManager.require(1)
       resourceManager.decResource(workerPath, 1)
       log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "_" + task.func.toString}}] ")
       val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskSynconized(updatedTask)
@@ -172,7 +173,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
         if (!seq.isEmpty) {
           //find tasks that all inputs have been computed
           val tasks = seq.filter(t =>
-            if (t.input eq null) false
+            if (t.input == null || t.input.isEmpty) false
             else try {
               t.input.forall{in =>
                 val hdm = HDMBlockManager().getRef(in.id)

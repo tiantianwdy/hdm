@@ -79,7 +79,7 @@ class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int) exte
       val workerPath = sender.path.toString
       HDMContext.declareHdm(results, false)
       hdmBackend.resourceManager.incResource(workerPath, 1)
-      hdmBackend.resourceManager.release(1)
+//      hdmBackend.resourceManager.release(1)
       hdmBackend.taskSucceeded(appId, taskId, func, results)
 
     // coordinating msg
@@ -87,8 +87,8 @@ class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int) exte
       val senderPath = sender().path.toString
       //      if (!followerMap.containsKey(senderPath))
       hdmBackend.resourceManager.addResource(senderPath, state)
-      if(state > 0)
-        hdmBackend.resourceManager.release(state)
+//      if(state > 0)
+//        hdmBackend.resourceManager.release(state)
       log.info(s"A executor has joined from [${senderPath}}] ")
 
     case LeaveMsg(senderPath) =>
