@@ -4,7 +4,7 @@ import org.nicta.wdy.hdm.{Buf, ClosureCleaner}
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.concurrent.Future
+import scala.concurrent.{Await, Future}
 import scala.reflect.runtime.universe.{WeakTypeTag,weakTypeOf}
 import scala.reflect.{classTag,ClassTag}
 
@@ -188,6 +188,12 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   def foldByKey[K,B](z:B)(f: R=>K, r: (B,R) => B): HDM[K,(K,B)] = ???
 
+  def tailRecursive(num:Int, f: HDM[T,R] => HDM[T,R]):HDM[T,R] = ???
+
+  def repeat(num:Int, f: HDM[T,R] => Any): Unit = ???
+
+  def repeatWhile(condition: (HDM[T,R], Context) => Boolean, f: (HDM[T,R], Context) => Any): Unit = ???
+
   // function alias
 
   def apply[U:ClassTag](f: R => U): HDM[R, U] = map(f)
@@ -227,8 +233,13 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
   def compute(implicit parallelism:Int):Future[HDM[_, _]]  =  HDMContext.compute(this, parallelism)
 
 
-  def collect(implicit parallelism:Int):Future[Iterator[R]] = {
-    compute(parallelism).map(hdm => HDMAction.collect[R](hdm))
+  def traverse(implicit parallelism:Int):Future[Iterator[R]] = {
+    compute(parallelism).map(hdm => HDMAction.traverse[R](hdm))
+  }
+
+  def collect(maxWaiting:Long = 500000)(implicit parallelism:Int):Iterator[R] = {
+    import scala.concurrent.duration._
+    Await.result(traverse(parallelism), maxWaiting millis)
   }
 
   def sample(size:Int)(implicit parallelism:Int):Future[Iterator[R]] = sample(Right(size))
@@ -244,22 +255,19 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
         }
         sample(sampleFunc)
       case Right(size) =>
-        this.collect(parallelism).map(data => data.take(size))
+        this.traverse(parallelism).map(data => data.take(size))
     }
   }
 
   def sample(sampleFunc:Buf[R] => Buf[R]):Future[Iterator[R]] = {
-    this.mapPartitions(sampleFunc).collect(parallelism)
+    this.mapPartitions(sampleFunc).traverse(parallelism)
   }
 
 
-//  def sample(size: Int = 10): Seq[String] = {
-//    val ddms = blocks.map( url =>
-//      HDMBlockManager().getBlock(Path(url).name))
-//    if(ddms != null && !ddms.isEmpty)
-//      ddms.map(_.data.asInstanceOf[mutable.Buffer[R]]).flatten.take(size).map(_.toString)
-//    else Seq.empty[String]
-//  }
+  def cache(implicit parallelism:Int, maxWaiting:Long = 500000):HDM[_,R] = {
+    import scala.concurrent.duration._
+    Await.result(compute(parallelism), maxWaiting millis).asInstanceOf[HDM[_, R]]
+  }
 
   // end of actions
 

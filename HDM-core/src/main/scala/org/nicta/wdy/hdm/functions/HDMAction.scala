@@ -30,14 +30,14 @@ object HDMAction {
           val size = (percentage * in.size).toInt
           Random.shuffle(in).take(size)
         }
-        collect(hdm.mapPartitions(sampleFunc))
+        traverse(hdm.mapPartitions(sampleFunc))
       case Right(size) =>
-        collect(hdm).take(size)
+        traverse(hdm).take(size)
     }
 
   }
 
 
-  def collect[A:ClassTag](hdm: HDM[_, _]*): Iterator[A] = new BufferedBlockIterator[A](hdm)
+  def traverse[A:ClassTag](hdm: HDM[_, _]*): Iterator[A] = new BufferedBlockIterator[A](hdm)
 
 }
