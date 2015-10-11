@@ -297,6 +297,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
       s"parallelim:${parallelism} \n" +
       s"partitionNum:${if(partitioner ne null) partitioner.partitionNum else "" } \n" +
       s"children:[${if(children ne null) Try {children.map(_.id).mkString(" , ")} else "" }] \n" +
+      s"state: ${state} \n" +
       "}"
   }
 
