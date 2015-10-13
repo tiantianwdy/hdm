@@ -59,7 +59,11 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
            parallelism: Int = this.parallelism,
            keepPartition: Boolean = this.keepPartition,
            partitioner: Partitioner[R] = this.partitioner):HDM[T, R] = {
-    new DDM(id, null, dependency, func, distribution, location, preferLocation, blockSize, state, parallelism, keepPartition, partitioner)
+
+    val ddm = new DDM(id, null, dependency, func, distribution, location, preferLocation, blockSize, state, parallelism, keepPartition, partitioner)
+    ddm.blocks.clear()
+    ddm.blocks ++= this.blocks
+    ddm
   }
 
   val blocks: Buffer[String] = Buffer(Path(HDMContext.localBlockPath) + "/" +id)
