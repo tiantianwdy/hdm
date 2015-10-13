@@ -1,25 +1,22 @@
 package org.nicta.wdy.hdm.executor
 
-import org.nicta.wdy.hdm.Buf
-import org.nicta.wdy.hdm.io.{CompressionCodec, SnappyCompressionCodec}
-import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
-import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}
-import org.nicta.wdy.hdm.scheduling.{SchedulingPolicy, MinMinScheduling, AdvancedScheduler, DefScheduler}
-import org.nicta.wdy.hdm.serializer.{KryoSerializer, JavaSerializer, SerializerInstance}
-
-import scala.concurrent.{Promise, Future}
-import scala.collection.mutable.Buffer
-import org.nicta.wdy.hdm.model.{GroupedSeqHDM, PairHDM, HDM}
-import org.nicta.wdy.hdm.functions.{ParallelFunction, DDMFunction_1, SerializableFunction}
-import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
-import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
-import org.nicta.wdy.hdm.server.HDMServer
-import com.typesafe.config.ConfigFactory
-import com.typesafe.config.Config
-import com.baidu.bpit.akka.server.SmsSystem
-import org.nicta.wdy.hdm.message._
 import java.util.UUID
+import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 
+import com.baidu.bpit.akka.server.SmsSystem
+import com.typesafe.config.{Config, ConfigFactory}
+import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.functions.SerializableFunction
+import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
+import org.nicta.wdy.hdm.io.{CompressionCodec, SnappyCompressionCodec}
+import org.nicta.wdy.hdm.message._
+import org.nicta.wdy.hdm.model.{GroupedSeqHDM, HDM, PairHDM}
+import org.nicta.wdy.hdm.planing.StaticPlaner
+import org.nicta.wdy.hdm.scheduling.{AdvancedScheduler, SchedulingPolicy}
+import org.nicta.wdy.hdm.serializer.{JavaSerializer, SerializerInstance}
+import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
+
+import scala.concurrent.{Future, Promise}
 import scala.reflect.ClassTag
 import scala.util.Try
 
