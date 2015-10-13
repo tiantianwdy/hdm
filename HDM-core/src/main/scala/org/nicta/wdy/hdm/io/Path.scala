@@ -52,6 +52,8 @@ object Path {
 
   val THCHYON = "tychyon://"
 
+  val NETTY = "netty://"
+
   def apply(protocol:String, host:String, port:Int, localPath:String) = {
     val path = if(localPath.startsWith("/")) localPath
                 else "/" + localPath
