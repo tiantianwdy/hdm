@@ -146,7 +146,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
       HDMContext.declareHdm(results, false)
       followerMap.get(workerPath).incrementAndGet()
       workingSize.release(1)
-      taskSucceeded(appId, taskId, func, results.map(_.toURL))
+      taskSucceeded(appId, taskId, func, results)
 
     // coordinating msg
     case JoinMsg(path, state) =>
@@ -172,14 +172,16 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
 
   override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R], worker:String): Promise[HDM[I, R]] = {
     val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
-    val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+
 
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {
       //copy input blocks directly
 //      val results = task.input.map(h => blockManager.getRef(h.id))
+      val blks = task.input.map(h => blockManager.getRef(h.id))
       taskSucceeded(task.appId, task.taskId, task.func.toString, blks)
     } else {
       // run job, assign to remote or local node to execute this task
+      val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
       val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
       val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
       workingSize.acquire(1)
@@ -258,11 +260,14 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
 
 
 
-  def taskSucceeded(appId:String, taskId:String, func:String, blks: Seq[String]): Unit = {
+  def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[HDM[_, _]]): Unit = {
 
     val ref = HDMBlockManager().getRef(taskId) match {
-      case dfm: DFM[_ , _] => dfm.copy(blocks = blks, state = Computed)
-      case ddm: DDM[_ , _] => ddm.copy(state = Computed)
+      case dfm: DFM[_ , _] =>
+        val blkSeq = blks.flatMap(_.blocks)
+        dfm.copy(blocks = blkSeq, state = Computed)
+      case ddm: DDM[_ , _] =>
+        ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
     HDMContext.declareHdm(Seq(ref))

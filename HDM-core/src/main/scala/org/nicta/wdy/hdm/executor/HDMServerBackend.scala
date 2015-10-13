@@ -47,7 +47,7 @@ class HDMServerBackend(val appManager: AppManager,
 
 
   def taskSucceeded(appId:String, taskId:String, func:String, results:Seq[HDM[_,_]]): Unit ={
-    scheduler.taskSucceeded(appId,taskId, func, results.map(_.toURL))
+    scheduler.taskSucceeded(appId, taskId, func, results)
   }
 
 

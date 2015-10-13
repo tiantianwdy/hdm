@@ -50,13 +50,15 @@ class DefScheduler(val blockManager:HDMBlockManager,
 
   private def schedule[I: ClassTag, R: ClassTag](task: Task[I, R]): Promise[HDM[I, R]] = {
     val promise = promiseManager.getPromise(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
-    val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+
 
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {
       //copy input blocks directly
+      val blks = task.input.map(h => blockManager.getRef(h.id))
       taskSucceeded(task.appId, task.taskId, task.func.toString, blks)
     } else {
       // run job, assign to remote or local node to execute this task
+      val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
       val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
       val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
       resourceManager.require(1)
@@ -108,10 +110,13 @@ class DefScheduler(val blockManager:HDMBlockManager,
   }
 
 
-  override def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[String]): Unit = {
+  override def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[HDM[_, _]]): Unit = {
     val ref = blockManager.getRef(taskId) match {
-      case dfm: DFM[_ , _] => dfm.copy(blocks = blks, state = Computed)
-      case ddm: DDM[_ , _] => ddm.copy(state = Computed)
+      case dfm: DFM[_ , _] =>
+        val blkSeq = blks.flatMap(_.blocks)
+        dfm.copy(blocks = blkSeq, state = Computed)
+      case ddm: DDM[_ , _] =>
+        ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
     HDMContext.declareHdm(Seq(ref))

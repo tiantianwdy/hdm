@@ -77,7 +77,8 @@ class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int) exte
     case TaskCompleteMsg(appId, taskId, func, results) =>
       log.info(s"received a task completed msg: ${taskId + "_" + func}")
       val workerPath = sender.path.toString
-      HDMContext.declareHdm(results, false)
+//      HDMContext.declareHdm(results, false)
+      hdmBackend.blockManager.addAllRef(results)
       hdmBackend.resourceManager.incResource(workerPath, 1)
 //      hdmBackend.resourceManager.release(1)
       hdmBackend.taskSucceeded(appId, taskId, func, results)

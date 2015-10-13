@@ -112,10 +112,24 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
   }
 
 
-  override def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[String]): Unit = {
+  override def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[HDM[_, _]]): Unit = {
+
     val ref = blockManager.getRef(taskId) match {
-      case dfm: DFM[_ , _] => dfm.copy(blocks = blks, state = Computed)
-      case ddm: DDM[_ , _] => ddm.copy(state = Computed)
+      case dfm: DFM[_, _] =>
+        val blkSeq = blks.flatMap(_.blocks)
+        val children = blks.asInstanceOf[Seq[HDM[_, dfm.inType.type]]]
+//        dfm.copy(blocks = blks, state = Computed)
+        DFM(children,
+          taskId,
+          dfm.dependency,
+          dfm.func.asInstanceOf[ParallelFunction[dfm.inType.type, dfm.outType.type]],
+          blkSeq,
+          dfm.distribution,
+          dfm.location,
+          dfm.preferLocation,
+          dfm.blockSize, Computed,
+          dfm.parallelism, dfm.keepPartition, dfm.partitioner.asInstanceOf[Partitioner[dfm.outType.type]])
+      case ddm: DDM[_, _] => ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
     HDMContext.declareHdm(Seq(ref))
@@ -134,14 +148,16 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
   override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R], workerPath:String): Promise[HDM[I, R]] = {
     val promise = promiseManager.getPromise(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
-    val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+
 
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {
       //copy input blocks directly
+      val blks = task.input.map(h => blockManager.getRef(h.id))
       taskSucceeded(task.appId, task.taskId, task.func.toString, blks)
     } else {
       // run job, assign to remote or local node to execute this task
-      val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
+      val blkSeq = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+      val inputDDMs = blkSeq.map(bl => blockManager.getRef(Path(bl).name))
       val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
 //      resourceManager.require(1)
       resourceManager.decResource(workerPath, 1)
@@ -190,7 +206,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
             tasks.foreach( t =>
               if (t.func.isInstanceOf[ParUnionFunc[_]]) {
                 //copy input blocks directly
-                val blks = t.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+                val blks = t.input.map(h => blockManager.getRef(h.id))
                 taskSucceeded(t.appId, t.taskId, t.func.toString, blks)
               } else {
                 taskQueue.put(t)
