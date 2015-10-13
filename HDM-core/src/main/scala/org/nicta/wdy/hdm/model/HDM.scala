@@ -293,6 +293,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
       s"dep:$dependency \n"+
       s"location:${location} \n"+
       s"func:${func} \n" +
+      s"block size:${blockSize} \n" +
       s"blocks:${blocks} \n" +
       s"parallelim:${parallelism} \n" +
       s"partitionNum:${if(partitioner ne null) partitioner.partitionNum else "" } \n" +
