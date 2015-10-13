@@ -1,14 +1,13 @@
 package org.nicta.wdy.hdm.model
 
-import scala.collection.mutable.{Buffer, ListBuffer}
-import scala.reflect.ClassTag
-import scala.reflect.runtime.universe.WeakTypeTag
-
-import org.nicta.wdy.hdm.io.Path
+import com.baidu.bpit.akka.server.SmsSystem
+import org.nicta.wdy.hdm.executor.{HDMContext, KeepPartitioner, Partitioner}
 import org.nicta.wdy.hdm.functions.{NullFunc, ParallelFunction}
-import org.nicta.wdy.hdm.storage._
-import org.nicta.wdy.hdm.storage.Block
-import org.nicta.wdy.hdm.executor.{KeepPartitioner, Partitioner, HDMContext}
+import org.nicta.wdy.hdm.io.Path
+import org.nicta.wdy.hdm.storage.{Block, _}
+
+import scala.collection.mutable.Buffer
+import scala.reflect.ClassTag
 
 /**
  * Created by Tiantian on 2014/5/25.
@@ -55,7 +54,7 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
            distribution: Distribution = this.distribution,
            location: Path = this.location,
            preferLocation:Path = this.preferLocation,
-           blockSize:Long = -1,
+           blockSize:Long = this.blockSize,
            state: BlockState = this.state,
            parallelism: Int = this.parallelism,
            keepPartition: Boolean = this.keepPartition,
@@ -84,7 +83,8 @@ object DDM {
       func = new NullFunc[T],
       blockSize = Block.byteSize(elems),
       state = Computed,
-      location = Path(HDMContext.localBlockPath + "/" + id))
+      location = Path(HDMContext.localBlockPath + "/" + id),
+      preferLocation = Path(SmsSystem.physicalRootPath))
     HDMContext.addBlock(Block(ddm.id, elems), false)
     if(broadcast)
       HDMContext.declareHdm(Seq(ddm))
