@@ -61,13 +61,22 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
 //        val inputs = groupPaths.map(seq => seq.map(b => blockMap(b.toString)))
 
         // group by location similarity
-        val inputs = PlanningUtils.groupDDMByBoundary(children, defParallel)
+        val inputs = PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[String,String]]]]
         val func = target.func.asInstanceOf[ParallelFunction[String,R]]
 
         val mediator = inputs.map(seq => new DFM(id = leafHdm.id + "_b" + inputs.indexOf(seq), children = seq, dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner))
         val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), dependency = target.dependency, parallelism = defParallel, partitioner = target.partitioner)
         children ++ mediator :+ newParent
       }
+
+    case dfm:DFM[I,R] if(dfm.children.forall(_.isInstanceOf[DDM[_, I]])) => //for computed DFM
+      val children = dfm.children.map(_.asInstanceOf[DDM[_, I]])
+      val inputs = PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[_,I]]]]
+      val func = target.func
+      val mediator = inputs.map(seq => new DFM(id = dfm.id + "_b" + inputs.indexOf(seq), children = seq, dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner))
+      val newParent = new DFM(id = dfm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), dependency = target.dependency, parallelism = defParallel, partitioner = target.partitioner)
+      children ++ mediator :+ newParent
+
     case dfm:DFM[I,R] =>
       val inputArray = Array.fill(defParallel){new ListBuffer[String]}
       for (in <- input) {
