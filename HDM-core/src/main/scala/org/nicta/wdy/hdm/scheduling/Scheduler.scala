@@ -30,7 +30,7 @@ trait Scheduler {
 
   def addTask[I,R](task:Task[I,R]):Promise[HDM[I,R]]
 
-  def taskSucceeded(appId:String, taskId:String, func:String, blks: Seq[String]): Unit
+  def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[HDM[_, _]]): Unit
 
   def init()
 
@@ -75,14 +75,15 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
 
   override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R], workerPath:String): Promise[HDM[I, R]] = {
     val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
-    val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+
 
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {
       //copy input blocks directly
-      //      val blks = task.input.map(h => blockManager.getRef(h.id))
+      val blks = task.input.map(h => blockManager.getRef(h.id))
       taskSucceeded(task.appId, task.taskId, task.func.toString, blks)
     } else {
       // run job, assign to remote or local node to execute this task
+      val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
       val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
       val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
       workingSize.acquire(1)
@@ -110,14 +111,15 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
 
   private def schedule[I: ClassTag, R: ClassTag](task: Task[I, R]): Promise[HDM[I, R]] = {
     val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
-    val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+
 
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {
       //copy input blocks directly
-      //      val blks = task.input.map(h => blockManager.getRef(h.id))
+      val blks = task.input.map(h => blockManager.getRef(h.id))
       taskSucceeded(task.appId, task.taskId, task.func.toString, blks)
     } else {
       // run job, assign to remote or local node to execute this task
+      val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
       val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
       val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
       workingSize.acquire(1)
@@ -177,10 +179,10 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
 
 
 
-  def taskSucceeded(appId:String, taskId:String, func:String, blks: Seq[String]): Unit = {
-
+  def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[HDM[_, _]]): Unit = {
+    val blockSeq = blks.flatMap(_.blocks)
     val ref = HDMBlockManager().getRef(taskId) match {
-      case dfm: DFM[_ , _] => dfm.copy(blocks = blks, state = Computed)
+      case dfm: DFM[_ , _] => dfm.copy(blocks = blockSeq, state = Computed)
       case ddm: DDM[_ , _] => ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
