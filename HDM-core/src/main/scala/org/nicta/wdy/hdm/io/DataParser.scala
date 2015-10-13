@@ -108,6 +108,20 @@ class HDMParser extends DataParser {
 }
 
 
+class NettyParser extends DataParser {
+
+  override def protocol: String = "netty://"
+
+  override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T] = null): Block[T] = {
+    val reader = new BufferedBlockIterator[T](Seq(path))
+    val data = reader.toSeq
+    val id = path.name
+    Block(id, data)
+  }
+
+  override def writeBlock[T: ClassTag](path: Path, bl: Block[T])(implicit serializer: BlockSerializer[T]): Unit = ???
+}
+
 object DataParser extends Logging{
 
   implicit val maxWaitResponseTime = Duration(600, TimeUnit.SECONDS)
@@ -120,16 +134,17 @@ object DataParser extends Logging{
         HDFSUtils.getBlockLocations(path).map(p => new DDM(location = p.path, preferLocation = p.location, blockSize = p.size, func = new NullFunc[String]))
       case "file://" =>
         Seq(new DDM(id = path.name, location = path, func = new NullFunc[String]))
-      //      case "mysql://" =>
+//      case "mysql://" =>
       case x => throw new IOException("Unsupported protocol:" + path.protocol)
     }
   }
 
   def readBlock(path:String):Block[_] = readBlock(Path(path))
 
-  def readBlock(path:Path):Block[_] = path.protocol match {
+  def readBlock(path:Path):Block[_] = path.protocol.toLowerCase match {
     case "hdm://" => new HDMParser().readBlock(path)
     case "hdfs://" => new HdfsParser().readBlock(path)
+    case "netty://" => new NettyParser().readBlock(path)
 //    case "file://" => new FileParser().readBlock(path)
 //    case "mysql://" => new MysqlParser().readBlock(path)
     case _ => throw new IOException("Unsupported data protocol:" + path.protocol)
@@ -151,6 +166,11 @@ object DataParser extends Logging{
           }
 
         case Path.HDFS =>
+          val bl = DataParser.readBlock(in.location)
+          log.info(s"finished reading block with size: ${Block.byteSize(bl)/ (1024*1024F)} MB. ")
+          bl
+
+        case Path.NETTY=>
           val bl = DataParser.readBlock(in.location)
           log.info(s"finished reading block with size: ${Block.byteSize(bl)/ (1024*1024F)} MB. ")
           bl
