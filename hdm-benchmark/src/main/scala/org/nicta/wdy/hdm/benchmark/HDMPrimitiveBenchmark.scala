@@ -29,10 +29,11 @@ object HDMBenchmark {
       case "ranking" => new KVBasedPrimitiveBenchmark(context)
       case x => new KVBasedPrimitiveBenchmark(context)
     }
+    val iterativeBenchmark = new IterationBenchmark()
     HDMContext.init(leader = context, slots = 0)//not allow local running
     Thread.sleep(100)
 
-    val hdm = testTag match {
+    val res = testTag match {
       case "map" =>
         benchmark.testMap(data, len, parallelism)
       case "multiMap" =>
@@ -51,8 +52,18 @@ object HDMBenchmark {
         benchmark.testTop(data, len, parallelism)
       case "mapCount" =>
         benchmark.testMapCount(data, parallelism)
+      case "iteration" =>
+        iterativeBenchmark.testGeneralIteration(data, parallelism)
+      case "iterativeAggregation" =>
+        iterativeBenchmark.testIterationWithAggregation(data, parallelism)
+
     }
-    onEvent(hdm, "compute")(parallelism)
+    res match {
+      case hdm:HDM[_,_] =>
+        onEvent(hdm, "compute")(parallelism)
+      case other:Any => //do nothing
+    }
+
 
   }
 

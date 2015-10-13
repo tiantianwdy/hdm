@@ -17,7 +17,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
 
   def testGeneralIteration(dataPath:String, parallelism:Int = 4) = {
     val path = Path(dataPath)
-    val hdm = HDM(path)
+    val hdm = HDM(path).cache(parallelism)
     for(i <- 1 to 3){
       val start = System.currentTimeMillis()
       val vOffset = 1 // variables are only available in this scope , todo: support external variables
@@ -34,21 +34,22 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
 
   def testIterationWithAggregation(dataPath:String, parallelism:Int = 4): Unit ={
     val path = Path(dataPath)
-    val hdm = HDM(path)
+    val hdm = HDM(path).cache(parallelism)
     //    val kOffset = 0
     var aggregation = 0F
     for(i <- 1 to 3){
       val start = System.currentTimeMillis()
-      val vOffset = 1 // only avaliable in this scope , todo: support external variables
-      val agg = aggregation
+      val vOffset = 1 // only avaliable in this scope
+      val agg = aggregation // todo: support external variables by editing closure cleaner
       val res = hdm.map{ w =>
         val as = w.split(",")
         as(vOffset).toFloat + i*agg
       }.collect()(parallelism).take(20).toSeq
+      aggregation += res.sum
+
+      val end = System.currentTimeMillis()
       res.foreach(println(_))
       println(res.sum)
-      aggregation += res.sum
-      val end = System.currentTimeMillis()
       println(s"Time consumed for iteration $i : ${end - start} ms. aggregation: $aggregation")
       Thread.sleep(100)
     }
