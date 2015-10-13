@@ -62,9 +62,9 @@ object HDMBenchmark {
       val start = System.currentTimeMillis()
       hdm.compute(parallelism).map { hdm =>
         println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received response: ${hdm.id}")
-        hdm.blocks.foreach(println(_))
+        hdm.children.foreach(println(_))
+        System.exit(0)
       }
-      System.exit(0)
     case "sample" =>
       //      val start = System.currentTimeMillis()
       hdm.sample(25).map(iter => iter.foreach(println(_)))

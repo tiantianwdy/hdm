@@ -58,7 +58,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
   def testIterationWithCache(dataPath:String, parallelism:Int = 4)={
 
     val path = Path(dataPath)
-    val hdm = HDM(path).cache()
+    val hdm = HDM(path).cache(parallelism)
     var aggregation = 0F
 
     for(i <- 1 to 3) {
@@ -67,14 +67,16 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
       val agg = aggregation
       val res = hdm.map{ w =>
         val as = w.split(",")
-        as(vOffset).toFloat + i*agg
+        as(vOffset) + i*agg
       }.collect()(parallelism).take(20).toSeq
-      aggregation += res.sum
+      res.foreach(println(_))
+//      aggregation += res.sum
       val end = System.currentTimeMillis()
       println(s"Time consumed for iteration $i : ${end - start} ms. aggregation: $aggregation")
       Thread.sleep(100)
     }
 
   }
+
 
 }
