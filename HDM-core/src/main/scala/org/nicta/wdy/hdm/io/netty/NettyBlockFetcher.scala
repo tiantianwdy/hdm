@@ -52,14 +52,16 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
           blkIds ++= req.msg.blockIds
         } while(!requestsQueue.isEmpty)
         outGoingMsg.addAndGet(blkIds.length)
-        val msg = QueryBlockMsg(blkIds, channel.remoteAddress().toString)
+        val address = if (channel.remoteAddress() ne null ) channel.remoteAddress() else channel.localAddress()
         try{
+          val msg = QueryBlockMsg(blkIds, address.toString)
           channel.writeAndFlush(msg).addListener(NettyChannelListener(channel, System.currentTimeMillis()))
 //          Thread.sleep(100)
         } catch {
           case e =>
-            log.error("send block request failed to address:" + channel.remoteAddress())
+            log.error("send block request failed to address:" + address)
             channel.close()
+            e.printStackTrace()
         }
       }
     }
