@@ -125,7 +125,7 @@ object HDMContext extends  Context{
     if(BLOCK_SERVER_INIT) HDMBlockManager.initBlockServer()
   }
 
-  def startAsClient(masterPath:String, port:Int = 20010, blockPort:Int = 9091, conf: Config = defaultConf, localExecution:Boolean = false){
+  def startAsClient(masterPath:String, port:Int = 20010, blockPort:Int = 9092, conf: Config = defaultConf, localExecution:Boolean = false){
     SmsSystem.startAsSlave(masterPath, port, isLinux, conf)
     SmsSystem.addActor(BLOCK_MANAGER_NAME, "localhost","org.nicta.wdy.hdm.coordinator.BlockManagerFollower", masterPath+"/"+BLOCK_MANAGER_NAME)
     SmsSystem.addActor(JOB_RESULT_DISPATCHER, "localhost","org.nicta.wdy.hdm.coordinator.ResultHandler", null)
@@ -133,8 +133,8 @@ object HDMContext extends  Context{
     if(localExecution){
       this.slot.set(CORES)
       this.NETTY_BLOCK_SERVER_PORT = blockPort
-      SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.HDMClusterWorkerActor", masterPath+"/"+CLUSTER_EXECUTOR_NAME)
       if(BLOCK_SERVER_INIT) HDMBlockManager.initBlockServer()
+      SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.HDMClusterWorkerActor", masterPath+"/"+CLUSTER_EXECUTOR_NAME)
     }
 
   }
