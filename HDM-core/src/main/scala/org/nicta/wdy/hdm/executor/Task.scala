@@ -178,7 +178,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
   def runSequenceTask():Seq[DDM[_,R]] = {
       //load input data
       val data = input.map { in =>
-        val inputData = DataParser.readBlock(in, true)
+        val inputData = DataParser.readBlock(in, false)
         //apply function
         log.info(s"Input data preparing finished, the task starts running: [${(taskId, func)}] ")
         func.apply(inputData.data.asInstanceOf[Buf[I]])
