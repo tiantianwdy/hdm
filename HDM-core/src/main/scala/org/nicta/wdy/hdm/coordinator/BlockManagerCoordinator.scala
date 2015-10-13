@@ -41,7 +41,7 @@ class BlockManagerLeader extends WorkActor {
         case x => r
         }
       }
-      blockManager.addAllRef(refs)
+      blockManager.addAllRef(nRefs)
       if(broadcast){
         for (follower <- followerMap.toSeq){
           if(follower._1 != senderPath.toString) context.actorSelection(follower._1) ! SyncRefMsg(refs)
