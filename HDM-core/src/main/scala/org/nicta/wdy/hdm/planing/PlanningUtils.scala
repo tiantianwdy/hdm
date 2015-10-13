@@ -107,8 +107,8 @@ object PlanningUtils {
     finalRes
   }
 
-  def groupDDMByBoundary(ddms:Seq[DDM[String,String]], n:Int) ={
-    val ddmMap = ddms.map(d => (d.preferLocation -> d)).toMap
+  def groupDDMByBoundary[R](ddms:Seq[DDM[_, R]], n:Int) ={
+    val ddmMap = ddms.map(d => (d.preferLocation -> d)).toMap[Path, DDM[_,R]]
     val paths = ddms.map(_.preferLocation)
     val grouped = groupPathByBoundary(paths, n)
     grouped.map{seq =>
