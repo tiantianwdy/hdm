@@ -64,9 +64,12 @@ object SchedulingUtils {
   def calculateExecutionTime(p:SchedulingTask, resources: Path, computeFactor: Float, ioFactor: Float, networkFactor:Float): Float = {
     p.inputs.zip(p.inputSizes).map { tuple =>
       //compute completion time of each input partition for this task
-      val dataLoadingTime = if (tuple._1.host == resources.host) {
-        // input is node local
+      val dataLoadingTime = if (tuple._1.address == resources.address) {
+        // input is process local
         ioFactor * tuple._2
+      } else if (tuple._1.host == resources.host) {
+        // input is node local
+        ioFactor * 2 * tuple._2
       } else {
         // normally networkFactor > ioFactor, which means loading remote data is slower than loading data locally
         networkFactor * tuple._2
