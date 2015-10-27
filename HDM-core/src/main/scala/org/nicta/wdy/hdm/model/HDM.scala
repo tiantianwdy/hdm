@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.model
 
+import org.nicta.wdy.hdm.utils.SampleUtils
 import org.nicta.wdy.hdm.{Buf, ClosureCleaner}
 
 import scala.collection.mutable
@@ -77,7 +78,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   }
 
-  def reduce[R1>: R :ClassTag](t:R1)(f: (R1, R1) => R): HDM[_,R1] =  { //parallel func is different with aggregation func
+  def reduce[R1>: R :ClassTag](f: (R1, R1) => R): HDM[_,R1] =  { //parallel func is different with aggregation func
     ClosureCleaner(f)
     val mapAllFunc = (elems:Buf[R]) => Buf(elems.reduce(f))
     val parallel = new DFM[R,R](children = Seq(this), dependency = OneToOne, func = new ParMapAllFunc[R,R](mapAllFunc), distribution = distribution, location = location)
@@ -170,10 +171,28 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   }
 
-  def sorted()(implicit ordering: Ordering[R]): HDM[_, R] = {
-    val parallel = new DFM[R, R](children = Seq(this), dependency = OneToOne, func = new SortFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = new TeraSortPartitioner[R](4))
+  def sorted(implicit ordering: Ordering[R], parallelism:Int): HDM[_, R] = {
+    val hdm = this.cache
+    val sampleSize = math.min(100.0 * parallelism, 1e6)/ parallelism
+
+    val sampleFUnc = (elems:Buf[R]) => SampleUtils.randomSampling(elems, sampleSize.toInt).toBuffer
+    val samples = hdm.mapPartitions(sampleFUnc).collect().toSeq
+    val bounds = RangePartitioning.decideBoundary(samples, parallelism)
+    val partitioner = new RangePartitioner(bounds)
+    val parallel = new DFM[R, R](children = Seq(hdm), dependency = OneToOne, func = new SortFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = partitioner)
 //    val sortByFunc = (elems:Buf[R]) =>  elems.sorted(ordering)
     new DFM[R,R](children = Seq(parallel), dependency = NToOne, func = new SortFunc[R], distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[R](1), parallelism = 1)
+
+  }
+
+
+  def sortBy(f:(R,R) => Int)(implicit parallelism:Int): HDM[_, R] = {
+    ClosureCleaner(f)
+    val ordering = new Ordering[R]{
+
+      override def compare(x: R, y: R): Int = f(x, y)
+    }
+    sorted(ordering, parallelism)
   }
 
   def flatMap[U](f: R => U): HDM[R,U] = ???
