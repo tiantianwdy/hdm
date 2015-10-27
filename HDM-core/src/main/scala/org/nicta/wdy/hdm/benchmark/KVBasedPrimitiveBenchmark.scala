@@ -208,6 +208,27 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
 
   }
 
+  def testTeraSort(dataPath:String, keyLen:Int = 3) (implicit parallelism:Int = 4) = {
+    val path = Path(dataPath)
+    val hdm = HDM(path)
+    val kOffset = kIndex
+    val vOffset = vIndex
+    val compare = (d1:(String, Float), d2:(String, Float)) => {
+      if(d1 == null && d2 == null) 0
+      else if (d1 == null) -1
+      else if (d2 == null) 1
+      else if(d1._2 < d2._2) 1
+      else if(d1._2 > d2._2) -1
+      else 0
+    }
+    val wordCount = hdm.map{ w =>
+      val as = w.split(",")
+      if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
+      else (as(kOffset), as(vOffset).toFloat)
+    }.sortBy(compare)(parallelism)
+    wordCount
+  }
+
 
  }
 
