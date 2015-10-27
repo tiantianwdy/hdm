@@ -50,14 +50,18 @@ object HDMBenchmark {
         benchmark.testFindByKey(data, len, parallelism, "a")
       case "top" =>
         benchmark.testTop(data, len, parallelism)
+      case "sort" =>
+        benchmark.testTeraSort(data, len, parallelism)
       case "mapCount" =>
         benchmark.testMapCount(data, parallelism)
       case "iteration" =>
         iterativeBenchmark.testGeneralIteration(data, parallelism)
       case "iterativeAggregation" =>
         iterativeBenchmark.testIterationWithAggregation(data, parallelism)
-
+      case "regression" =>
+        iterativeBenchmark.testLogisticRegression(data, 3, parallelism)
     }
+
     res match {
       case hdm:HDM[_,_] =>
         onEvent(hdm, "compute")(parallelism)
