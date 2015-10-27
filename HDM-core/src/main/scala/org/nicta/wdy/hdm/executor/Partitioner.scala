@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.executor
 import java.util
 
 import org.nicta.wdy.hdm.collections.CompactBuffer
-import org.nicta.wdy.hdm.functions.TeraSortPartitioning
+import org.nicta.wdy.hdm.functions.{RangePartitioning, TeraSortPartitioning}
 
 import scala.collection.mutable.ArrayBuffer
 import scala.collection.mutable.HashMap
@@ -64,4 +64,12 @@ class TeraSortPartitioner[T: ClassTag] (partitionNum:Int) extends HashPartitione
   override val pFunc = (d:T) => partitioning.partitionIndex(d)
 
 
+}
+
+
+class RangePartitioner[T: Ordering: ClassTag] (bounds:Array[T]) extends HashPartitioner[T](bounds.length + 1, null){
+
+  val partitioning = new RangePartitioning[T](bounds)
+
+  override val pFunc = (d:T) => partitioning.partitionIndex(d)
 }

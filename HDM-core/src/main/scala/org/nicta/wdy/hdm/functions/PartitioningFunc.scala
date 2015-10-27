@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.functions
 
-import com.google.common.primitives.Longs
+import com.google.common.primitives.{Bytes, Longs}
 
 import scala.reflect.ClassTag
 
@@ -43,16 +43,3 @@ object TeraSortPartitioning {
 }
 
 
-/**
- * Partitioning algorithm with sampling to decide the upper and lower bound
- *
- * @param numOfPartitions
- * @tparam K
- */
-class RangePartitioning[K : Ordering : ClassTag](val numOfPartitions:Int) extends PartitioningFunc[K] {
-
-  private var ordering = implicitly[Ordering[K]]
-
-  override def partitionIndex(key: K): Int = ???
-
-}
