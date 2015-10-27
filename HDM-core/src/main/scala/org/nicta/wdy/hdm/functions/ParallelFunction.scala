@@ -382,28 +382,32 @@ class SortFunc[T : ClassTag](val sortBeforeMerge:Boolean = false)(implicit order
       array.toBuffer.asInstanceOf[Buf[T]]
     } else {
       val array = params.toArray
-      Sorting.quickSort(array)
+//      Sorting.quickSort(array)
+      Sorting.stableSort(array)
       array.toBuffer
     }
   }
 
   override def aggregate(params: Buf[T], sorted: Buf[T]): Buf[T] = {
-    //assume previous result is sorted
     //todo change to support AnyVal
     classTag[T] match {
-      case ct: ClassTag[Int] =>
+      case ClassTag.Int =>
 //        println("sorting array of Int")
         val array = params.toArray.asInstanceOf[Array[Int]]
-        if(sortBeforeMerge) //if params has not been sorted
+        //if params has not been sorted
+        if(sortBeforeMerge)
           Sorting.quickSort(array)
         val resArray = sorted.toArray.asInstanceOf[Array[Int]]
+        //merge sorted sequences
         SortingUtils.mergeSorted(resArray, array).toBuffer.asInstanceOf[Buf[T]]
       case other:Any =>
-        println("sorting array of Any")
+//        println("sorting array of Any")
         val array = params.toArray
-        if(sortBeforeMerge)//if params has not been sorted
+        //if params has not been sorted
+        if(sortBeforeMerge)
           Sorting.quickSort(array)
         val resArray = sorted.toArray
+        //merge sorted sequences
         SortingUtils.mergeSorted(resArray, array).toBuffer
     }
   }
