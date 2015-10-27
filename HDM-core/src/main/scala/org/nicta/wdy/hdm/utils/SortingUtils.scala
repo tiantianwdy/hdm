@@ -11,23 +11,23 @@ object SortingUtils {
   def mergeSorted[T:ClassTag](sorted:Array[T], anotherSorted:Array[T])(implicit ordering: Ordering[T]): Array[T] ={
     val len1 = sorted.length
     val len2 = anotherSorted.length
-    val dest = new Array[T](len1 + len2 )
+    val dest = new Array[T](len1 + len2)
     var (i, j, preI, preJ, resIdx) = (0, 0, 0, 0, 0)
     while(i < len1 && j < len2) {
       preI = i;
       preJ = j;
-      while(ordering.lteq(sorted(i), anotherSorted(j))) {
+      while(i < len1 && j < len2 && ordering.lteq(sorted(i), anotherSorted(j))) {
         i += 1
       }
-      if(i > preI) {
+      if(i > preI && preI < len1) {
         System.arraycopy(sorted, preI, dest, resIdx, i - preI)
         resIdx += (i - preI)
       }
-      while(ordering.lteq(anotherSorted(j), sorted(i))){
-        j +=1
+      while(i < len1 && j < len2 && ordering.lteq(anotherSorted(j), sorted(i))){
+        j += 1
       }
-      if(j > preJ) {
-        System.arraycopy(anotherSorted, preJ, dest, resIdx, i - preI)
+      if(j > preJ && preJ < len2) {
+        System.arraycopy(anotherSorted, preJ, dest, resIdx, j - preJ)
         resIdx += (j - preJ)
       }
     }
