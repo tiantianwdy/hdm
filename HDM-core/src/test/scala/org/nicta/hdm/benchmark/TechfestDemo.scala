@@ -135,6 +135,7 @@ class TechfestDemo {
     benchmark.testIterationWithCache(data, parallelism)
   }
 
+
   @Test
   def testCacheExplain(): Unit ={
     val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
@@ -170,6 +171,37 @@ class TechfestDemo {
       Thread.sleep(100)
     }
     Thread.sleep(300)
+  }
+
+
+  @Test
+  def testRegression():Unit = {
+    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
+    //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
+    val parallelism = 1
+    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    HDMContext.init(leader = context)
+    Thread.sleep(1500)
+
+    val benchmark = new IterationBenchmark(1, 1)
+    benchmark.testLogisticRegression(data, 3, parallelism)
+  }
+
+  @Test
+  def testTeraSort():Unit = {
+    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
+    //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
+    implicit val parallelism = 1
+    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    HDMContext.init(leader = context)
+    Thread.sleep(1500)
+
+    val benchmark = new KVBasedPrimitiveBenchmark(context)
+    val hdm = benchmark.testTeraSort(dataPath = data)
+    onEvent(hdm, "sample")
+    Thread.sleep(15000000)
   }
 
 
