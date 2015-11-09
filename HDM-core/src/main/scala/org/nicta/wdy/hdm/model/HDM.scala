@@ -24,7 +24,7 @@ import scala.util.{Left, Random, Try}
 abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   @transient
-  implicit val executionContext = HDMContext.executionContext //todo to changed to get from dynamic hdmcontext
+  implicit val executionContext = HDMContext.executionContext //todo to changed to get from dynamic hdm context
 
   val id :String
 
@@ -80,8 +80,10 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   def reduce[R1>: R :ClassTag](f: (R1, R1) => R): HDM[_,R1] =  { //parallel func is different with aggregation func
     ClosureCleaner(f)
-    val mapAllFunc = (elems:Buf[R]) => Buf(elems.reduce(f))
-    val parallel = new DFM[R,R](children = Seq(this), dependency = OneToOne, func = new ParMapAllFunc[R,R](mapAllFunc), distribution = distribution, location = location)
+//    val mapAllFunc = (elems:Buf[R]) => Buf(elems.reduceLeft(f))
+//    val parallel = new DFM[R,R](children = Seq(this), dependency = OneToOne, func = new ParMapAllFunc[R,R](mapAllFunc), distribution = distribution, location = location)
+    val parallel = new DFM[R,R](children = Seq(this), dependency = OneToOne, func = new ParReduceFunc[R,R](f), distribution = distribution, location = location)
+
     new DFM[R,R1](children = Seq(parallel), dependency = NToOne, func = new ParReduceFunc[R,R1](f), distribution = distribution, location = location).withParallelism(1)
   }
 
