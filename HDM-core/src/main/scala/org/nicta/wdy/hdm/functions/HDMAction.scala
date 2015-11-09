@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.functions
 
-import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.Arr
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.{BufferedBlockIterator, Path}
 import org.nicta.wdy.hdm.model.HDM
@@ -26,7 +26,7 @@ object HDMAction {
   def sample[A:ClassTag](hdm: HDM[_, A], proportion:Either[Double, Int]): Iterator[A] = {
     proportion match {
       case Left(percentage) =>
-        val sampleFunc: Buf[A] => Buf[A] = (in:Buf[A]) => {
+        val sampleFunc: Arr[A] => Arr[A] = (in:Arr[A]) => {
           val size = (percentage * in.size).toInt
           Random.shuffle(in).take(size)
         }

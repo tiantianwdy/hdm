@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.storage
 import java.nio.ByteBuffer
 import java.util.UUID
 import _root_.io.netty.buffer.{Unpooled, ByteBuf}
-import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.{Blk, Arr}
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.message.FetchSuccessResponse
 import org.nicta.wdy.hdm.serializer.SerializerInstance
@@ -19,24 +19,24 @@ trait Block[T] extends Serializable{
 
   val id : String
 
-  def data: Buf[T]
+  def data: Blk[T]
 
   def size: Int
 }
 
-class UnserializedBlock[T:ClassTag](val id:String, val data:Buf[T]) extends  Block[T] {
+class UnserializedBlock[T:ClassTag](val id:String, val data:Blk[T]) extends  Block[T] {
 
   def size = data.size
 
 }
 
-class SerializedBlock[T <: Serializable: ClassTag] (val id:String, val elems:Buf[T])(implicit serializer:Serializer = new DefaultJSerializer) extends  Block[T] {
+class SerializedBlock[T <: Serializable: ClassTag] (val id:String, val elems:Blk[T])(implicit serializer:Serializer = new DefaultJSerializer) extends  Block[T] {
 
   private val block: Array[Byte] = serializer.toBinary(elems)
 
   def size = block.size
 
-  def data = serializer.fromBinary(block).asInstanceOf[Buf[T]]
+  def data = serializer.fromBinary(block).asInstanceOf[Blk[T]]
 
 }
 
@@ -47,11 +47,11 @@ object Block {
 
   def apply[T: ClassTag](id:String, data:Seq[T]) = new UnserializedBlock(id, data.toBuffer)
 
-  def apply[T: ClassTag](data:Buf[T]) = {
-    new UnserializedBlock(UUID.randomUUID().toString, data)
+  def apply[T: ClassTag](data:Arr[T]) = {
+    new UnserializedBlock(UUID.randomUUID().toString, data.toBuffer)
   }
 
-  def apply[T: ClassTag](id:String, data:Buf[T]) = new UnserializedBlock(id, data)
+  def apply[T: ClassTag](id:String, data:Arr[T]) = new UnserializedBlock(id, data.toBuffer)
 
   def sizeOf(obj:Any)(implicit serializer:Serializer = new DefaultJSerializer) : Int = obj match {
     case o:AnyRef =>
@@ -89,7 +89,7 @@ object Block {
     val idBuf = buf.nioBuffer(4, HDMContext.DEFAULT_BLOCK_ID_LENGTH)
     val dataBuf = buf.nioBuffer(4+HDMContext.DEFAULT_BLOCK_ID_LENGTH, length)
     val id = serializer.deserialize[String](idBuf)
-    val data = serializer.deserialize[Buf[_]](dataBuf)
+    val data = serializer.deserialize[Blk[_]](dataBuf)
     new UnserializedBlock(id, data)
   }
 

@@ -2,7 +2,7 @@ package org.nicta.hdm.planing
 
 import org.junit.Test
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.Arr
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
 import org.nicta.wdy.hdm.planing.{FunctionFusion, StaticPlaner}

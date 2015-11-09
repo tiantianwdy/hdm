@@ -21,6 +21,9 @@ trait Partitioner[T] extends Serializable{
 
   def split(data: Seq[T]):Map[Int, _ <: Seq[T]]
 
+
+  def split(data: Iterator[T]):Map[Int, _ <: Seq[T]] = split(data.toSeq)
+
 }
 
 

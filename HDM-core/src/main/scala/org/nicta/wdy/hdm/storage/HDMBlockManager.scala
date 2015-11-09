@@ -12,7 +12,7 @@ import org.nicta.wdy.hdm.model.{DFM, HDM, DDM}
 import java.util.concurrent.ConcurrentHashMap
 
 import org.nicta.wdy.hdm.utils.Logging
-import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.Arr
 import scala.concurrent.Future
 import scala.reflect.ClassTag
 

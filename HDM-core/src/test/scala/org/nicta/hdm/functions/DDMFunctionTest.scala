@@ -2,7 +2,7 @@
 package org.nicta.hdm.functions
 
 import org.junit.Test
-import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.Arr
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.model.HDM
 import org.nicta.wdy.hdm.functions._
@@ -17,7 +17,7 @@ class DDMFunctionTest {
         this is a word count text
         this is line 2
         this is line 3
-    """.split("\\s+").toBuffer
+    """.split("\\s+").toIterator
 
   val numberArray = Array.fill(10){Math.random()}
 
@@ -52,7 +52,7 @@ class DDMFunctionTest {
 //    val ddm = HDM(text)
 
     val grouped = new ParGroupByFunc[String,String](f).apply(text)
-    val res = new ParReduceFunc[(String, Buf[String]), (String, Buf[String])]((s1,s2) => (s1._1, s1._2 ++ s2._2)).apply(grouped)
+    val res = new ParReduceFunc[(String, Iterable[String]), (String, Iterable[String])]((s1,s2) => (s1._1, s1._2 ++ s2._2)).apply(grouped)
     res.foreach(println(_))
   }
 

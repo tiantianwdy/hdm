@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.collections
 
-import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.Arr
 
 import scala.collection.mutable
 import scala.reflect.ClassTag
@@ -34,6 +34,11 @@ object BufUtils {
     c1 += elem
   }
 
+  def combine[T: ClassTag](c1:mutable.Buffer[T], c2:Iterator[T]):mutable.Buffer[T] = {
+    //    if(c1.length >= c2.length)
+    c1 ++= c2
+    //    else c2 ++= c1
+  }
 
   def combine[T: ClassTag](c1:Seq[T], c2:Seq[T]):Seq[T] = {
     val combinedArr = new Array[T](c1.length + c2.length)
@@ -49,14 +54,27 @@ object BufUtils {
     combinedArr
   }
 
-  def toBuf[K,V](map:mutable.Map[K,V]):Buf[(K,V)] = {
-    if(classOf[Buf[(K,V)]] == classOf[Array[(K,V)]]){
-      map.toArray[(K,V)].asInstanceOf[Buf[(K,V)]]
+  def toBuf[K,V](map:mutable.Map[K,V]):Arr[(K,V)] = {
+    if(classOf[Arr[(K,V)]] == classOf[Array[(K,V)]]){
+      map.toArray[(K,V)].asInstanceOf[Arr[(K,V)]]
     } else {
-      map.toBuffer[(K,V)].asInstanceOf[Buf[(K,V)]]
+      map.toBuffer[(K,V)].asInstanceOf[Arr[(K,V)]]
     }
 
   }
 
 
+}
+
+object Iterator {
+
+
+  def apply[A:ClassTag](elem:A):Iterator[A] = {
+    Seq(elem).toIterator
+  }
+
+
+  def apply[A:ClassTag](elems:Traversable[A]):Iterator[A]  = {
+    elems.toIterator
+  }
 }

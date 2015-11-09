@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 
 import com.baidu.bpit.akka.server.SmsSystem
 import com.typesafe.config.{Config, ConfigFactory}
-import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.Arr
 import org.nicta.wdy.hdm.functions.SerializableFunction
 import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.io.{CompressionCodec, SnappyCompressionCodec}
@@ -259,7 +259,7 @@ object HDMContext extends  Context{
     new PairHDM(hdm)
   }
 
-  implicit def hdmToGroupedSeqHDM[K:ClassTag, V: ClassTag](hdm:HDM[_, (K,Buf[V])] ): GroupedSeqHDM[K,V] = {
+  implicit def hdmToGroupedSeqHDM[K:ClassTag, V: ClassTag](hdm:HDM[_, (K, Iterable[V])] ): GroupedSeqHDM[K,V] = {
     new GroupedSeqHDM[K,V](hdm)
   }
 

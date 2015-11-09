@@ -62,7 +62,7 @@ class SortingTest {
   @Test
   def testSortFunctions(): Unit ={
     val data = generateData(1000000)
-    val buf = data.toBuffer
+    val buf = data.toIterator
     val sorting = new SortFunc[Int]
     val start = System.currentTimeMillis()
 //    util.Arrays.sort(data)
@@ -83,13 +83,13 @@ class SortingTest {
     val batchNum = 500000
     val iter = 20
     val data = generateData(batchNum)
-    val buf = data.toBuffer
+    val buf = data.toIterator
     val sorting = new SortFunc[Int]
 
     val inputs = for ( i <- 1 to iter) yield {
       generateData(batchNum)
     }
-    val inputBufs = inputs.map(_.toBuffer)
+    val inputBufs = inputs.map(_.toIterator)
     val sortedInputs = inputs.map{ in =>
       val cloned = in.clone()
       Sorting.quickSort(cloned)
@@ -118,7 +118,7 @@ class SortingTest {
     println(s" time consumed for merge sorted array sorting: ${end2 - start2} ms.")
 
     val start3 = System.currentTimeMillis()
-    var sorted3 = sorting(buf)
+    var sorted3 = sorting(buf).toBuffer
     for(buffer <- inputBufs){
       sorted3 = sorting.aggregate(buffer, sorted3)
     }

@@ -82,6 +82,10 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
 
 object DDM {
 
+//  def apply[T: ClassTag](id:String, elems: Iterator[T], broadcast:Boolean = false): DDM[T,T] = {
+//    this.apply(id, elems.toSeq, broadcast)
+//  }
+
   def apply[T: ClassTag](id:String, elems: Seq[T], broadcast:Boolean = false): DDM[T,T] = {
     val ddm = new DDM[T,T](id= id,
       func = new NullFunc[T],
@@ -97,7 +101,7 @@ object DDM {
 
   def apply[T: ClassTag](elems: Seq[T]): DDM[T,T] = {
     val id = HDMContext.newLocalId()
-    this.apply(id,elems)
+    this.apply(id, elems, false)
   }
 
   def apply[T: ClassTag](elems: Seq[Seq[T]], broadcast:Boolean = false): Seq[DDM[T, T]] = {

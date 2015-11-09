@@ -2,7 +2,7 @@ package org.nicta.hdm.functions
 
 import org.junit.Test
 import org.nicta.wdy.hdm.model.HDM
-import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.{Arr, Buf}
 import org.nicta.wdy.hdm.functions._
 
 import scala.collection.mutable
@@ -19,7 +19,7 @@ class ParallelFunctionsTest {
         this is a word count text
         this is line 2
         this is line 3
-    """.split("\\s+").toBuffer
+    """.split("\\s+").toIterator
 
   val numberArray = Seq.fill(10){Math.random()}
 
@@ -67,7 +67,7 @@ class ParallelFunctionsTest {
       case ss => ss
     }
     val gb = new ParGroupByFunc[String,String](f)
-    var res: Buf[(String,Buf[String])] = Buf.empty[(String,Buf[String])]
+    var res: Buf[(String,Iterable[String])] = Buf.empty[(String, Iterable[String])]
     for (i <- 1 to 10)
       res = gb.aggregate(text,res)
     res.foreach(println(_))
@@ -81,7 +81,7 @@ class ParallelFunctionsTest {
     }
 
     val grouped = new ParGroupByFunc[String,String](f).apply(text)
-    val res = new ParReduceFunc[(String, Buf[String]), (String, Buf[String])]((s1,s2) => (s2._1, s1._2 ++ s2._2)).apply(grouped)
+    val res = new ParReduceFunc[(String, Iterable[String]), (String, Iterable[String])]((s1,s2) => (s2._1, s1._2 ++ s2._2)).apply(grouped)
     res.foreach(println(_))
   }
 
@@ -93,8 +93,8 @@ class ParallelFunctionsTest {
     }
 
     val grouped = new ParGroupByFunc[String,String](f).apply(text)
-    val reduce = new ParReduceFunc[(String, Buf[String]), (String, Buf[String])]((s1,s2) => (s2._1, s1._2 ++ s2._2))
-    var res:Buf[(String,Buf[String])] = Buf.empty[(String,Buf[String])]
+    val reduce = new ParReduceFunc[(String, Iterable[String]), (String, Iterable[String])]((s1,s2) => (s2._1, s1._2 ++ s2._2))
+    var res:Buf[(String,Iterable[String])] = Buf.empty[(String,Iterable[String])]
     for (i <- 1 to 3)
       res = reduce.aggregate(grouped,res)
     res.foreach(println(_))
@@ -138,7 +138,7 @@ class ParallelFunctionsTest {
     val mapF = new ParMapFunc[String,(String,Int)](f)
     val mapped = mapF.apply(text)
     val groupBy = new ParGroupByFunc[(String,Int),String](_._1)
-    val mv = (t:(String, Buf[(String,Int)])) => {
+    val mv = (t:(String, Iterable[(String,Int)])) => {
       (t._1, t._2.map(_._2).reduce(_+_))
     }
     val mapValues = new ParMapFunc(mv)
@@ -161,7 +161,7 @@ class ParallelFunctionsTest {
     val mapped = mapF.apply(text)
 
     val groupBy = new ParGroupByFunc[(String,Int),String](_._1)
-    val mv = (t:(String, Buf[(String,Int)])) => {
+    val mv = (t:(String, Iterable[(String,Int)])) => {
       (t._1, t._2.map(_._2).reduce(_+_))
     }
     val mapValues = new ParMapFunc(mv)
@@ -173,7 +173,7 @@ class ParallelFunctionsTest {
     var partialRes:Buf[andThenF.mediateType.type ] = Buf.empty[andThenF.mediateType.type ]
     for (i <- 1 to 3)
       partialRes = andThenF2.partialAggregate(mapped,partialRes)
-    res = andThenF2.postF(partialRes)
+    res = andThenF2.postF(partialRes.toIterator).toBuffer
     res.foreach(println(_))
     println("====== test Composition =====")
     val combined = mapValues.compose(groupBy)

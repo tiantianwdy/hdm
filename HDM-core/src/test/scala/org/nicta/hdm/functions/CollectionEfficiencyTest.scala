@@ -2,7 +2,7 @@ package org.nicta.hdm.functions
 
 import breeze.linalg.{Vector, DenseVector}
 import org.junit.Test
-import org.nicta.wdy.hdm.Buf
+import org.nicta.wdy.hdm.{Arr, Buf}
 import org.nicta.wdy.hdm.functions._
 
 import scala.collection.mutable
@@ -20,11 +20,11 @@ class CollectionEfficiencyTest {
     ("0xb601998146d35e06", 1D)
   }
 
-  def generateTuple(num:Int, range:Int): Array[(String, String)] ={
+  def generateTuple(num:Int, range:Int) ={
     Array.fill(num){
       (Math.random()* range).toInt.toString -> 1.toString
     }
-  }
+  }.toIterator
 
   def genrateSeq(seqNum:Int, elemNum:Int): Seq[Seq[String]] = {
     for(sn <- 1 to seqNum) yield {
@@ -34,20 +34,20 @@ class CollectionEfficiencyTest {
     }
   }
 
-  def genrerateVector(num:Int, range:Int): Array[Vector[Double]] ={
+  def genrerateVector(num:Int, range:Int) ={
     val rand = new Random(42)
     Array.fill(num){
       DenseVector.fill(2){2 * rand.nextDouble - 1}
     }
-  }
+  }.toIterator
 
-  def genrerateDataPoint(num:Int, range:Int): Array[DataPoint] ={
+  def genrerateDataPoint(num:Int, range:Int) ={
     val rand = new Random(42)
     Array.fill(num){
       val vec = DenseVector.fill(2){2 * rand.nextDouble - 1}
       DataPoint(vec, vec(0))
     }
-  }
+  }.toIterator
 
   def testMapFunction(): Unit ={
 
@@ -96,7 +96,7 @@ class CollectionEfficiencyTest {
   @Test
   def testReduceByFunc(): Unit ={
 
-    val collection = generateTuple(300000,10000).toBuffer
+    val collection = generateTuple(300000,10000)
     val f = (d1:(String, String), d2:(String,String)) => (d1._1, (d1._2.toInt + d2._2.toInt).toString)
     val func =  new ParReduceBy[(String,String), String](_._1, f)
     val start = System.currentTimeMillis()
@@ -110,7 +110,7 @@ class CollectionEfficiencyTest {
   @Test
   def testReduceFunc(): Unit ={
 
-    val collection = genrerateVector(3000000, 10000).toBuffer
+    val collection = genrerateVector(3000000, 10000)
 
 
     val reduce = (d1:Vector[Double], d2:Vector[Double]) => d1 + d2
@@ -125,8 +125,7 @@ class CollectionEfficiencyTest {
   def testReduceCombinedFunc(): Unit ={
     val rand = new Random(42)
     val w = DenseVector.fill(2){2 * rand.nextDouble - 1}
-    val collection = genrerateDataPoint(1080000, 10000).toBuffer
-    val collectionIter = collection.iterator
+    val collection = genrerateDataPoint(2160000, 10000).toBuffer
 
     val map = (p:DataPoint) => p.x * (1 / (1 + exp(-p.y * (w.dot(p.x)))) - 1) * p.y
     val mapFunc = new ParMapFunc[DataPoint, Vector[Double]](map)
@@ -134,30 +133,27 @@ class CollectionEfficiencyTest {
     val reduceFunc =  new ParReduceFunc[Vector[Double], Vector[Double]](reduce)
     val union = new ParUnionFunc[DataPoint]
 
-
-
-
-
 //    val start3 = System.currentTimeMillis()
 //    val combined = mapFunc.andThen(reduceFunc)
 //    val optRes = combined(collection)
 //    val end3 = System.currentTimeMillis()
 //    println(s"Finished Combined in ${end3 - start3} ms: ${optRes.take(10)}")
 
-    val start = System.currentTimeMillis()
-    val reduceInput = mapFunc.apply(collection)
-    val end = System.currentTimeMillis()
-    println(s"Finished Map in ${end - start} ms: ${reduceInput.take(10)}")
-    val res = reduceFunc.apply(reduceInput)
-    val end2 = System.currentTimeMillis()
-    println(s"Finished Reduce in ${end2 - end} ms: ${res.take(10)}")
+//    val start = System.currentTimeMillis()
+//    val reduceInput = mapFunc.apply(collection)
+//    val end = System.currentTimeMillis()
+//    println(s"Finished Map in ${end - start} ms: ${reduceInput.take(10)}")
+//    val res = reduceFunc.apply(reduceInput)
+//    val end2 = System.currentTimeMillis()
+//    println(s"Finished Reduce in ${end2 - end} ms: ${res.take(10)}")
 
-//    val start0 = System.currentTimeMillis()
-//    val reduceInputItr = collectionIter.map(map)
-//    val res = reduceInputItr.reduce(reduce)
-//    val size = reduceInputItr.size
-//    val end0 = System.currentTimeMillis()
-//    println(s"Finished Map iterator in ${end0 - start0} ms: ${res}")
+    val start0 = System.currentTimeMillis()
+    val collectionIter = collection.iterator
+    val reduceInputItr = collectionIter.map(map)
+    val res = reduceInputItr.reduce(reduce)
+    val size = reduceInputItr.size
+    val end0 = System.currentTimeMillis()
+    println(s"Finished Map iterator in ${end0 - start0} ms: ${res}")
   }
 
 
@@ -165,7 +161,7 @@ class CollectionEfficiencyTest {
   def testReduceByAggregation(): Unit ={
     val start = System.currentTimeMillis()
     val iterNum = 10
-    val collection = generateTuple(300000,10000).toBuffer
+    val collection = generateTuple(300000,10000)
     val f = (d1:(String, String), d2:(String,String)) => (d1._1, (d1._2.toInt + d2._2.toInt).toString)
     val func =  new ParReduceBy[(String,String), String](_._1, f)
     var res = Buf.empty[(String, (String, String))]
@@ -179,12 +175,12 @@ class CollectionEfficiencyTest {
   def testGroupByAggregation(): Unit ={
 
     val iterNum = 10
-    val collection = generateTuple(1000000,300000).toBuffer
+    val collection = generateTuple(1000000,300000)
     val start = System.currentTimeMillis()
     val func =  new ParGroupByFunc[(String,String), String](_._1)
 //    var res = mutable.Map.empty[String, scala.collection.mutable.Buffer[(String, String)]]
 //    var res = mutable.Buffer.empty[(String, scala.collection.mutable.Buffer[(String, String)])]
-    var res = Buf.empty[(String, Buf[(String, String)])]
+    var res = Buf.empty[(String, Iterable[(String, String)])]
     for( i <- 0 until iterNum)
       res =  func.aggregate(collection, res)
     val end = System.currentTimeMillis() - start
