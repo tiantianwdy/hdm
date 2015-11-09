@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.storage
 
+import java.net.InetSocketAddress
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.baidu.bpit.akka.monitor.SystemMonitorService
@@ -184,6 +185,11 @@ object HDMBlockManager extends Logging{
     defaultManager,
     HDMContext.defaultSerializer)
 
+  def localBlockServerAddress:String = {
+    val localAddr = new InetSocketAddress(NettyConnectionManager.localHost, HDMContext.NETTY_BLOCK_SERVER_PORT)
+    localAddr.getHostString  + ":" + localAddr.getPort
+  }
+
   def initBlockServer() = {
     defaultBlockServer.init()
     defaultBlockServer.start()
@@ -215,17 +221,20 @@ object HDMBlockManager extends Logging{
     }
   }
 
-  def loadBlockAsync(path:Path, blockIds:Seq[String],  blockHandler: Block[_] => Unit, remoteHandler: FetchSuccessResponse => Unit): Unit ={
-    if (defaultManager.isCached(path.name)){
-      log.info(s"block:${path.name} is at local")
-      blockHandler.apply(defaultManager.getBlock(path.name))
-    } else { // change to support of different protocol
-      val blockFetcher = NettyConnectionManager.getInstance.getConnection(path.host, path.port)
-      //
-      val success = blockFetcher.sendRequest(QueryBlockMsg(blockIds, path.host + ":" + path.port), remoteHandler)
-      if(!success) throw new RuntimeException("send block request failed to path:" + path)
-//      NettyConnectionManager.getInstance.recycleConnection(path.host, path.port, blockFetcher)
+  def loadBlockAsync(path: Path, blockIds: Seq[String], blockHandler: Block[_] => Unit, remoteHandler: FetchSuccessResponse => Unit): Unit = {
+    val (localBlks, remoteBlks) = blockIds.span(id => defaultManager.isCached(id))
+    log.info(s"local blocks:$localBlks")
+    log.info(s"remote blocks:$remoteBlks")
+    for (bId <- localBlks) {
+      log.info(s"block:${bId} is at local")
+      blockHandler.apply(defaultManager.getBlock(bId))
     }
+    // change to support of different protocol
+    val blockFetcher = NettyConnectionManager.getInstance.getConnection(path.host, path.port)
+    //
+    val success = blockFetcher.sendRequest(QueryBlockMsg(remoteBlks, path.host + ":" + path.port), remoteHandler)
+    if (!success) throw new RuntimeException("send block request failed to path:" + path)
+    //      NettyConnectionManager.getInstance.recycleConnection(path.host, path.port, blockFetcher)
   }
 
   def loadBlockAsync(path:Path, blockHandler: Block[_] => Unit, remoteHandler: FetchSuccessResponse => Unit): Unit ={
