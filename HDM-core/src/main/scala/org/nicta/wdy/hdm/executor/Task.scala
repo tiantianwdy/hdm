@@ -180,11 +180,15 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       val data = input.map { in =>
         val inputData = DataParser.readBlock(in, false)
         //apply function
-        log.info(s"Input data preparing finished, the task starts running: [${(taskId, func)}] ")
-        func.apply(inputData.data.asInstanceOf[Buf[I]])
-
+        log.info(s"Input data preparing finished, task running: [${(taskId, func)}] ")
+        log.info(s"Input data size ${inputData.data.size} ")
+        val start = System.currentTimeMillis()
+        val res = func.apply(inputData.data.asInstanceOf[Buf[I]])
+        val end = System.currentTimeMillis() - start
+        log.info(s"time consumed for function: $end ms.")
+        res
       }.flatten
-      log.debug(s"sequence results: ${data.take(10)}")
+      log.trace(s"sequence results: ${data.take(10)}")
       //partition as seq of data
       val ddms = if(partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
         Seq(DDM[R](taskId, data))
