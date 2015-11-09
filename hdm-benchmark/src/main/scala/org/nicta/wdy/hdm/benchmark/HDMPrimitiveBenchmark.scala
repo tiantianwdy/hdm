@@ -24,11 +24,13 @@ object HDMBenchmark {
     val parallelism = args(3).toInt
     val dataTag = if(args.length >= 5) args(4) else "ranking"
     val len = if(args.length >= 6) args(5).toInt else 3
+
     val benchmark = dataTag match {
       case "userVisits" => new KVBasedPrimitiveBenchmark(context, 1, 3)
       case "ranking" => new KVBasedPrimitiveBenchmark(context)
       case x => new KVBasedPrimitiveBenchmark(context)
     }
+
     val iterativeBenchmark = new IterationBenchmark()
     HDMContext.init(leader = context, slots = 0)//not allow local running
     Thread.sleep(100)
@@ -51,15 +53,16 @@ object HDMBenchmark {
       case "top" =>
         benchmark.testTop(data, len, parallelism)
       case "sort" =>
-        benchmark.testTeraSort(data, len, parallelism)
+        benchmark.testTeraSort(data, len)(parallelism)
       case "mapCount" =>
         benchmark.testMapCount(data, parallelism)
       case "iteration" =>
         iterativeBenchmark.testGeneralIteration(data, parallelism)
       case "iterativeAggregation" =>
         iterativeBenchmark.testIterationWithAggregation(data, parallelism)
-      case "regression" =>
-        iterativeBenchmark.testLogisticRegression(data, 3, parallelism)
+      case "LR" =>
+        val regressionBenchmark = new IterationBenchmark(1, 1)
+        regressionBenchmark.testLinearRegression(data, 3, parallelism)
     }
 
     res match {

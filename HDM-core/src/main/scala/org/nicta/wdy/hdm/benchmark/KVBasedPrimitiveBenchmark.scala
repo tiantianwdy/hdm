@@ -169,7 +169,7 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
 
   }
 
-  def testFindByKey(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, key:String) ={
+  def testFindByKey(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, key:String) = {
     val path = Path(dataPath)
     val hdm = HDM(path)
     val kOffset = kIndex
