@@ -85,7 +85,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
 
   case class DataPoint(x: Vector[Double], y: Double) extends Serializable
 
-  def testLogisticRegression(dataPath:String, iterations:Int, p:Int = 4) = {
+  def testLinearRegression(dataPath:String, iterations:Int, p:Int = 4) = {
     implicit  val parallelism = p
     val path = Path(dataPath)
     val kOffset = kIndex
@@ -111,6 +111,33 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
       val end = System.currentTimeMillis()
       println(s"Time consumed for iteration $i : ${end - start} ms. weights: $weights")
     }
+  }
+
+
+  def testLogisticRegression(dataPath: String, vecLen: Int, labelIdx: Int, iterations:Int, p:Int = 4)={
+    implicit  val parallelism = p
+    val path = Path(dataPath)
+    val rand = new Random(42)
+    var weights = DenseVector.fill(2){2 * rand.nextDouble - 1}
+
+    val hdm = HDM(path).map{ w =>
+      val as = w.split(",")
+      val arr = as.take(vecLen).map(_.toDouble)
+      DataPoint(Vector(arr), arr(labelIdx))
+    }.cache
+
+    for(i <- 1 to iterations) {
+      val start = System.currentTimeMillis()
+      val w = weights
+      //      val redFunc = (d1:Vector[Double], d2: Vector[Double]) => d1 + d2
+      val gradient = hdm.map{ p =>
+        p.x * (1 / (1 + exp(-p.y * (w.dot(p.x)))) - 1) * p.y
+      }.reduce(_ + _).collect().next()
+      weights -= gradient
+      val end = System.currentTimeMillis()
+      println(s"Time consumed for iteration $i : ${end - start} ms. weights: $weights")
+    }
+
   }
 
 
