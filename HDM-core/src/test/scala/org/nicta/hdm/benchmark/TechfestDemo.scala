@@ -83,7 +83,7 @@ class TechfestDemo {
     val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
 //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
-    val parallelism = 2
+    val parallelism = 1
     val len = 3
 //    val benchmark = new KVBasedPrimitiveBenchmark(context)
     val benchmark = new KVBasedPrimitiveBenchmark(context = context, kIndex = 0, vIndex = 1)
@@ -95,8 +95,8 @@ class TechfestDemo {
 //    benchmark.testMultipleMap(data,len, parallelism)
 //    benchmark.testMultiMapFilter(data,len, parallelism, "a")
 //    benchmark.testFindByKey(data,len, parallelism, "a")
-    benchmark.testReduceByKey(data,len, parallelism)
-//    benchmark.testMap(data,len, parallelism)
+//    benchmark.testReduceByKey(data,len, parallelism)
+    benchmark.testMap(data,len, parallelism)
 
     onEvent(hdm, "collect")(parallelism)
     Thread.sleep(50000000)
@@ -161,11 +161,11 @@ class TechfestDemo {
         val as = w.split(",")
         as(vOffset).toFloat + i*agg
       }
-      val res = computed.collect()(parallelism)
-      println(res.size)
+//      val res = computed.collect()(parallelism)
+//      println(res.size)
 //      res.foreach(println(_))
 //      aggregation += res.sum
-//      HDMContext.explain(computed, parallelism).foreach(println(_))
+      HDMContext.explain(computed, parallelism).foreach(println(_))
       val end = System.currentTimeMillis()
       println(s"Time consumed for iteration $i : ${end - start} ms.")
       Thread.sleep(100)
@@ -185,7 +185,7 @@ class TechfestDemo {
     Thread.sleep(1500)
 
     val benchmark = new IterationBenchmark(1, 1)
-    benchmark.testLogisticRegression(data, 3, parallelism)
+    benchmark.testLinearRegression(data, 1, parallelism)
   }
 
   @Test
