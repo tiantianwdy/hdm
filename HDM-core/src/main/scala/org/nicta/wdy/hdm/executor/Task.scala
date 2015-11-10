@@ -175,28 +175,30 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
   }
 
 
-  def runSequenceTask():Seq[DDM[_,R]] = {
-      //load input data
-      val data = input.map { in =>
-        val inputData = DataParser.readBlock(in, false)
-        //apply function
-        log.info(s"Input data preparing finished, task running: [${(taskId, func)}] ")
-        log.info(s"Input data size ${inputData.data.size} ")
-        val start = System.currentTimeMillis()
-        val res = func.apply(inputData.asInstanceOf[Block[I]].data.toIterator)
-        val end = System.currentTimeMillis() - start
-        log.info(s"time consumed for function: $end ms.")
-        res
-      }.flatten
-      log.trace(s"sequence results: ${data.take(10)}")
-      //partition as seq of data
-      val ddms = if(partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
-        Seq(DDM[R](taskId, data))
-      } else {
-        partitioner.split(data).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
-      }
-      ddms
+  def runSequenceTask(): Seq[DDM[_, R]] = {
+    //load input data
+    val start = System.currentTimeMillis()
+    val data = input.map { in =>
+      val inputData = DataParser.readBlock(in, false)
+      //apply function
+      log.info(s"Input data preparing finished, task running: [${(taskId, func)}] ")
+      log.info(s"Input data size ${inputData.data.size} ")
+      val res = func.apply(inputData.asInstanceOf[Block[I]].data.toIterator).toBuffer
+      val end = System.currentTimeMillis() - start
+      log.info(s"time consumed for function: $end ms.")
+      res
+    }.flatten
+    val end2 = System.currentTimeMillis() - start
+    log.info(s"time consumed for flatten: $end2 ms.")
+//    log.trace(s"sequence results: ${data.take(10)}")
+    //partition as seq of data
+    val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
+      Seq(DDM[R](taskId, data))
+    } else {
+      partitioner.split(data).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
     }
+    ddms
+  }
 
 
 
