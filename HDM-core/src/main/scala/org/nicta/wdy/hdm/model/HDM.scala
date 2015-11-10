@@ -175,15 +175,16 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   def sorted(implicit ordering: Ordering[R], parallelism:Int): HDM[_, R] = {
     val hdm = this.cache
-    val sampleSize = math.min(100.0 * parallelism, 1e6)/ parallelism
+    val reduceNumber = parallelism * HDMContext.PLANER_PARALLEL_NETWORK_FACTOR
+    val sampleSize = math.min(100.0 * reduceNumber, 1e6)/ reduceNumber
 
     val sampleFUnc = (elems:Arr[R]) => SampleUtils.randomSampling(elems.toSeq, sampleSize.toInt).toIterator
     val samples = hdm.mapPartitions(sampleFUnc).collect().toSeq
-    val bounds = RangePartitioning.decideBoundary(samples, parallelism)
+    val bounds = RangePartitioning.decideBoundary(samples, reduceNumber)
     val partitioner = new RangePartitioner(bounds)
     val parallel = new DFM[R, R](children = Seq(hdm), dependency = OneToOne, func = new SortFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = partitioner)
 //    val sortByFunc = (elems:Buf[R]) =>  elems.sorted(ordering)
-    new DFM[R,R](children = Seq(parallel), dependency = NToOne, func = new SortFunc[R], distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[R](1), parallelism = 1)
+    new DFM[R,R](children = Seq(parallel), dependency = NToOne, func = new SortFunc[R], distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[R](1), parallelism = reduceNumber)
 
   }
 
