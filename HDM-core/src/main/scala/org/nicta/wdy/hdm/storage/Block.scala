@@ -53,20 +53,20 @@ object Block {
 
   def apply[T: ClassTag](id:String, data:Arr[T]) = new UnserializedBlock(id, data.toBuffer)
 
-  def sizeOf(obj:Any)(implicit serializer:Serializer = new DefaultJSerializer) : Int = obj match {
+  def sizeOf(obj:Any)(implicit serializer:Serializer = new DefaultJSerializer) : Long = obj match {
     case o:AnyRef =>
       serializer.toBinary(o).size
-    case _ => 8 // primitive types are 8 bytes for 64-bit OS
+    case _ => 8L // primitive types are 8 bytes for 64-bit OS
   }
 
-  def byteSize(blk:Block[_]):Int = blk match {
+  def byteSize(blk:Block[_]):Long = blk match {
     case blk: UnserializedBlock[_] =>
-      blk.size * sizeOf(if(blk.data.isEmpty) 0 else blk.data.head)
+      blk.size * sizeOf(if(blk.data.isEmpty) 0L else blk.data.head)
     case blk:SerializedBlock[_] =>
       blk.size
   }
 
-  def byteSize(elems:Seq[_]):Int = {
+  def byteSize(elems:Seq[_]):Long = {
     if(elems == null || elems.isEmpty) 0
     else sizeOf(elems.head) * elems.size
   }

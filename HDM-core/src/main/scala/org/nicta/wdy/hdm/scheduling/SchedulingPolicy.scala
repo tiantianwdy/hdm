@@ -20,11 +20,11 @@ trait SchedulingPolicy {
    * @param networkFactor reflects the time factor of loading a unit of data from remote node through network
    * @return              pairs of planed tasks: (taskID -> workerPath)
    */
-  def plan(inputs:Seq[SchedulingTask], resources:Seq[Path], computeFactor: Float, ioFactor: Float, networkFactor:Float):mutable.Map[String, String]
+  def plan(inputs:Seq[SchedulingTask], resources:Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor:Double):mutable.Map[String, String]
 
 }
 
-case class SchedulingTask(id:String, inputs:Seq[Path], inputSizes:Seq[Int],  dep:DataDependency) {
+case class SchedulingTask(id:String, inputs:Seq[Path], inputSizes:Seq[Long],  dep:DataDependency) {
 
   require(inputs.length == inputSizes.length)
 
@@ -41,7 +41,7 @@ class FairScheduling extends SchedulingPolicy with Logging{
    * @param networkFactor reflects the time factor of loading a unit of data from remote node through network
    * @return              pairs of planed tasks: (taskID -> workerPath)
    */
-  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Float, ioFactor: Float, networkFactor: Float): mutable.Map[String, String] = {
+  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, String] = {
     val results = mutable.Map.empty[String, String]
     val taskIter = inputs.iterator
     var idx = 0
@@ -61,7 +61,7 @@ class FairScheduling extends SchedulingPolicy with Logging{
 object SchedulingUtils {
 
 
-  def calculateExecutionTime(p:SchedulingTask, resources: Path, computeFactor: Float, ioFactor: Float, networkFactor:Float): Float = {
+  def calculateExecutionTime(p:SchedulingTask, resources: Path, computeFactor: Double, ioFactor: Double, networkFactor:Double): Double = {
     p.inputs.zip(p.inputSizes).map { tuple =>
       //compute completion time of each input partition for this task
       val dataLoadingTime = if (tuple._1.address == resources.address) {

@@ -56,11 +56,11 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       val tasks = taskQueue.map { task =>
         val ids = task.input.map(_.id)
         val inputLocations = HDMBlockManager().getLocations(ids)
-        val inputSize = HDMBlockManager().getblockSizes(ids)
+        val inputSize = HDMBlockManager().getblockSizes(ids).map(_ / 1024)
         SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
       }.toSeq
 
-      val plans = schedulingPolicy.plan(tasks, candidates, 1F, 10F ,20F)
+      val plans = schedulingPolicy.plan(tasks, candidates, 1D, 10D , 20D)
       val scheduledTasks = taskQueue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,Task[_,_]]
       plans.foreach(tuple => {
         scheduledTasks.get(tuple._1) match {

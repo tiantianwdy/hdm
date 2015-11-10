@@ -8,10 +8,10 @@ import scala.collection.mutable
 /**
  * Created by tiantian on 2/09/15.
  */
-class MinExecutionScheduling(val comparison:(Float, Float) => Boolean) extends SchedulingPolicy with Logging {
+class MinExecutionScheduling(val comparison:(Double, Double) => Boolean) extends SchedulingPolicy with Logging {
 
-  val computationTimeMatrix = mutable.HashMap.empty[String, Vector[Float]]
-  val jobCompletionTimeMatrix = mutable.HashMap.empty[String, Vector[Float]]
+  val computationTimeMatrix = mutable.HashMap.empty[String, Vector[Double]]
+  val jobCompletionTimeMatrix = mutable.HashMap.empty[String, Vector[Double]]
 
 
   def init(): Unit = {
@@ -28,7 +28,7 @@ class MinExecutionScheduling(val comparison:(Float, Float) => Boolean) extends S
    * @param networkFactor reflects the time factor of loading a unit of data from remote node through network
    * @return
    */
-  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Float, ioFactor: Float, networkFactor: Float): mutable.Map[String, String] = {
+  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, String] = {
     val results = mutable.Map.empty[String, String]
 
     //initialize time matrices
@@ -58,7 +58,7 @@ class MinExecutionScheduling(val comparison:(Float, Float) => Boolean) extends S
    * @param networkFactor reflects the time factor of loading a unit of data from remote node through network
    * @return
    */
-  def calculateComputationTIme(p: SchedulingTask, resources: Seq[Path], computeFactor: Float, ioFactor: Float, networkFactor: Float): Vector[Float] = {
+  def calculateComputationTIme(p: SchedulingTask, resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): Vector[Double] = {
     resources.map { r =>
       SchedulingUtils.calculateExecutionTime(p, r, computeFactor, ioFactor, networkFactor)
       /*p.inputs.zip(p.inputSizes).map{tuple =>
@@ -79,7 +79,7 @@ class MinExecutionScheduling(val comparison:(Float, Float) => Boolean) extends S
    * @param completionMatrix
    * @return (taskId, resourceIdx)
    */
-  def findNextMatching(completionMatrix: mutable.HashMap[String, Vector[Float]]): (String, Int) = {
+  def findNextMatching(completionMatrix: mutable.HashMap[String, Vector[Double]]): (String, Int) = {
 
     //find the minimum execution time of each task
     val minTimeOnRes = completionMatrix.map { v =>
@@ -88,7 +88,7 @@ class MinExecutionScheduling(val comparison:(Float, Float) => Boolean) extends S
     log.trace("min execution time vector:")
 //    minTimeOnRes foreach (println(_))
     //find the minimum value among minimum execution time vector
-    val comp = (d1: (String, (Int, Float)), d2: (String, (Int, Float))) => comparison(d1._2._2, d2._2._2)
+    val comp = (d1: (String, (Int, Double)), d2: (String, (Int, Double))) => comparison(d1._2._2, d2._2._2)
     val minTimeOfTask = SchedulingUtils.minObjectsWithIndex(minTimeOnRes, comp)
     log.debug(s"find min task:${minTimeOfTask._2} with expected execution time ${minTimeOfTask._2._2._2}")
     val idx = minTimeOfTask._1
@@ -105,7 +105,7 @@ class MinExecutionScheduling(val comparison:(Float, Float) => Boolean) extends S
    * @param selected selected task with index
    *
    */
-  def updateMatrix(timeMatrix: mutable.HashMap[String, Vector[Float]], completionMatrix: mutable.HashMap[String, Vector[Float]], selected: (String, Int)): Unit = {
+  def updateMatrix(timeMatrix: mutable.HashMap[String, Vector[Double]], completionMatrix: mutable.HashMap[String, Vector[Double]], selected: (String, Int)): Unit = {
     val rIdx = selected._2
     val time = timeMatrix.get(selected._1).get.apply(rIdx)
     timeMatrix.remove(selected._1)
@@ -119,6 +119,6 @@ class MinExecutionScheduling(val comparison:(Float, Float) => Boolean) extends S
 
 }
 
-class MinMinScheduling extends MinExecutionScheduling(comparison = (d1:Float, d2:Float) => d1 < d2)
+class MinMinScheduling extends MinExecutionScheduling(comparison = (d1:Double, d2:Double) => d1 < d2)
 
-class MaxMinScheduling extends MinExecutionScheduling(comparison = (d1:Float, d2:Float) => d1 > d2)
+class MaxMinScheduling extends MinExecutionScheduling(comparison = (d1:Double, d2:Double) => d1 > d2)

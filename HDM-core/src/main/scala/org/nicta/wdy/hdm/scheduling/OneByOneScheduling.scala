@@ -18,7 +18,7 @@ class OneByOneScheduling extends SchedulingPolicy with Logging{
    * @param networkFactor reflects the time factor of loading a unit of data from remote node through network
    * @return
    */
-  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Float, ioFactor: Float, networkFactor: Float): mutable.Map[String, String] = {
+  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, String] = {
     val results = mutable.Map.empty[String, String]
     inputs.map{ task =>
       task.id -> findPreferredWorker(task, resources)
