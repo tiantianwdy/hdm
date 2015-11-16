@@ -126,6 +126,7 @@ class CollectionEfficiencyTest {
     val rand = new Random(42)
     val w = DenseVector.fill(2){2 * rand.nextDouble - 1}
     val collection = genrerateDataPoint(2160000, 10000).toBuffer
+    val collectionIter = collection.iterator
 
     val map = (p:DataPoint) => p.x * (1 / (1 + exp(-p.y * (w.dot(p.x)))) - 1) * p.y
     val mapFunc = new ParMapFunc[DataPoint, Vector[Double]](map)
@@ -135,25 +136,24 @@ class CollectionEfficiencyTest {
 
 //    val start3 = System.currentTimeMillis()
 //    val combined = mapFunc.andThen(reduceFunc)
-//    val optRes = combined(collection)
+//    val optRes = combined(collection.iterator)
 //    val end3 = System.currentTimeMillis()
-//    println(s"Finished Combined in ${end3 - start3} ms: ${optRes.take(10)}")
+//    println(s"Finished Combined in ${end3 - start3} ms: ${optRes.next()}")
 
-//    val start = System.currentTimeMillis()
-//    val reduceInput = mapFunc.apply(collection)
+    val start = System.currentTimeMillis()
+    val reduceInput = mapFunc.apply(collection.iterator)
 //    val end = System.currentTimeMillis()
 //    println(s"Finished Map in ${end - start} ms: ${reduceInput.take(10)}")
-//    val res = reduceFunc.apply(reduceInput)
-//    val end2 = System.currentTimeMillis()
-//    println(s"Finished Reduce in ${end2 - end} ms: ${res.take(10)}")
+    val res = reduceFunc.apply(reduceInput)
+    val end2 = System.currentTimeMillis()
+    println(s"Finished Reduce in ${end2 - start} ms: ${res.next}")
 
-    val start0 = System.currentTimeMillis()
-    val collectionIter = collection.iterator
-    val reduceInputItr = collectionIter.map(map)
-    val res = reduceInputItr.reduce(reduce)
-    val size = reduceInputItr.size
-    val end0 = System.currentTimeMillis()
-    println(s"Finished Map iterator in ${end0 - start0} ms: ${res}")
+//    val start0 = System.currentTimeMillis()
+//    val reduceInputItr = collection.iterator.map(map)
+//    val res = reduceInputItr.reduce(reduce)
+//    val size = reduceInputItr.size
+//    val end0 = System.currentTimeMillis()
+//    println(s"Finished Map iterator in ${end0 - start0} ms: ${res}")
   }
 
 

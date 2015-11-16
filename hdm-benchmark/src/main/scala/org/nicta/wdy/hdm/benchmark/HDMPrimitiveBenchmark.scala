@@ -63,6 +63,8 @@ object HDMBenchmark {
       case "LR" =>
         val regressionBenchmark = new IterationBenchmark(1, 1)
         regressionBenchmark.testLinearRegression(data, 3, parallelism)
+      case "weatherLR" =>
+        iterativeBenchmark.testWeatherLR(data, 12, 3, parallelism)
     }
 
     res match {

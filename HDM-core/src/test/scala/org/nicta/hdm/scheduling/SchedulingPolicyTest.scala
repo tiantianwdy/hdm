@@ -17,8 +17,8 @@ class SchedulingPolicyTest extends SchedulingTestData {
   val numWorker = 8
   val pathPool = initAddressPool(numWorker)
 
-  def generateInput(n:Int, sizeRange:Int):Seq[(Path, Int)] ={
-    generateInputPath(pathPool, n).map(Path(_)) zip Seq.fill(n){Random.nextInt(sizeRange) + 1}
+  def generateInput(n:Int, sizeRange:Int):Seq[(Path, Long)] ={
+    generateInputPath(pathPool, n).map(Path(_)) zip Seq.fill(n){Random.nextInt(sizeRange) + 1L}
   }
 
   def generateTasks(tNum:Int, pNum:Int):Seq[SchedulingTask] = {
@@ -59,7 +59,6 @@ class SchedulingPolicyTest extends SchedulingTestData {
     val schedulingPolicy = new MinMinScheduling
     val scheduledJobs = schedulingPolicy.plan(tasks, resources, 1F, 10F, 20F)
     scheduledJobs foreach(println(_))
-
 
   }
 

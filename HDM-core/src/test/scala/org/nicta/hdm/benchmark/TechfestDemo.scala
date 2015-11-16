@@ -93,12 +93,12 @@ class TechfestDemo {
     val hdm =
 //    benchmark.testGroupBy(data,len, parallelism)
 //    benchmark.testMultipleMap(data,len, parallelism)
-//    benchmark.testMultiMapFilter(data,len, parallelism, "a")
+    benchmark.testMultiMapFilter(data,len, parallelism, "a")
 //    benchmark.testFindByKey(data,len, parallelism, "a")
 //    benchmark.testReduceByKey(data,len, parallelism)
-    benchmark.testMap(data,len, parallelism)
+//    benchmark.testMap(data,len, parallelism)
 
-    onEvent(hdm, "collect")(parallelism)
+    onEvent(hdm, "compute")(parallelism)
     Thread.sleep(50000000)
   }
 
@@ -108,8 +108,8 @@ class TechfestDemo {
       hdm.compute(parallelism).map { hdm =>
         println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received response: ${hdm.id}")
         hdm.blocks.foreach(println(_))
+        System.exit(0)
       }
-      System.exit(0)
     case "sample" =>
       //      val start = System.currentTimeMillis()
       hdm.sample(25).map(iter => iter.foreach(println(_)))
@@ -179,6 +179,7 @@ class TechfestDemo {
     val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
+//    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/weather"
     val parallelism = 1
     HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
     HDMContext.init(leader = context)
@@ -186,6 +187,21 @@ class TechfestDemo {
 
     val benchmark = new IterationBenchmark(1, 1)
     benchmark.testLinearRegression(data, 1, parallelism)
+  }
+
+  @Test
+  def testWeatherLRegression():Unit = {
+    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+    //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
+    //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
+    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/weather"
+    val parallelism = 1
+    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    HDMContext.init(leader = context)
+    Thread.sleep(1500)
+
+    val benchmark = new IterationBenchmark(1, 1)
+    benchmark.testWeatherLR(data, 12, 3, parallelism)
   }
 
   @Test
