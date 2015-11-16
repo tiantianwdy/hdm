@@ -48,7 +48,7 @@ object StaticPlaner extends HDMPlaner{
    * ordered optimizers
    */
   val logicOptimizers:Seq[LogicalOptimizer] = Seq(
-    new FilterLifting(),
+//    new FilterLifting(),
     new FunctionFusion()
   )
 
