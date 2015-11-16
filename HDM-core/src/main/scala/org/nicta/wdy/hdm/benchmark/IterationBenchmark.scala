@@ -118,7 +118,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
     implicit  val parallelism = p
     val path = Path(dataPath)
     val rand = new Random(42)
-    var weights = DenseVector.fill(2){2 * rand.nextDouble - 1}
+    var weights = DenseVector.fill(vecLen){2 * rand.nextDouble - 1}
 
     val hdm = HDM(path).map{ w =>
       val as = w.split(",")
@@ -138,6 +138,38 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
       println(s"Time consumed for iteration $i : ${end - start} ms. weights: $weights")
     }
 
+  }
+
+
+  def testWeatherLR(dataPath: String, vectorLen: Int, iteration:Int, p:Int = 4) = {
+    implicit  val parallelism = p
+    val path = Path(dataPath)
+    val rand = new Random(42)
+    val vecLen = vectorLen
+    var weights = DenseVector.fill(vecLen){2 * rand.nextDouble - 1}
+
+    val training = HDM(path).map(line => line.split("\\s+"))
+//      .filter(arr => arr.length > vecLen)
+      .map{ seq => seq.drop(3).dropRight(6)}
+      .filter(seq => seq.forall(s => s.matches("\\d+(.\\d+)?")))
+      .map{seq => seq.take(vecLen).map(_.toDouble).toArray}
+      .map{arr =>
+      val vec = Vector(arr)
+      DataPoint(vec, arr(0))
+    }.cache
+
+
+    for(i <- 1 to iteration) {
+      val start = System.currentTimeMillis()
+      val w = weights
+      val gradient = training.map{ p =>
+        p.x * (1 / (1 + exp(-p.y * (w.dot(p.x)))) - 1) * p.y
+      }.reduce(_ + _).collect().next()
+      weights -= gradient
+      val end = System.currentTimeMillis()
+      println(s"Time consumed for iteration $i : ${end - start} ms. weights: $weights")
+    }
+    weights
   }
 
 
