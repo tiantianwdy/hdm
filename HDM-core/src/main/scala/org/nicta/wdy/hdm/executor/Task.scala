@@ -179,14 +179,14 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
     //load input data
     val start = System.currentTimeMillis()
     val data = input.map { in =>
-      val inputData = DataParser.readBlock(in, false)
-      //apply function
       log.info(s"Input data preparing finished, task running: [${(taskId, func)}] ")
-      log.info(s"Input data size ${inputData.data.size} ")
-      val res = func.apply(inputData.asInstanceOf[Block[I]].data.toIterator).toBuffer
+      val inputData = DataParser.readBlock(in, false, (in:Arr[Any]) => func.apply(in.asInstanceOf[Arr[I]]))
+//      log.info(s"Input data size ${inputData.data.size} ")
+//  apply function
+//      val res = func.apply(inputData.asInstanceOf[Block[I]].data.toIterator).toBuffer
       val end = System.currentTimeMillis() - start
       log.info(s"time consumed for function: $end ms.")
-      res
+      inputData.data
     }.flatten
     val end2 = System.currentTimeMillis() - start
     log.info(s"time consumed for flatten: $end2 ms.")

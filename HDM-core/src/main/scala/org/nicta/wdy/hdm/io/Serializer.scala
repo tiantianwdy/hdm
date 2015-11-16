@@ -25,6 +25,8 @@ trait BlockSerializer[T] extends  Serializable {
 
   def toOutputStream(lst: Seq[T], out: OutputStream): Unit
 
+  def iteratorInputStream(in: InputStream): Iterator[T]
+
 }
 
 
@@ -54,7 +56,30 @@ class StringSerializer(val charsetName :String = "UTF-8") extends BlockSerialize
     seq
   }
 
+
+  override def iteratorInputStream(in: InputStream): Iterator[String] = {
+    new FileLineIterator(in)
+  }
+
   override def toOutputStream(data:Seq[String],out: OutputStream): Unit = ???
 }
 
 
+class FileLineIterator(private val reader: BufferedReader) extends Iterator[String]{
+
+  var nextLine:String = reader.readLine()
+
+  def this(in: InputStream) {
+    this(new BufferedReader(new InputStreamReader(in)))
+  }
+
+  override def hasNext: Boolean = {
+    nextLine != null
+  }
+
+  override def next(): String = {
+    val next = nextLine
+    nextLine = reader.readLine
+    next
+  }
+}

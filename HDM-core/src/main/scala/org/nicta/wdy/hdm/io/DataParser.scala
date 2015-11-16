@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, FileSystem}
+import org.nicta.wdy.hdm.Arr
 import org.nicta.wdy.hdm.functions.NullFunc
 import org.nicta.wdy.hdm.io.hdfs.HDFSUtils
 import org.nicta.wdy.hdm.model.{HDM, DDM}
@@ -27,6 +28,8 @@ trait DataParser {
   def protocol:String
 
   def readBlock[T: ClassTag](path:Path)(implicit serializer:BlockSerializer[T]):Block[T]
+
+  def readBlock[T: ClassTag, R:ClassTag](path:Path, func:Iterator[T] => Iterator[R])(implicit serializer:BlockSerializer[T]):Block[R]
 
   def readBatch[T: ClassTag](path:Seq[Path])(implicit serializer:BlockSerializer[T]):Seq[Block[T]] = ???
 
@@ -55,6 +58,21 @@ class HdfsParser extends DataParser{
   }
 
 
+  override  def readBlock[String: ClassTag, R: ClassTag](path: Path, func:Iterator[String] => Iterator[R])(implicit serializer: BlockSerializer[String] = new StringSerializer): Block[R] = {
+    val conf = new Configuration()
+    conf.set("fs.default.name", path.protocol + path.address)
+    val filePath = new HPath(path.relativePath)
+    val fs = FileSystem.get(conf)
+    //    val status = fs.getFileStatus(filePath)
+    //    val buffer = ByteBuffer.allocate(status.getBlockSize.toInt)
+    //    fileInputStream.read(buffer)
+    //    val data = serializer.fromBinary(buffer.array())
+    val fileInputStream = fs.open(filePath)
+    val data = func(serializer.iteratorInputStream(fileInputStream))
+    Block(data)
+  }
+
+
   override def readBatch[String: ClassTag](pathList: Seq[Path])(implicit serializer: BlockSerializer[String] = new StringSerializer): Seq[Block[String]] = {
     val head = pathList.head
     val conf = new Configuration()
@@ -76,6 +94,9 @@ class FileParser extends DataParser{
 
   override def writeBlock[T: ClassTag](path: Path, bl: Block[T])(implicit serializer: BlockSerializer[T]): Unit = ???
 
+
+  override def readBlock[T: ClassTag, R: ClassTag](path: Path, func: (Iterator[T]) => Iterator[R])(implicit serializer: BlockSerializer[T]): Block[R] = ???
+
   override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T]): Block[T] = ???
 
   override def protocol: String = "file://"
@@ -85,6 +106,9 @@ class FileParser extends DataParser{
 class MysqlParser extends DataParser{
 
   override def writeBlock[T: ClassTag](path: Path, bl: Block[T])(implicit serializer: BlockSerializer[T]): Unit = ???
+
+
+  override def readBlock[T: ClassTag, R: ClassTag](path: Path, func: (Iterator[T]) => Iterator[R])(implicit serializer: BlockSerializer[T]): Block[R] = ???
 
   override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T]): Block[T] = ???
 
@@ -100,6 +124,9 @@ class HDMParser extends DataParser {
     blockManager.add(bl.id, bl)
   }
 
+
+  override def readBlock[T: ClassTag, R: ClassTag](path: Path, func: (Iterator[T]) => Iterator[R])(implicit serializer: BlockSerializer[T] = null): Block[R] = ???
+
   override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T] = null): Block[T] = {
     blockManager.getBlock(path.name).asInstanceOf[Block[T]]
   }
@@ -113,8 +140,16 @@ class NettyParser extends DataParser {
   override def protocol: String = "netty://"
 
   override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T] = null): Block[T] = {
-    val reader = new BufferedBlockIterator[T](Seq(path))
-    val data = reader.toSeq
+    val iterator = new BufferedBlockIterator[T](Seq(path))
+    val data = iterator.toSeq
+    val id = path.name
+    Block(id, data)
+  }
+
+
+  override def readBlock[T: ClassTag, R: ClassTag](path: Path, func: (Iterator[T]) => Iterator[R])(implicit serializer: BlockSerializer[T] = null): Block[R] = {
+    val iterator = new BufferedBlockIterator[T](Seq(path))
+    val data = func(iterator)
     val id = path.name
     Block(id, data)
   }
@@ -147,6 +182,15 @@ object DataParser extends Logging{
     case "netty://" => new NettyParser().readBlock(path)
 //    case "file://" => new FileParser().readBlock(path)
 //    case "mysql://" => new MysqlParser().readBlock(path)
+    case _ => throw new IOException("Unsupported data protocol:" + path.protocol)
+  }
+
+  def readBlock[R:ClassTag](path:Path, func:Arr[Any] => Arr[R]):Block[R] = path.protocol.toLowerCase match {
+    case "hdm://" => new HDMParser().readBlock(path, func)
+    case "hdfs://" => new HdfsParser().readBlock(path, func.asInstanceOf[Arr[String] => Arr[R]])
+    case "netty://" => new NettyParser().readBlock(path, func)
+    //    case "file://" => new FileParser().readBlock(path)
+    //    case "mysql://" => new MysqlParser().readBlock(path)
     case _ => throw new IOException("Unsupported data protocol:" + path.protocol)
   }
   
@@ -182,6 +226,38 @@ object DataParser extends Logging{
       resp
     }
   }
+
+  def readBlock[R:ClassTag](in:HDM[_,_], removeFromCache:Boolean, func:Arr[Any] => Arr[R]):Block[R] = {
+    if (!HDMBlockManager().isCached(in.id)) {
+      in.location.protocol match {
+        case Path.AKKA =>
+          //todo replace with using data parsers
+          log.info(s"Asking block ${in.location.name} from ${in.location.parent}")
+          val await = HDMIOManager().askBlock(in.location.name, in.location.parent) // this is only for hdm
+          Await.result[Block[_]](await, maxWaitResponseTime) match {
+            case data: Block[_] =>
+              Block(data.id, func(data.asInstanceOf[Block[Any]].data.toIterator))
+            case _ => throw new RuntimeException(s"Failed to get data from ${in.location.name}")
+          }
+
+        case Path.HDFS =>
+          val bl = DataParser.readBlock(in.location, func)
+          log.info(s"finished reading block with size: ${Block.byteSize(bl)/ (1024*1024F)} MB. ")
+          bl
+
+        case Path.NETTY=>
+          val bl = DataParser.readBlock(in.location, func)
+          log.info(s"finished reading block with size: ${Block.byteSize(bl)/ (1024*1024F)} MB. ")
+          bl
+      }
+    } else {
+      log.info(s"input data are at local: [${in.id}] ")
+      val resp = HDMBlockManager().getBlock(in.id)
+      if(removeFromCache) HDMBlockManager().removeBlock(in.id)
+      Block(resp.id, func(resp.asInstanceOf[Block[Any]].data.toIterator))
+    }
+  }
+
 
   def writeBlock(path:String, bl:Block[_]):Unit = writeBlock(Path(path), bl)
 
