@@ -48,6 +48,7 @@ object StaticPlaner extends HDMPlaner{
    * ordered optimizers
    */
   val logicOptimizers:Seq[LogicalOptimizer] = Seq(
+    new CacheOptimizer(),
 //    new FilterLifting(),
     new FunctionFusion()
   )
@@ -66,7 +67,7 @@ object StaticPlaner extends HDMPlaner{
     //physical planning
     logicPlan.map{ h =>
       val input = Try {h.children.map(cld => explainedMap.get(cld.id)).asInstanceOf[Seq[HDM[_,h.inType.type]]]} getOrElse {Seq.empty[HDM[_,h.inType.type]]}
-      val newHdms = physicalPlaner.plan(input, h.asInstanceOf[HDM[h.inType.type, h.outType.type ]], h.parallelism)
+      val newHdms = physicalPlaner.plan(input, h.asInstanceOf[HDM[h.inType.type, h.outType.type]], h.parallelism)
       newHdms.foreach(nh => explainedMap.put(nh.id, nh))
       newHdms
     }

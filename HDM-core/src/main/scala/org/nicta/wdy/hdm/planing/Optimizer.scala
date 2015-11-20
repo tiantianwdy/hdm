@@ -3,6 +3,7 @@ package org.nicta.wdy.hdm.planing
 import org.nicta.wdy.hdm.executor.{Partitioner, KeepPartitioner}
 import org.nicta.wdy.hdm.functions.{ParMapFunc, ParFindByFunc, ParGroupByFunc, FindByKey}
 import org.nicta.wdy.hdm.model._
+import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 import org.nicta.wdy.hdm.utils.Logging
 
 import scala.collection.mutable.ListBuffer
@@ -47,7 +48,7 @@ class FunctionFusion extends LogicalOptimizer with Logging{
     else {
       if((cur.dependency == OneToOne | cur.dependency == OneToN)
         && cur.children.forall(child => (child.dependency == OneToOne |  child.dependency == NToOne))){
-         if(cur.children.size == 1) {
+         if(cur.children.size == 1 && !cur.children.head.isCache) {
            val child = cur.children.head
            val first = child.asInstanceOf[HDM[child.inType.type, I]]
            val second = cur
@@ -104,6 +105,32 @@ class FilterLifting extends  LogicalOptimizer with Logging{
       }
     }
   }
+}
+
+/**
+ * optimizer which replace cached hdm in the data flow
+ */
+class CacheOptimizer extends  LogicalOptimizer with Logging{
+
+  /**
+   * optimize the structure of HDM
+   *
+   * @param cur  input HDM
+   * @return     optimized HDM
+   */
+  override def optimize[I: ClassTag, R: ClassTag](cur: HDM[I, R]): HDM[_, R] = {
+    if (cur.isCache && HDMBlockManager().checkState(cur.id, Computed)) {
+      val cached = HDMBlockManager().getRef(cur.id).asInstanceOf[HDM[_, R]]
+      log.info(s"Replace HDM ${cur} with cached: ${cached} .")
+      cached
+    } else if(cur.children == null) {
+      cur
+    } else {
+      val inputSeq = cur.children.map(c => optimize(c.asInstanceOf[HDM[c.inType.type, I]]))
+      cur.copy(children = inputSeq)
+    }
+  }
+
 }
 
 object Optimizer {
