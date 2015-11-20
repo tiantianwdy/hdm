@@ -23,6 +23,7 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
                            val location: Path = Path(HDMContext.localBlockPath),
                            val preferLocation:Path = null,
                            var blockSize:Long = -1,
+                           var isCache:Boolean = false,
                            val state: BlockState = Computed,
                            var parallelism:Int = 1,
                            val keepPartition:Boolean = true,
@@ -40,7 +41,7 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
       null,
       hdm.dependency,
       this.func.andThen(hdm.func),
-      distribution, location, null, blockSize,
+      distribution, location, null, blockSize, isCache,
       state, parallelism,
       this.keepPartition && hdm.keepPartition,
       hdm.partitioner)
@@ -55,12 +56,13 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
            location: Path = this.location,
            preferLocation:Path = this.preferLocation,
            blockSize:Long = this.blockSize,
+           isCache:Boolean = this.isCache,
            state: BlockState = this.state,
            parallelism: Int = this.parallelism,
            keepPartition: Boolean = this.keepPartition,
            partitioner: Partitioner[R] = this.partitioner):HDM[T, R] = {
 
-    val ddm = new DDM(id, null, dependency, func, distribution, location, preferLocation, blockSize, state, parallelism, keepPartition, partitioner)
+    val ddm = new DDM(id, null, dependency, func, distribution, location, preferLocation, blockSize, isCache, state, parallelism, keepPartition, partitioner)
     ddm.blocks.clear()
     ddm.blocks ++= this.blocks
     ddm

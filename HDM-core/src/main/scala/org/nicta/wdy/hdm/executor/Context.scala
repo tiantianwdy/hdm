@@ -235,7 +235,7 @@ object HDMContext extends  Context{
     else throw new Exception("add job dispatcher failed.")
   }
 
-  def clean(appId:String): Unit ={
+  def clean(appId:String): Unit = {
     //todo clean all the resources used by this application
   }
 

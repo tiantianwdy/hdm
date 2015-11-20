@@ -127,7 +127,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           dfm.distribution,
           dfm.location,
           dfm.preferLocation,
-          dfm.blockSize, Computed,
+          dfm.blockSize, dfm.isCache, Computed,
           dfm.parallelism, dfm.keepPartition, dfm.partitioner.asInstanceOf[Partitioner[dfm.outType.type]])
       case ddm: DDM[_, _] => ddm.copy(state = Computed)
     }

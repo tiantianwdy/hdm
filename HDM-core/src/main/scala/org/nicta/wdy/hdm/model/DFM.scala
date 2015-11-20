@@ -21,6 +21,7 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
                                        val location: Path = Path(HDMContext.clusterBlockPath),
                                        val preferLocation:Path = null,
                                        var blockSize:Long = -1,
+                                       var isCache:Boolean = false,
                                        val state: BlockState = Declared,
                                        var parallelism: Int = -1, // undefined
                                        val keepPartition:Boolean = true,
@@ -43,7 +44,7 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
       hdm.id,
       dep,
       this.func.andThen(hdm.func),
-      blocks, distribution, location, null, blockSize,
+      blocks, distribution, location, null, blockSize, isCache,
       state, parallelism,
       this.keepPartition && hdm.keepPartition,
       hdm.partitioner )
@@ -59,12 +60,13 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[_, T]],
            location: Path = this.location,
            preferLocation:Path = this.preferLocation,
            blockSize:Long = this.blockSize,
+           isCache: Boolean = this.isCache,
            state: BlockState = this.state,
            parallelism: Int = this.parallelism,
            keepPartition: Boolean = this.keepPartition,
            partitioner: Partitioner[R] = this.partitioner):HDM[T,R] = {
 
-    new DFM(children, id, dependency, func, blocks, distribution, location, preferLocation, blockSize, state, parallelism, keepPartition, partitioner )
+    new DFM(children, id, dependency, func, blocks, distribution, location, preferLocation, blockSize, isCache, state, parallelism, keepPartition, partitioner )
   }
 
 

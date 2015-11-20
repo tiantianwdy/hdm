@@ -28,7 +28,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   val id :String
 
-  val children: Seq[_<:HDM[_, T]]
+  val children: Seq[_<: HDM[_, T]]
 
   val dependency: DataDependency
 
@@ -40,7 +40,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   val location: Path // todo change name to path
 
-  val preferLocation:Path
+  val preferLocation: Path
 
   var blockSize:Long
 
@@ -48,13 +48,13 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   var parallelism: Int
 
-  val keepPartition:Boolean
+  val keepPartition: Boolean
   
   val partitioner: Partitioner[R]
 
+  var isCache: Boolean
 
   val inType = classTag[T]
-
 
   val outType = classTag[R]
 
@@ -174,7 +174,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
   }
 
   def sorted(implicit ordering: Ordering[R], parallelism:Int): HDM[_, R] = {
-    val hdm = this.cache
+    val hdm = this.cached
     val reduceNumber = parallelism * HDMContext.PLANER_PARALLEL_NETWORK_FACTOR
     val sampleSize = math.min(100.0 * reduceNumber, 1e6)/ reduceNumber
 
@@ -286,11 +286,16 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
   }
 
 
-  def cache(implicit parallelism:Int, maxWaiting:Long = 500000):HDM[_,R] = {
+  def cached(implicit parallelism:Int, maxWaiting:Long = 500000):HDM[_,R] = {
     import scala.concurrent.duration._
     Await.result(compute(parallelism), maxWaiting millis).asInstanceOf[HDM[_, R]]
   }
 
+
+  def cache(): HDM[_,R]  ={
+    this.isCache = true
+    this
+  }
   // end of actions
 
   def copy(id: String = this.id,
@@ -302,6 +307,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
            location: Path = this.location,
            preferLocation:Path = this.preferLocation,
            blockSize:Long = this.blockSize,
+           isCache: Boolean = this.isCache,
            state: BlockState = this.state,
            parallelism: Int = this.parallelism,
            keepPartition: Boolean = this.keepPartition,
@@ -321,6 +327,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
       s"partitionNum:${if(partitioner ne null) partitioner.partitionNum else "" } \n" +
       s"children:[${if(children ne null) Try {children.map(_.id).mkString(" , ")} else "" }] \n" +
       s"state: ${state} \n" +
+      s"cache: ${isCache} \n" +
       "}"
   }
 
