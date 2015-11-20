@@ -32,6 +32,7 @@ object HDMBenchmark {
     }
 
     val iterativeBenchmark = new IterationBenchmark()
+    val sqlBenchmark = new SQLBenchmark()
     HDMContext.init(leader = context, slots = 0)//not allow local running
     Thread.sleep(100)
 
@@ -56,6 +57,7 @@ object HDMBenchmark {
         benchmark.testTeraSort(data, len)(parallelism)
       case "mapCount" =>
         benchmark.testMapCount(data, parallelism)
+      //tests for iterations
       case "iteration" =>
         iterativeBenchmark.testGeneralIteration(data, parallelism)
       case "iterativeAggregation" =>
@@ -64,7 +66,19 @@ object HDMBenchmark {
         val regressionBenchmark = new IterationBenchmark(1, 1)
         regressionBenchmark.testLinearRegression(data, 3, parallelism)
       case "weatherLR" =>
-        iterativeBenchmark.testWeatherLR(data, 12, 3, parallelism)
+        iterativeBenchmark.testWeatherLR(data, 12, 3, parallelism, false)
+      case "weatherLRCached" =>
+        iterativeBenchmark.testWeatherLR(data, 12, 3, parallelism, true)
+        //tests for SQL
+      case "select" =>
+        sqlBenchmark.testSelect(data, parallelism, len)
+      case "where" =>
+        sqlBenchmark.testWhere(data, parallelism, len, 50)
+      case "orderBy" =>
+        sqlBenchmark.testOrderBy(data, parallelism, len)
+      case "aggregation" =>
+        sqlBenchmark.testAggregation(data, parallelism, len)
+
     }
 
     res match {
@@ -82,7 +96,8 @@ object HDMBenchmark {
       val start = System.currentTimeMillis()
       hdm.compute(parallelism).map { hdm =>
         println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received response: ${hdm.id}")
-        hdm.children.foreach(println(_))
+        val size = hdm.blockSize
+        println(s"results size:$size bytes with ${hdm.children.size} blocks.")
         System.exit(0)
       }
     case "sample" =>

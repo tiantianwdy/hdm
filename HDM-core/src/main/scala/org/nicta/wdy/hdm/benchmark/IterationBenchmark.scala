@@ -21,7 +21,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
 
   def testGeneralIteration(dataPath:String, parallelism:Int = 4) = {
     val path = Path(dataPath)
-    val hdm = HDM(path).cache(parallelism)
+    val hdm = HDM(path).cached(parallelism)
     for(i <- 1 to 3){
       val start = System.currentTimeMillis()
       val vOffset = 1 // variables are only available in this scope , todo: support external variables
@@ -38,7 +38,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
 
   def testIterationWithAggregation(dataPath:String, parallelism:Int = 4): Unit ={
     val path = Path(dataPath)
-    val hdm = HDM(path).cache(parallelism)
+    val hdm = HDM(path).cached(parallelism)
     //    val kOffset = 0
     var aggregation = 0F
     for(i <- 1 to 3){
@@ -63,7 +63,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
   def testIterationWithCache(dataPath:String, parallelism:Int = 4)={
 
     val path = Path(dataPath)
-    val hdm = HDM(path).cache(parallelism)
+    val hdm = HDM(path).cache
     var aggregation = 0F
 
     for(i <- 1 to 3) {
@@ -92,6 +92,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
     val vOffset = vIndex
     val rand = new Random(42)
     var weights = DenseVector.fill(2){2 * rand.nextDouble - 1}
+    var start = System.currentTimeMillis()
 
     val hdm = HDM(path).map{ w =>
       val as = w.split(",")
@@ -101,7 +102,6 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
 
 
     for(i <- 1 to iterations) {
-      val start = System.currentTimeMillis()
       val w = weights
 //      val redFunc = (d1:Vector[Double], d2: Vector[Double]) => d1 + d2
       val gradient = hdm.map{ p =>
@@ -110,6 +110,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
       weights -= gradient
       val end = System.currentTimeMillis()
       println(s"Time consumed for iteration $i : ${end - start} ms. weights: $weights")
+      start = System.currentTimeMillis()
     }
   }
 
@@ -141,14 +142,15 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
   }
 
 
-  def testWeatherLR(dataPath: String, vectorLen: Int, iteration:Int, p:Int = 4) = {
+  def testWeatherLR(dataPath: String, vectorLen: Int, iteration:Int, p:Int = 4, cached:Boolean) = {
     implicit  val parallelism = p
     val path = Path(dataPath)
     val rand = new Random(42)
     val vecLen = vectorLen
     var weights = DenseVector.fill(vecLen){2 * rand.nextDouble - 1}
+    var start = System.currentTimeMillis()
 
-    val training = HDM(path).map(line => line.split("\\s+"))
+    val data = HDM(path).map(line => line.split("\\s+"))
 //      .filter(arr => arr.length > vecLen)
       .map{ seq => seq.drop(3).dropRight(6)}
       .filter(seq => seq.forall(s => s.matches("\\d+(.\\d+)?")))
@@ -156,11 +158,10 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
       .map{arr =>
       val vec = Vector(arr)
       DataPoint(vec, arr(0))
-    }.cache
-
+    }
+    val training = if(cached) data.cached else data.cache()
 
     for(i <- 1 to iteration) {
-      val start = System.currentTimeMillis()
       val w = weights
       val gradient = training.map{ p =>
         p.x * (1 / (1 + exp(-p.y * (w.dot(p.x)))) - 1) * p.y
@@ -168,6 +169,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
       weights -= gradient
       val end = System.currentTimeMillis()
       println(s"Time consumed for iteration $i : ${end - start} ms. weights: $weights")
+      start = System.currentTimeMillis()
     }
     weights
   }

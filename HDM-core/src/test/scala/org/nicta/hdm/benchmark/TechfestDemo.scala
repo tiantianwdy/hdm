@@ -141,33 +141,33 @@ class TechfestDemo {
     val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
-    val parallelism = 1
+    implicit val parallelism = 1
     HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
     HDMContext.init(leader = context)
     Thread.sleep(1500)
-
+    var start = System.currentTimeMillis()
     var aggregation = 0F
     val path = Path(data)
 //    val hdm = HDM(path)
 //    HDMContext.explain(HDM(path), parallelism).foreach(println(_))
-    val hdm = HDM(path).cache(parallelism)
-    hdm.children.foreach(println(_))
+    val hdm = HDM(path).cached
+//    hdm.children.foreach(println(_))
 //    println(hdm)
-    for(i <- 1 to 3) {
-      val start = System.currentTimeMillis()
+    for(i <- 1 to 2) {
       val vOffset = 1 // only avaliable in this scope, todo: support external variables
       val agg = aggregation
       val computed = hdm.map{ w =>
         val as = w.split(",")
         as(vOffset).toFloat + i*agg
       }
-//      val res = computed.collect()(parallelism)
-//      println(res.size)
+//      HDMContext.explain(computed, parallelism).foreach(println(_))
+      val res = computed.collect()(parallelism)
+      println(res.size)
 //      res.foreach(println(_))
 //      aggregation += res.sum
-      HDMContext.explain(computed, parallelism).foreach(println(_))
       val end = System.currentTimeMillis()
       println(s"Time consumed for iteration $i : ${end - start} ms.")
+      start = System.currentTimeMillis()
       Thread.sleep(100)
     }
     Thread.sleep(300)
@@ -201,7 +201,7 @@ class TechfestDemo {
     Thread.sleep(1500)
 
     val benchmark = new IterationBenchmark(1, 1)
-    benchmark.testWeatherLR(data, 12, 3, parallelism)
+    benchmark.testWeatherLR(data, 12, 3, parallelism, false)
   }
 
   @Test
