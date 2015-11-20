@@ -99,7 +99,9 @@ class DefaultHDMBlockManager extends HDMBlockManager with Logging{
   }
 
   override def checkState(id: String, state: BlockState): Boolean = {
-    getRef(id).state == state
+    val ref = getRef(id)
+    if (ref eq null) false
+    else ref.state == state
   }
 
   override def removeAll(ids: Seq[String]): Unit = {
