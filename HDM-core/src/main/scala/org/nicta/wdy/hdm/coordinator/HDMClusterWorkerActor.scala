@@ -38,7 +38,7 @@ class HDMClusterWorkerActor(leaderPath: String) extends WorkActor {
       log.info(s"received a task: ${task.taskId + "_" + task.func}")
       runningTasks.incrementAndGet()
       val startTime = System.currentTimeMillis()
-      ClusterExecutor.runTaskSynconized(task) onComplete {
+      ClusterExecutor.runTask(task) onComplete {
         case Success(results) =>
           context.actorSelection(leaderPath) ! TaskCompleteMsg(task.appId, task.taskId, task.func.toString, results)
           log.info(s"A task [${task.taskId + "_" + task.func}] has been completed in ${System.currentTimeMillis() - startTime} ms.")

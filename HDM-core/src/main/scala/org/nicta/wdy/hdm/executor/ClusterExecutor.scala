@@ -1,5 +1,7 @@
 package org.nicta.wdy.hdm.executor
 
+import java.util.concurrent.Callable
+
 import org.nicta.wdy.hdm.io.{DataParser, HDMIOManager, Path}
 import org.nicta.wdy.hdm.model.{OneToN, OneToOne, DDM}
 import org.nicta.wdy.hdm.storage.HDMBlockManager
@@ -17,6 +19,12 @@ object ClusterExecutor extends Logging{
   val blockManager = HDMBlockManager()
 
   val ioManager = HDMIOManager()
+
+  def  runTask[R: ClassTag](task: Callable[Seq[DDM[_,R]]])(implicit executionContext: ExecutionContext): Future[Seq[DDM[_,_]]] = {
+      Future {
+        task.call()
+      }
+  }
 
   def runTaskSynconized[I: ClassTag, R: ClassTag](task: Task[I, R])(implicit executionContext: ExecutionContext): Future[Seq[DDM[_,_]]] = {
     if (task.dep == OneToOne || task.dep == OneToN)
