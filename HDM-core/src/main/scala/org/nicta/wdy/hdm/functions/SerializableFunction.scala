@@ -29,9 +29,11 @@ trait Aggregatable[T,R] {
 trait ShuffleAggregatable[K,T,R] extends Aggregatable[T,R]{
 
   def map(param:T):K
+
 }
 
 trait Mergeable[R] {
 
   def merge(params:Seq[R], res:Buffer[R]): Buffer[R]
+
 }
