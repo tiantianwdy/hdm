@@ -49,6 +49,13 @@ class HashPartitioner[T:ClassTag] (var partitionNum:Int, val pFunc: T => Int ) e
       val bullet = mapBuffer.getOrElseUpdate(partitionId, CompactBuffer.empty[T])
       bullet += d
     }
+    if(mapBuffer.keySet.size < partitionNum){ // if elems is less than the partition number return empty buffers
+      for(i <- 0 until partitionNum){
+        if(!mapBuffer.contains(i)){
+          mapBuffer.put(i, CompactBuffer.empty[T])
+        }
+      }
+    }
     mapBuffer
 
   }
