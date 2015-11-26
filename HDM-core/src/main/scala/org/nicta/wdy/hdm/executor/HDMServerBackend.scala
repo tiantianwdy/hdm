@@ -37,8 +37,8 @@ class HDMServerBackend(val appManager: AppManager,
   }
 
 
-  def taskReceived[I, R](task:Task[_,_]):Future[_] = {
-    val promise = Promise[HDM[I, R]]()
+  def taskReceived[R](task:ParallelTask[R]):Future[_] = {
+    val promise = Promise[HDM[_, R]]()
     eventManager.addPromise(task.taskId, promise)
     scheduler.addTask(task)
     promise.future

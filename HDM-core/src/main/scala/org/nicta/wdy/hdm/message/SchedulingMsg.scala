@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.message
 
-import org.nicta.wdy.hdm.executor.Task
+import org.nicta.wdy.hdm.executor.{ParallelTask, Task}
 import org.nicta.wdy.hdm.model.{DDM, HDM}
 import scala.reflect.ClassTag
 import scala.language.existentials
@@ -10,7 +10,7 @@ import scala.language.existentials
  */
 trait SchedulingMsg extends Serializable
 
-case class AddTaskMsg[I:ClassTag , R :ClassTag](task:Task[I, R]) extends SchedulingMsg
+case class AddTaskMsg[R :ClassTag](task:ParallelTask[R]) extends SchedulingMsg
 
 case class TaskCompleteMsg(appId:String, taskId:String, func:String, result:Seq[DDM[_,_]]) extends SchedulingMsg
 

@@ -1,21 +1,19 @@
 package org.nicta.wdy.hdm.executor
 
-import java.util.concurrent.atomic.{AtomicInteger, AtomicBoolean}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.{LinkedBlockingDeque, TimeUnit}
 
-import org.nicta.wdy.hdm.{Buf, Arr}
-import org.nicta.wdy.hdm.io.{HDMIOManager, DataParser, Path}
+import org.nicta.wdy.hdm.functions.{ParCombinedFunc, ParallelFunction}
+import org.nicta.wdy.hdm.io.{DataParser, Path}
 import org.nicta.wdy.hdm.message.FetchSuccessResponse
 import org.nicta.wdy.hdm.model._
-import org.nicta.wdy.hdm.functions.{ParCombinedFunc, ParallelFunction, DDMFunction_1, SerializableFunction}
-import java.util.concurrent.{LinkedBlockingDeque, TimeUnit, Callable}
-import org.nicta.wdy.hdm.utils.{Utils, Logging}
-import org.slf4j.LoggerFactory
+import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
+import org.nicta.wdy.hdm.utils.Utils
+import org.nicta.wdy.hdm.{Arr, Buf}
 
-import scala.concurrent.duration.Duration
 import scala.concurrent._
+import scala.concurrent.duration.Duration
 import scala.reflect.{ClassTag, classTag}
-import scala.util.{Success, Failure}
-import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager, BlockManager, Block}
 
 
 /**
@@ -27,9 +25,8 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
                      func:ParallelFunction[I,R],
                      dep:DataDependency,
                      keepPartition:Boolean = true,
-                     partitioner: Partitioner[R] = null,
-                     createTime:Long = System.currentTimeMillis())
-                     extends Serializable with Callable[Seq[DDM[_,R]]] with Logging{
+                     partitioner: Partitioner[R] = null)
+                     extends ParallelTask[R]{
 
 
   final val inType = classTag[I]
@@ -195,8 +192,10 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
     val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
       Seq(DDM[R](taskId, data))
     } else {
+      log.info(s"Partitioning results with ${data.size} with partitioner: [${partitioner}] and partition number ${partitioner.partitionNum} .")
       partitioner.split(data).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
     }
+    log.info(s"Obtain results of blocks: ${ddms.length} .")
     ddms
   }
 

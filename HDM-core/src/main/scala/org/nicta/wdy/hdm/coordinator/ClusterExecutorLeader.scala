@@ -55,9 +55,9 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
 
   val appManager = new AppManager
 
-  val appBuffer: java.util.Map[String, ListBuffer[Task[_, _]]] = new ConcurrentHashMap[String, ListBuffer[Task[_, _]]]()
+  val appBuffer: java.util.Map[String, ListBuffer[ParallelTask[_]]] = new ConcurrentHashMap[String, ListBuffer[ParallelTask[_]]]()
 
-  val taskQueue = new LinkedBlockingQueue[Task[_, _]]()
+  val taskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
 
   val promiseMap = new ConcurrentHashMap[String, Promise[_]]()
 
@@ -170,8 +170,8 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
     stop()
   }
 
-  override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R], worker:String): Promise[HDM[I, R]] = {
-    val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
+  override protected def scheduleTask[R: ClassTag](task: ParallelTask[R], worker:String): Promise[HDM[_, R]] = {
+    val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[_, R]]]
 
 
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {
@@ -181,9 +181,20 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
       taskSucceeded(task.appId, task.taskId, task.func.toString, blks)
     } else {
       // run job, assign to remote or local node to execute this task
-      val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
-      val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
-      val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
+      val updatedTask = task match {
+        case singleInputTask:Task[_,R] =>
+          val blkSeq = singleInputTask.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val inputDDMs = blkSeq.map(bl => blockManager.getRef(Path(bl).name))
+          singleInputTask.asInstanceOf[Task[singleInputTask.inType.type, R]]
+            .copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, singleInputTask.inType.type]]])
+        case twoInputTask:TwoInputTask[_, _, R] =>
+          val blkSeq1 = twoInputTask.input1.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val blkSeq2 = twoInputTask.input2.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val inputDDM1 = blkSeq1.map(bl => blockManager.getRef(Path(bl).name))
+          val inputDDM2 = blkSeq2.map(bl => blockManager.getRef(Path(bl).name))
+          twoInputTask.asInstanceOf[TwoInputTask[twoInputTask.inTypeOne.type, twoInputTask.inTypeTwo.type, R]]
+            .copy(input1 = inputDDM1.asInstanceOf[Seq[HDM[_, twoInputTask.inTypeOne.type]]], input2 = inputDDM2.asInstanceOf[Seq[HDM[_, twoInputTask.inTypeTwo.type]]])
+      }
       workingSize.acquire(1)
       var workerPath = findPreferredWorker(updatedTask)
       while (workerPath == null || workerPath == ""){ // wait for available workers
@@ -192,7 +203,7 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
         Thread.sleep(50)
       }
       log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "__" + task.func.toString}}] ")
-      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskSynconized(updatedTask)
+      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTask(updatedTask)
       else runRemoteTask(workerPath, updatedTask)
 
 /*      future onComplete {
@@ -226,11 +237,11 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
     workingSize.release(totalSlots)
   }
 
-  override def addTask[I, R](task: Task[I, R]): Promise[HDM[I, R]] = {
-    val promise = Promise[HDM[I, R]]()
+  override def addTask[R](task: ParallelTask[R]): Promise[HDM[_, R]] = {
+    val promise = Promise[HDM[_, R]]()
     promiseMap.put(task.taskId, promise)
     if (!appBuffer.containsKey(task.appId))
-      appBuffer.put(task.appId, new ListBuffer[Task[_, _]])
+      appBuffer.put(task.appId, new ListBuffer[ParallelTask[_]])
     val lst = appBuffer.get(task.appId)
     lst += task
     triggerTasks(task.appId)
@@ -315,14 +326,14 @@ class ClusterExecutorLeader(cores:Int) extends WorkActor with Scheduler {
 
   }
 
-  private def runRemoteTask[I: ClassTag, R: ClassTag](workerPath: String, task: Task[I, R]): Future[Seq[String]] = {
+  private def runRemoteTask[ R: ClassTag](workerPath: String, task: ParallelTask[R]): Future[Seq[String]] = {
     val future = (context.actorSelection(workerPath) ? AddTaskMsg(task)).mapTo[Seq[String]]
     future
   }
 
 
 
-  private def findPreferredWorker(task: Task[_, _]): String = try {
+  private def findPreferredWorker(task: ParallelTask[_]): String = try {
 
     //    val inputLocations = task.input.flatMap(hdm => HDMBlockManager().getRef(hdm.id).blocks).map(Path(_))
     val inputLocations = task.input.flatMap { hdm =>

@@ -38,9 +38,9 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
   private val nonEmptyLock = new Semaphore(0)
 
-  private val taskQueue = new LinkedBlockingQueue[Task[_, _]]()
+  private val taskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
 
-  private val appBuffer: java.util.Map[String, ListBuffer[Task[_, _]]] = new ConcurrentHashMap[String, ListBuffer[Task[_, _]]]()
+  private val appBuffer: java.util.Map[String, ListBuffer[ParallelTask[_]]] = new ConcurrentHashMap[String, ListBuffer[ParallelTask[_]]]()
 
 
   override def startup(): Unit = {
@@ -61,7 +61,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       }.toSeq
 
       val plans = schedulingPolicy.plan(tasks, candidates, 1D, 10D , 20D)
-      val scheduledTasks = taskQueue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,Task[_,_]]
+      val scheduledTasks = taskQueue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
       plans.foreach(tuple => {
         scheduledTasks.get(tuple._1) match {
           case Some(task) =>
@@ -88,10 +88,10 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     resourceManager.release(totalSlots)
   }
 
-  override def addTask[I, R](task: Task[I, R]): Promise[HDM[I, R]] = {
-    val promise = promiseManager.createPromise[HDM[I, R]](task.taskId)
+  override def addTask[R](task: ParallelTask[R]): Promise[HDM[_, R]] = {
+    val promise = promiseManager.createPromise[HDM[_, R]](task.taskId)
     if (!appBuffer.containsKey(task.appId))
-      appBuffer.put(task.appId, new ListBuffer[Task[_, _]])
+      appBuffer.put(task.appId, new ListBuffer[ParallelTask[ _]])
     val lst = appBuffer.get(task.appId)
     lst += task
     triggerTasks(task.appId) //todo replace with planner.nextPlanning
@@ -132,22 +132,21 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       case ddm: DDM[_, _] => ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
-    HDMContext.declareHdm(Seq(ref))
+//    HDMContext.declareHdm(Seq(ref))
     log.info(s"A task is succeeded : [${taskId + "_" + func}}] ")
     val promise = promiseManager.removePromise(taskId).asInstanceOf[Promise[HDM[_, _]]]
     if (promise != null && !promise.isCompleted ){
       promise.success(ref.asInstanceOf[HDM[_, _]])
       log.info(s"A promise is triggered for : [${taskId + "_" + func}}] ")
-    }
-    else if (promise eq null) {
+    } else if (promise eq null) {
       log.warn(s"no matched promise found: ${taskId}")
     }
     triggerTasks(appId)
   }
 
 
-  override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R], workerPath:String): Promise[HDM[I, R]] = {
-    val promise = promiseManager.getPromise(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
+  override protected def scheduleTask[R: ClassTag](task: ParallelTask[R], workerPath:String): Promise[HDM[_, R]] = {
+    val promise = promiseManager.getPromise(task.taskId).asInstanceOf[Promise[HDM[_, R]]]
 
 
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {
@@ -156,13 +155,24 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       taskSucceeded(task.appId, task.taskId, task.func.toString, blks)
     } else {
       // run job, assign to remote or local node to execute this task
-      val blkSeq = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
-      val inputDDMs = blkSeq.map(bl => blockManager.getRef(Path(bl).name))
-      val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
+      val updatedTask = task match {
+        case singleInputTask:Task[_,R] =>
+          val blkSeq = singleInputTask.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val inputDDMs = blkSeq.map(bl => blockManager.getRef(Path(bl).name))
+          singleInputTask.asInstanceOf[Task[singleInputTask.inType.type, R]]
+            .copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, singleInputTask.inType.type]]])
+        case twoInputTask:TwoInputTask[_, _, R] =>
+          val blkSeq1 = twoInputTask.input1.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val blkSeq2 = twoInputTask.input2.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val inputDDM1 = blkSeq1.map(bl => blockManager.getRef(Path(bl).name))
+          val inputDDM2 = blkSeq2.map(bl => blockManager.getRef(Path(bl).name))
+          twoInputTask.asInstanceOf[TwoInputTask[twoInputTask.inTypeOne.type, twoInputTask.inTypeTwo.type, R]]
+            .copy(input1 = inputDDM1.asInstanceOf[Seq[HDM[_, twoInputTask.inTypeOne.type]]], input2 = inputDDM2.asInstanceOf[Seq[HDM[_, twoInputTask.inTypeTwo.type]]])
+      }
 //      resourceManager.require(1)
       resourceManager.decResource(workerPath, 1)
       log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "_" + task.func.toString}}] ")
-      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskSynconized(updatedTask)
+      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTask(updatedTask)
       else runRemoteTask(workerPath, updatedTask)
 
     }
@@ -171,7 +181,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
   }
 
 
-  private def runRemoteTask[I: ClassTag, R: ClassTag](workerPath: String, task: Task[I, R]): Future[Seq[String]] = {
+  private def runRemoteTask[ R: ClassTag](workerPath: String, task: ParallelTask[R]): Future[Seq[String]] = {
     val future = (actorSys.actorSelection(workerPath) ? AddTaskMsg(task)).mapTo[Seq[String]]
     future
   }
@@ -183,9 +193,8 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
    * @param appId
    */
   private def triggerTasks(appId: String) = { //todo replace with planner.findNextTask
-    if (appBuffer.containsKey(appId)) {
+    if (appBuffer.containsKey(appId)) synchronized {
       val seq = appBuffer.get(appId)
-      synchronized {
         if (!seq.isEmpty) {
           //find tasks that all inputs have been computed
           val tasks = seq.filter(t =>
@@ -216,7 +225,6 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
             log.info(s"New tasks have has been triggered: [${tasks.map(t => (t.taskId, t.func)) mkString (",")}}] ")
           }
         }
-      }
     }
 
   }

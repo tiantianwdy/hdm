@@ -28,7 +28,7 @@ trait Scheduler {
 
   def submitJob(appId:String, hdms:Seq[HDM[_,_]]): Future[HDM[_,_]]
 
-  def addTask[I,R](task:Task[I,R]):Promise[HDM[I,R]]
+  def addTask[R](task:ParallelTask[R]):Promise[HDM[_, R]]
 
   def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[HDM[_, _]]): Unit
 
@@ -38,7 +38,7 @@ trait Scheduler {
 
   def stop()
 
-  protected def scheduleTask [I:ClassTag, R:ClassTag](task:Task[I,R], workerPath:String):Promise[HDM[I, R]]
+  protected def scheduleTask [R:ClassTag](task:ParallelTask[R], workerPath:String):Promise[HDM[_, R]]
 
 }
 
@@ -61,9 +61,9 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
 
   val appManager = new AppManager //todo get from HDMContext
 
-  val appBuffer: java.util.Map[String, ListBuffer[Task[_, _]]] = new ConcurrentHashMap[String, ListBuffer[Task[_, _]]]()
+  val appBuffer: java.util.Map[String, ListBuffer[ParallelTask[_]]] = new ConcurrentHashMap[String, ListBuffer[ParallelTask[_]]]()
 
-  val taskQueue = new LinkedBlockingQueue[Task[_, _]]()
+  val taskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
 
   val promiseMap = new ConcurrentHashMap[String, Promise[_]]()
 
@@ -73,8 +73,8 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
 
   implicit val timeout = Timeout(5L, TimeUnit.MINUTES)
 
-  override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R], workerPath:String): Promise[HDM[I, R]] = {
-    val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
+  override protected def scheduleTask[R: ClassTag](task: ParallelTask[R], workerPath:String): Promise[HDM[_, R]] = {
+    val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[_, R]]]
 
 
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {
@@ -83,12 +83,23 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
       taskSucceeded(task.appId, task.taskId, task.func.toString, blks)
     } else {
       // run job, assign to remote or local node to execute this task
-      val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
-      val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
-      val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
+      val updatedTask = task match {
+        case singleInputTask:Task[_,R] =>
+          val blkSeq = singleInputTask.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val inputDDMs = blkSeq.map(bl => blockManager.getRef(Path(bl).name))
+          singleInputTask.asInstanceOf[Task[singleInputTask.inType.type, R]]
+            .copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, singleInputTask.inType.type]]])
+        case twoInputTask:TwoInputTask[_, _, R] =>
+          val blkSeq1 = twoInputTask.input1.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val blkSeq2 = twoInputTask.input2.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val inputDDM1 = blkSeq1.map(bl => blockManager.getRef(Path(bl).name))
+          val inputDDM2 = blkSeq2.map(bl => blockManager.getRef(Path(bl).name))
+          twoInputTask.asInstanceOf[TwoInputTask[twoInputTask.inTypeOne.type, twoInputTask.inTypeTwo.type, R]]
+            .copy(input1 = inputDDM1.asInstanceOf[Seq[HDM[_, twoInputTask.inTypeOne.type]]], input2 = inputDDM2.asInstanceOf[Seq[HDM[_, twoInputTask.inTypeTwo.type]]])
+      }
       workingSize.acquire(1)
       log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "__" + task.func.toString}}] ")
-      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskSynconized(updatedTask)
+      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTask(updatedTask)
       else runRemoteTask(workerPath, updatedTask)
       log.info(s"A task has been scheduled: [${task.taskId + "__" + task.func.toString}}] ")
     }
@@ -109,8 +120,8 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
     }
   }
 
-  private def schedule[I: ClassTag, R: ClassTag](task: Task[I, R]): Promise[HDM[I, R]] = {
-    val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
+  private def schedule[R: ClassTag](task: ParallelTask[R]): Promise[HDM[_, R]] = {
+    val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[_, R]]]
 
 
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {
@@ -119,9 +130,20 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
       taskSucceeded(task.appId, task.taskId, task.func.toString, blks)
     } else {
       // run job, assign to remote or local node to execute this task
-      val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
-      val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
-      val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
+      val updatedTask = task match {
+        case singleInputTask:Task[_,R] =>
+          val blkSeq = singleInputTask.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val inputDDMs = blkSeq.map(bl => blockManager.getRef(Path(bl).name))
+          singleInputTask.asInstanceOf[Task[singleInputTask.inType.type, R]]
+            .copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, singleInputTask.inType.type]]])
+        case twoInputTask:TwoInputTask[_, _, R] =>
+          val blkSeq1 = twoInputTask.input1.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val blkSeq2 = twoInputTask.input2.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val inputDDM1 = blkSeq1.map(bl => blockManager.getRef(Path(bl).name))
+          val inputDDM2 = blkSeq2.map(bl => blockManager.getRef(Path(bl).name))
+          twoInputTask.asInstanceOf[TwoInputTask[twoInputTask.inTypeOne.type, twoInputTask.inTypeTwo.type, R]]
+            .copy(input1 = inputDDM1.asInstanceOf[Seq[HDM[_, twoInputTask.inTypeOne.type]]], input2 = inputDDM2.asInstanceOf[Seq[HDM[_, twoInputTask.inTypeTwo.type]]])
+      }
       workingSize.acquire(1)
       var workerPath = Scheduler.findPreferredWorker(updatedTask, candidatesMap )
       while (workerPath == null || workerPath == ""){ // wait for available workers
@@ -130,7 +152,7 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
         Thread.sleep(50)
       }
       log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "__" + task.func.toString}}] ")
-      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskSynconized(updatedTask)
+      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTask(updatedTask)
       else runRemoteTask(workerPath, updatedTask)
       log.info(s"A task has been scheduled: [${task.taskId + "__" + task.func.toString}}] ")
     }
@@ -145,11 +167,11 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
     workingSize.release(totalSlots)
   }
 
-  override def addTask[I, R](task: Task[I, R]): Promise[HDM[I, R]] = {
-    val promise = Promise[HDM[I, R]]()
+  override def addTask[R](task: ParallelTask[R]): Promise[HDM[_, R]] = {
+    val promise = Promise[HDM[_, R]]()
     promiseMap.put(task.taskId, promise)
     if (!appBuffer.containsKey(task.appId))
-      appBuffer.put(task.appId, new ListBuffer[Task[_, _]])
+      appBuffer.put(task.appId, new ListBuffer[ParallelTask[_]])
     val lst = appBuffer.get(task.appId)
     lst += task
     triggerTasks(task.appId)
@@ -231,7 +253,7 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
 
   }
 
-  private def runRemoteTask[I: ClassTag, R: ClassTag](workerPath: String, task: Task[I, R]): Future[Seq[String]] = {
+  private def runRemoteTask[R: ClassTag](workerPath: String, task: ParallelTask[R]): Future[Seq[String]] = {
     val future = (context.actorSelection(workerPath) ? AddTaskMsg(task)).mapTo[Seq[String]]
     future
   }
@@ -245,7 +267,7 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
 object Scheduler extends Logging{
 
 
-  def findPreferredWorker(task: Task[_, _], candidatesMap: mutable.Map[String, AtomicInteger]): String = try {
+  def findPreferredWorker(task: ParallelTask[_], candidatesMap: mutable.Map[String, AtomicInteger]): String = try {
 
     //    val inputLocations = task.input.flatMap(hdm => HDMBlockManager().getRef(hdm.id).blocks).map(Path(_))
     val inputLocations = task.input.flatMap { hdm =>
