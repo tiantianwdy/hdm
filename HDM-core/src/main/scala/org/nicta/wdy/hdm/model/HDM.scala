@@ -28,7 +28,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
 
   val id :String
 
-  val children: Seq[_<: HDM[_, T]]
+  val children: Seq[ _<: HDM[_, T]]
 
   val dependency: DataDependency
 
@@ -198,6 +198,27 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
     sorted(ordering, parallelism)
   }
 
+  def partition(func:R => Int):HDM[_, R] = {
+    new DFM[R,R](children = Seq(this), dependency = OneToN, func = new NullFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = new HashPartitioner(4, func), parallelism = 1)
+  }
+
+
+  def cogroup[K, U](other:HDM[_,U], f1: R=>K, f2: U => K): HDM[_, (K,(Iterable[R], Iterable[U]))] = {
+    val inputThis = this.partition(f1(_).hashCode())
+    val inputThat = other.partition(f2(_).hashCode())
+    val groupFunc = new CoGroupFunc[R,U,K](f1, f2).asInstanceOf[ParallelFunction[Any,(K, (Iterable[R], Iterable[U]))]]
+    new DFM[Any,(K, (Iterable[R], Iterable[U]))](children = Seq(inputThis, inputThat).asInstanceOf[Seq[HDM[_, Any]]], dependency = PartialNToOne, func = groupFunc , distribution = distribution, location = location, keepPartition = true)
+
+  }
+
+  def joinBy[K, U](other:HDM[_, U], f1: R => K, f2: U => K): HDM[_, (K, R, U)] = {
+    this.cogroup(other, f1, f2).mapPartitions{ arr =>
+      arr.flatMap{ tup =>
+        for{r <- tup._2._1; u <- tup._2._2} yield {(tup._1, r, u)}
+      }
+    }
+  }
+
   def flatMap[U](f: R => U): HDM[R,U] = ???
 
   def fold[B](t: B)(f: (B, R) => B): HDM[R,B] = ???
@@ -264,9 +285,15 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
     Await.result(traverse(parallelism), maxWaiting millis)
   }
 
-  def sample(size:Int)(implicit parallelism:Int):Future[Iterator[R]] = sample(Right(size))
+  def sample(size:Int, maxWaiting:Long)(implicit parallelism:Int):Iterator[R] = {
+    import scala.concurrent.duration._
+    Await.result(sample(Right(size)), maxWaiting millis)
+  }
 
-  def sample(percentage:Double)(implicit parallelism:Int):Future[Iterator[R]] = sample(Left(percentage))
+  def sample(percentage:Double, maxWaiting:Long)(implicit parallelism:Int):Iterator[R] = {
+    import scala.concurrent.duration._
+    Await.result(sample(Left(percentage)), maxWaiting millis)
+  }
 
   def sample(proportion:Either[Double, Int])(implicit parallelism:Int):Future[Iterator[R]] = {
     proportion match {
