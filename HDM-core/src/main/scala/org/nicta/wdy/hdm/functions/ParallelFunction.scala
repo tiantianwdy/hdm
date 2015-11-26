@@ -1,17 +1,13 @@
 package org.nicta.wdy.hdm.functions
 
 
-import java.util
-
-import org.apache.hadoop.util.MergeSort
-import org.nicta.wdy.hdm.{Arr, Buf}
 import org.nicta.wdy.hdm.collections.BufUtils
-import org.nicta.wdy.hdm.executor.{ShuffleBlockAggregator, Aggregator}
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.utils.SortingUtils
+import org.nicta.wdy.hdm.{Arr, Buf}
 
 import scala.collection.mutable
-import scala.collection.mutable.{BufferLike, HashMap, Buffer, ArrayBuffer}
+import scala.collection.mutable.{Buffer, HashMap}
 import scala.reflect._
 import scala.util.Sorting
 
@@ -28,7 +24,7 @@ import scala.util.Sorting
  * @tparam T input type
  * @tparam R return type
  */
-abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFunction[Arr[T], Arr[R]] {
+abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFunction[Arr[T], Arr[R]] with Aggregatable[Arr[T], Buffer[R]]{
 
 
   val dependency:FuncDependency
@@ -72,7 +68,7 @@ abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFu
 //  def getAggregator():Aggregator[Seq[T],Seq[R]]
 
 
-  def aggregate(params:Arr[T], res:mutable.Buffer[R]): mutable.Buffer[R]
+//  def aggregate(params:Arr[T], res:mutable.Buffer[R]): mutable.Buffer[R]
 
 }
 
@@ -413,7 +409,7 @@ class SortFunc[T : ClassTag](val sortBeforeMerge:Boolean = false)(implicit order
   }
 
   def aggregateSorting(params: Arr[T], res: Buffer[T]): Buffer[T] = {
-    //assume both res and params have not been unsorted
+    //assume both res and params have not been sorted
     //todo change to support AnyVal
     classTag[T] match {
       case ct:ClassTag[Int] =>
@@ -434,6 +430,8 @@ class SortFunc[T : ClassTag](val sortBeforeMerge:Boolean = false)(implicit order
   }
 
 }
+
+
 
 object ParallelFunction {
 
