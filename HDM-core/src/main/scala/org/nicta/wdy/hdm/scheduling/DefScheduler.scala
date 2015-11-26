@@ -32,9 +32,9 @@ class DefScheduler(val blockManager:HDMBlockManager,
 
   private val isRunning = new AtomicBoolean(false)
 
-  private val taskQueue = new LinkedBlockingQueue[Task[_, _]]()
+  private val taskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
 
-  private val appBuffer: java.util.Map[String, ListBuffer[Task[_, _]]] = new ConcurrentHashMap[String, ListBuffer[Task[_, _]]]()
+  private val appBuffer: java.util.Map[String, ListBuffer[ParallelTask[_]]] = new ConcurrentHashMap[String, ListBuffer[ParallelTask[_]]]()
 
 
 
@@ -48,8 +48,8 @@ class DefScheduler(val blockManager:HDMBlockManager,
   }
 
 
-  private def schedule[I: ClassTag, R: ClassTag](task: Task[I, R]): Promise[HDM[I, R]] = {
-    val promise = promiseManager.getPromise(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
+  private def schedule[R: ClassTag](task: ParallelTask[R]): Promise[HDM[_, R]] = {
+    val promise = promiseManager.getPromise(task.taskId).asInstanceOf[Promise[HDM[_, R]]]
 
 
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {
@@ -58,9 +58,20 @@ class DefScheduler(val blockManager:HDMBlockManager,
       taskSucceeded(task.appId, task.taskId, task.func.toString, blks)
     } else {
       // run job, assign to remote or local node to execute this task
-      val blks = task.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
-      val inputDDMs = blks.map(bl => blockManager.getRef(Path(bl).name))
-      val updatedTask = task.copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, I]]])
+      val updatedTask = task match {
+        case singleInputTask:Task[_,R] =>
+          val blkSeq = singleInputTask.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val inputDDMs = blkSeq.map(bl => blockManager.getRef(Path(bl).name))
+          singleInputTask.asInstanceOf[Task[singleInputTask.inType.type, R]]
+            .copy(input = inputDDMs.asInstanceOf[Seq[HDM[_, singleInputTask.inType.type]]])
+        case twoInputTask:TwoInputTask[_, _, R] =>
+          val blkSeq1 = twoInputTask.input1.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val blkSeq2 = twoInputTask.input2.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
+          val inputDDM1 = blkSeq1.map(bl => blockManager.getRef(Path(bl).name))
+          val inputDDM2 = blkSeq2.map(bl => blockManager.getRef(Path(bl).name))
+          twoInputTask.asInstanceOf[TwoInputTask[twoInputTask.inTypeOne.type, twoInputTask.inTypeTwo.type, R]]
+            .copy(input1 = inputDDM1.asInstanceOf[Seq[HDM[_, twoInputTask.inTypeOne.type]]], input2 = inputDDM2.asInstanceOf[Seq[HDM[_, twoInputTask.inTypeTwo.type]]])
+      }
       resourceManager.require(1)
       var workerPath = findPreferredWorker(updatedTask)
       while (workerPath == null || workerPath == ""){ // wait for available workers
@@ -86,10 +97,10 @@ class DefScheduler(val blockManager:HDMBlockManager,
     resourceManager.release(totalSlots)
   }
 
-  override def addTask[I, R](task: Task[I, R]): Promise[HDM[I, R]] = {
-    val promise = promiseManager.createPromise[HDM[I, R]](task.taskId)
+  override def addTask[R](task: ParallelTask[R]): Promise[HDM[_, R]] = {
+    val promise = promiseManager.createPromise[HDM[_, R]](task.taskId)
     if (!appBuffer.containsKey(task.appId))
-      appBuffer.put(task.appId, new ListBuffer[Task[_, _]])
+      appBuffer.put(task.appId, new ListBuffer[ParallelTask[_]])
     val lst = appBuffer.get(task.appId)
     lst += task
     triggerTasks(task.appId) //todo replace with planner.nextPlanning
@@ -133,10 +144,10 @@ class DefScheduler(val blockManager:HDMBlockManager,
   }
 
 
-  override protected def scheduleTask[I: ClassTag, R: ClassTag](task: Task[I, R], workerPath:String): Promise[HDM[I, R]] = {
-    val promise = promiseManager.getPromise(task.taskId).asInstanceOf[Promise[HDM[I, R]]]
+  override protected def scheduleTask[R: ClassTag](task: ParallelTask[R], workerPath:String): Promise[HDM[_, R]] = {
+    val promise = promiseManager.getPromise(task.taskId).asInstanceOf[Promise[HDM[_, R]]]
     log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "__" + task.func.toString}}] ")
-    val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTaskSynconized(task)
+    val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTask(task)
     else runRemoteTask(workerPath.toString, task)
 
     log.info(s"A task has been scheduled: [${task.taskId + "_" + task.func.toString}}] ")
@@ -144,7 +155,7 @@ class DefScheduler(val blockManager:HDMBlockManager,
   }
 
   //todo wrap as scheduling policy
-  private def findPreferredWorker(task: Task[_, _]): String = try {
+  private def findPreferredWorker(task: ParallelTask[_]): String = try {
 
     //    val inputLocations = task.input.flatMap(hdm => HDMBlockManager().getRef(hdm.id).blocks).map(Path(_))
     val inputLocations = task.input.flatMap { hdm =>
@@ -168,7 +179,7 @@ class DefScheduler(val blockManager:HDMBlockManager,
     case e: Throwable => log.error(s"failed to find worker for task:${task.taskId}"); ""
   }
 
-  private def runRemoteTask[I: ClassTag, R: ClassTag](workerPath: String, task: Task[I, R]): Future[Seq[String]] = {
+  private def runRemoteTask[I: ClassTag, R: ClassTag](workerPath: String, task: ParallelTask[R]): Future[Seq[String]] = {
     val future = (actorSys.actorSelection(workerPath) ? AddTaskMsg(task)).mapTo[Seq[String]]
     future
   }
