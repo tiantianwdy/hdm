@@ -31,7 +31,7 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
 
 
 
-  def this(){
+  def this() {
    this(elems = null)
   }
 
