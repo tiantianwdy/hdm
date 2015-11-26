@@ -1,10 +1,12 @@
 package org.nicta.wdy.hdm.benchmark
 
-import breeze.linalg.{Vector, DenseVector}
+import breeze.linalg.{squaredDistance, Vector, DenseVector}
 import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.HDMContext._
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
 
+import scala.collection.mutable
 import scala.math._
 import scala.util.Random
 
@@ -147,7 +149,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
     val path = Path(dataPath)
     val rand = new Random(42)
     val vecLen = vectorLen
-    var weights = DenseVector.fill(vecLen){2 * rand.nextDouble - 1}
+    var weights = DenseVector.fill(vecLen){2 * rand.nextDouble() - 1}
     var start = System.currentTimeMillis()
 
     val data = HDM(path).map(line => line.split("\\s+"))
@@ -174,5 +176,71 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
     weights
   }
 
+
+  def testWeatherKMeans(dataPath: String, vectorLen: Int, iterations:Int, p:Int = 4, K:Int, cached:Boolean) = {
+
+    implicit  val parallelism = p
+    val path = Path(dataPath)
+    val vecLen = vectorLen
+    var tempDist = 1.0
+    var start = System.currentTimeMillis()
+
+    val data = HDM(path).map(line => line.split("\\s+"))
+      //      .filter(arr => arr.length > vecLen)
+      .map{ seq => seq.drop(3).dropRight(6)}
+      .filter(seq => seq.forall(s => s.matches("\\d+(.\\d+)?")))
+      .map{seq => seq.take(vecLen).map(_.toDouble).toArray}
+      .map{arr =>
+      Vector(arr)
+    }
+
+    val training = if(cached) data.cached else data.cache()
+    val kPointsBuffer = training.sample(K, 5000000).toArray
+    println(s"Initial points: ${kPointsBuffer.length}")
+
+    for(i <- 1 to iterations) {
+      val kPoints = kPointsBuffer
+//      println(s"Initial points: ${kPoints.take(2).mkString}")
+      val closest = training.map (p => (closestPoint(p, kPoints), (p, 1)))
+
+      val pointStats = closest.reduceByKey{case ((x1, y1), (x2, y2)) => (x1 + x2, y1 + y2)}
+
+      val newPoints = pointStats.map {pair =>
+        (pair._1, pair._2._1 * (1.0 / pair._2._2))}.collect().toMap
+
+      val oldPoints = kPoints.clone()
+
+      for (newP <- newPoints) {
+        kPointsBuffer(newP._1) = newP._2
+      }
+
+      tempDist = 0.0
+      for (i <- 0 until K) {
+        tempDist += squaredDistance(oldPoints(i), kPointsBuffer(i))
+      }
+
+
+      val end = System.currentTimeMillis()
+      println(s"Finished iteration $i  (delta = $tempDist ) in ${end - start} ms.")
+      start = System.currentTimeMillis()
+    }
+    tempDist
+
+  }
+
+  def closestPoint(p: Vector[Double], centers: Array[Vector[Double]]): Int = {
+    var bestIndex = 0
+    var closest = Double.PositiveInfinity
+
+    for (i <- 0 until centers.length) {
+      val tempDist = squaredDistance(p, centers(i))
+      if (tempDist < closest) {
+        closest = tempDist
+        bestIndex = i
+      }
+    }
+
+    bestIndex
+  }
 
 }

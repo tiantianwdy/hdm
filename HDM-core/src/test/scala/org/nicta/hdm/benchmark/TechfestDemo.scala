@@ -1,7 +1,7 @@
 package org.nicta.hdm.benchmark
 
 import org.junit.{After, Test}
-import org.nicta.wdy.hdm.benchmark.{IterationBenchmark, KVBasedPrimitiveBenchmark}
+import org.nicta.wdy.hdm.benchmark.{UservisitsSQLBenchmark, IterationBenchmark, KVBasedPrimitiveBenchmark}
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.executor.HDMContext._
 import com.baidu.bpit.akka.messages.{AddMsg, Query}
@@ -51,14 +51,7 @@ class TechfestDemo {
 //      .groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
 
-    wordCount.sample(20)(2) onComplete {
-      case Success(hdm) =>
-        println("Job completed and received response:" + hdm)
-        hdm.foreach(println(_))
-      case Failure(t) =>
-        println("Job failed because of: " + t)
-        t.printStackTrace()
-    }
+    wordCount.sample(20, 500000)(parallelism = 2).foreach(println(_))
 
     Thread.sleep(50000000)
   }
@@ -93,12 +86,12 @@ class TechfestDemo {
     val hdm =
 //    benchmark.testGroupBy(data,len, parallelism)
 //    benchmark.testMultipleMap(data,len, parallelism)
-    benchmark.testMultiMapFilter(data,len, parallelism, "a")
+//    benchmark.testMultiMapFilter(data,len, parallelism, "a")
 //    benchmark.testFindByKey(data,len, parallelism, "a")
 //    benchmark.testReduceByKey(data,len, parallelism)
-//    benchmark.testMap(data,len, parallelism)
+    benchmark.testMap(data,len, parallelism)
 
-    onEvent(hdm, "compute")(parallelism)
+    onEvent(hdm, "collect")(parallelism)
     Thread.sleep(50000000)
   }
 
@@ -112,7 +105,7 @@ class TechfestDemo {
       }
     case "sample" =>
       //      val start = System.currentTimeMillis()
-      hdm.sample(25).map(iter => iter.foreach(println(_)))
+      hdm.sample(25, 500000)foreach(println(_))
     case "collect" =>
       val start = System.currentTimeMillis()
       val itr = hdm.collect()
@@ -220,6 +213,27 @@ class TechfestDemo {
     Thread.sleep(15000000)
   }
 
+
+  @Test
+  def testSQLBenchmark():Unit = {
+    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+    //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
+        val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
+//    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/weather"
+    implicit val parallelism = 1
+    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    HDMContext.init(leader = context)
+    Thread.sleep(1500)
+
+    val benchmark = new UservisitsSQLBenchmark
+//    val hdm = benchmark.testSelect(data, parallelism, 3)
+//    val hdm = benchmark.testWhere(data, parallelism, 3, 0.5F)
+//    val hdm = benchmark.testOrderBy(data, parallelism, 3)
+    val hdm = benchmark.testAggregation(data, parallelism, 3)
+
+    onEvent(hdm, "collect")
+    Thread.sleep(1500000)
+  }
 
 
   @After

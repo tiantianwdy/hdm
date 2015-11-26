@@ -8,7 +8,7 @@ import org.nicta.wdy.hdm.model.HDM
 /**
  * Created by tiantian on 19/11/15.
  */
-class SQLBenchmark extends Serializable {
+class RankingSQLBenchmark extends Serializable {
 
   def init(context:String, localCores:Int = 0): Unit ={
     HDMContext.init(leader = context, slots = localCores)

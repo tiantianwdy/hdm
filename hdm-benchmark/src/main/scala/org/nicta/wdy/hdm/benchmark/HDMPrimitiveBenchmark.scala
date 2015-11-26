@@ -25,6 +25,8 @@ object HDMBenchmark {
     val dataTag = if(args.length >= 5) args(4) else "ranking"
     val len = if(args.length >= 6) args(5).toInt else 3
 
+    val start = System.currentTimeMillis()
+
     val benchmark = dataTag match {
       case "userVisits" => new KVBasedPrimitiveBenchmark(context, 1, 3)
       case "ranking" => new KVBasedPrimitiveBenchmark(context)
@@ -32,9 +34,11 @@ object HDMBenchmark {
     }
 
     val iterativeBenchmark = new IterationBenchmark()
-    val sqlBenchmark = new SQLBenchmark()
+    val sqlBenchmark = new RankingSQLBenchmark()
+    val uservisitsSQL = new UservisitsSQLBenchmark()
     HDMContext.init(leader = context, slots = 0)//not allow local running
-    Thread.sleep(100)
+    Thread.sleep(64)
+    val endInit = System.currentTimeMillis()
 
     val res = testTag match {
       case "map" =>
@@ -69,21 +73,34 @@ object HDMBenchmark {
         iterativeBenchmark.testWeatherLR(data, 12, 3, parallelism, false)
       case "weatherLRCached" =>
         iterativeBenchmark.testWeatherLR(data, 12, 3, parallelism, true)
+      case "weatherKMeans" =>
+        iterativeBenchmark.testWeatherKMeans(data, 12, 3, parallelism, 128, false)
         //tests for SQL
       case "select" =>
-        sqlBenchmark.testSelect(data, parallelism, len)
+        if(dataTag == "userVisits")
+          uservisitsSQL.testSelect(data, parallelism, len)
+        else
+          sqlBenchmark.testSelect(data, parallelism, len)
       case "where" =>
-        sqlBenchmark.testWhere(data, parallelism, len, 50)
+        if(dataTag == "userVisits")
+          uservisitsSQL.testWhere(data, parallelism, len, 0.5F)
+        else
+          sqlBenchmark.testWhere(data, parallelism, len, 50)
       case "orderBy" =>
-        sqlBenchmark.testOrderBy(data, parallelism, len)
+        if(dataTag == "userVisits")
+          uservisitsSQL.testOrderBy(data, parallelism, len)
+        else
+          sqlBenchmark.testOrderBy(data, parallelism, len)
       case "aggregation" =>
-        sqlBenchmark.testAggregation(data, parallelism, len)
-
+        if(dataTag == "userVisits")
+          uservisitsSQL.testAggregation(data, parallelism, len)
+        else
+          sqlBenchmark.testAggregation(data, parallelism, len)
     }
 
     res match {
       case hdm:HDM[_,_] =>
-        onEvent(hdm, "compute")(parallelism)
+        onEvent(hdm, "compute", start, endInit)(parallelism)
       case other:Any => //do nothing
     }
 
@@ -91,18 +108,20 @@ object HDMBenchmark {
   }
 
 
-  def onEvent(hdm:HDM[_,_], action:String)(implicit parallelism:Int) = action match {
+  def onEvent(hdm:HDM[_,_], action:String, start:Long, endInit:Long)(implicit parallelism:Int) = action match {
     case "compute" =>
-      val start = System.currentTimeMillis()
       hdm.compute(parallelism).map { hdm =>
-        println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received response: ${hdm.id}")
-        val size = hdm.blockSize
+        val end = System.currentTimeMillis()
+        println(s"Job initiated in ${endInit - start} ms.")
+        println(s"Job executed in ${end - endInit} ms.")
+        println(s"Job completed in ${end - start} ms. And received response: ${hdm.id}")
+        val size = hdm.children.map(_.blockSize).reduce(_ + _)
         println(s"results size:$size bytes with ${hdm.children.size} blocks.")
         System.exit(0)
       }
     case "sample" =>
       //      val start = System.currentTimeMillis()
-      hdm.sample(25).map(iter => iter.foreach(println(_)))
+      hdm.sample(25, 500000).foreach(println(_))
     case "collect" =>
       hdm.traverse.map(itr => println(itr.size))
     case x =>
