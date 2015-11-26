@@ -1,7 +1,8 @@
 package org.nicta.wdy.hdm.io
 
-import java.util.concurrent.LinkedBlockingDeque
+import java.util.concurrent.{Semaphore, LinkedBlockingDeque}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.locks.ReentrantLock
 
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
@@ -11,6 +12,7 @@ import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager, BlockRef}
 import org.nicta.wdy.hdm.utils.Logging
 
 import scala.collection.JavaConversions._
+import scala.concurrent.Lock
 import scala.reflect.ClassTag
 
 /**
@@ -27,7 +29,7 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize
   val fetchingCompleted = new AtomicBoolean(false)
   val isReading = new AtomicBoolean(false)
   val inputQueue = new LinkedBlockingDeque[A]
-
+  val waitForReading = new Semaphore(0)
 
   def this(hdms:Seq[HDM[_,_]]){
     this(hdms.flatMap(_.blocks).map(Path(_)), 100000)
@@ -47,7 +49,14 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize
       if(inputQueue.size() < bufferSize && readingOffset.get() < blockRefs.length && !isReading.get()){
         isReading.set(true)
         loadNextBlock(blockRefs(readingOffset.getAndIncrement()))
-        inputQueue.take()
+        if(inputQueue.nonEmpty){
+          inputQueue.take()
+        } else {
+          log.info(s"waiting for loading block...")
+          waitForReading.acquire()
+          log.info(s"waiting completed, start getting next element..")
+          next()
+        }
       } else {
         inputQueue.take()
       }
@@ -70,17 +79,20 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize
     }
     inputQueue.addAll(blk.asInstanceOf[Block[A]].data)
     isReading.set(false)
-    log.info(s"Fetched block:${blk.id}, progress: (${blockCounter.get}/${blockRefs.length}).")
+    log.info(s"Fetched block:${blk.id} with length ${blk.size}, progress: (${blockCounter.get}/${blockRefs.length}).")
   }
 
   val fetchHandler = (resp:FetchSuccessResponse) => {
     if (blockCounter.incrementAndGet() >= blockRefs.length) {
       fetchingCompleted.set(true)
     }
-    inputQueue.addAll(serializeBlock(resp))
+    val data = serializeBlock(resp)
+    inputQueue.addAll(data)
     isReading.set(false)
-    log.info(s"Received fetch response:${resp.id} with size ${resp.length}, progress: (${blockCounter.get}/${blockRefs.length}).")
-  }
+    log.info(s"Received fetch response:${resp.id} with ${data.length} elements, progress: (${blockCounter.get}/${blockRefs.length}).")
+    if(waitForReading.hasQueuedThreads())
+      waitForReading.release()
+   }
 
   def serializeBlock(received: Any):Seq[A] ={
     val block = received match {
