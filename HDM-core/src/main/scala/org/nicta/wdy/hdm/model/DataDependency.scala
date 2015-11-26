@@ -13,6 +13,10 @@ case object OneToN extends DataDependency
 
 case object NToOne extends DataDependency
 
+case object PartialNToOne extends DataDependency
+
+case object FullNtoOne extends DataDependency
+
 
 
 trait FuncDependency extends Serializable 
