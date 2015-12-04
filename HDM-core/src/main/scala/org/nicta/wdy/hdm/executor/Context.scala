@@ -15,6 +15,7 @@ import org.nicta.wdy.hdm.planing.StaticPlaner
 import org.nicta.wdy.hdm.scheduling.{AdvancedScheduler, SchedulingPolicy}
 import org.nicta.wdy.hdm.serializer.{JavaSerializer, SerializerInstance}
 import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
+import org.nicta.wdy.hdm.utils.Logging
 
 import scala.concurrent.{Future, Promise}
 import scala.reflect.ClassTag
@@ -34,7 +35,7 @@ trait Context {
   def runTask[T,R](target:HDM[_, T], func:SerializableFunction[T,R]): Future[HDM[T,R]] = ???
 }
 
-object HDMContext extends  Context{
+object HDMContext extends  Context with Logging{
 
   implicit lazy val executionContext = ClusterExecutorContext((CORES * parallelismFactor).toInt)
 
@@ -85,6 +86,10 @@ object HDMContext extends  Context{
   val blockManager = HDMBlockManager()
 
   val planer = StaticPlaner
+
+  private var hdmBackEnd:HDMServerBackend = null
+
+  lazy val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
 
 //  val scheduler = new SimpleFIFOScheduler
 
@@ -159,14 +164,18 @@ object HDMContext extends  Context{
 
 
   def getServerBackend():HDMServerBackend = {
-    val appManager = new AppManager
-    val blockManager = HDMBlockManager()
-    val promiseManager = new DefPromiseManager
-    val resourceManager = new DefResourceManager
-    val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
-//    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
-    val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system, schedulingPolicy)
-    new HDMServerBackend(appManager, blockManager, scheduler, planer, resourceManager, promiseManager)
+    if(hdmBackEnd == null) {
+      val appManager = new AppManager
+      val blockManager = HDMBlockManager()
+      val promiseManager = new DefPromiseManager
+      val resourceManager = new DefResourceManager
+      val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
+      //    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
+      val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system, schedulingPolicy)
+      hdmBackEnd = new HDMServerBackend(appManager, blockManager, scheduler, planer, resourceManager, promiseManager)
+      log.warn(s"created new HDMServerBackend.")
+    }
+    hdmBackEnd
   }
 
   def getCompressor(): CompressionCodec ={
