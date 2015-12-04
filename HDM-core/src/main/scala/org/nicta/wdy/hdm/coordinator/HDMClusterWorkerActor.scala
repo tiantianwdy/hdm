@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import com.baidu.bpit.akka.actors.worker.WorkActor
 import org.nicta.wdy.hdm.executor.{ClusterExecutor, HDMContext}
 import org.nicta.wdy.hdm.message.{LeaveMsg, TaskCompleteMsg, AddTaskMsg, JoinMsg}
+import org.nicta.wdy.hdm.storage.HDMBlockManager
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -42,6 +43,7 @@ class HDMClusterWorkerActor(leaderPath: String) extends WorkActor {
         case Success(results) =>
           context.actorSelection(leaderPath) ! TaskCompleteMsg(task.appId, task.taskId, task.func.toString, results)
           log.info(s"A task [${task.taskId + "_" + task.func}] has been completed in ${System.currentTimeMillis() - startTime} ms.")
+          log.info(s"Memory remanding: ${HDMBlockManager.freeMemMB} MB.")
         //recycle memory when workers are free
         //          if(runningTasks.decrementAndGet() <= 0) Future {
         //              Thread.sleep(64)
