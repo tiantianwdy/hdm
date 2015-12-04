@@ -4,7 +4,10 @@ package org.nicta.wdy.hdm.planing
  * Created by tiantian on 9/04/15.
  */
 
+import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.model.DDM
+import org.nicta.wdy.hdm.scheduling.SchedulingTask
+import org.nicta.wdy.hdm.storage.HDMBlockManager
 
 import scala.collection.mutable.Buffer
 import org.nicta.wdy.hdm.io.Path
@@ -114,5 +117,21 @@ object PlanningUtils {
     grouped.map{seq =>
       seq.map(p => ddmMap(p))
     }
+  }
+
+  def groupDDMByMinminScheduling[R](ddms: Seq[DDM[_, R]], candidates: Seq[Path]) = {
+    val ddmMap = ddms.map(d => (d.id -> d)).toMap[String, DDM[_, R]]
+    val tasks = ddms.map { ddm =>
+      val id = ddm.id
+      val inputLocations = Seq(ddm.preferLocation)
+      val inputSize = Seq(ddm.blockSize / 1024)
+      SchedulingTask(id, inputLocations, inputSize, ddm.dependency)
+    }
+    val plans = HDMContext.schedulingPolicy.plan(tasks, candidates,
+      HDMContext.SCHEDULING_FACTOR_CPU,
+      HDMContext.SCHEDULING_FACTOR_IO,
+      HDMContext.SCHEDULING_FACTOR_NETWORK)
+    val grouped = plans.toSeq.groupBy(_._2).map(group => group._2.map(kv => ddmMap(kv._1))).toSeq
+    grouped
   }
 }

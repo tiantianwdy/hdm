@@ -1,9 +1,12 @@
 package org.nicta.wdy.hdm.planing
 
+import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.functions.{ParallelFunction, NullFunc, ParUnionFunc, FlattenFunc}
 import org.nicta.wdy.hdm.io.{DataParser, Path}
 import org.nicta.wdy.hdm.model._
+import org.nicta.wdy.hdm.scheduling.Scheduler
 import org.nicta.wdy.hdm.storage.HDMBlockManager
+import org.nicta.wdy.hdm.utils.Logging
 
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
@@ -28,7 +31,9 @@ trait PhysicalPlanner extends Serializable{
  * {id of the ith block of a dfm } := dfm.id + "_b" + i
  *
  */
-class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) extends PhysicalPlanner {
+class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) extends PhysicalPlanner with Logging{
+
+  def resourceManager = HDMContext.getServerBackend().resourceManager
 
   def getStaticBlockUrls(hdm :HDM[_,_]):Seq[String] = hdm match {
     case dfm: HDM[_,_] =>
@@ -61,7 +66,18 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
 //        val inputs = groupPaths.map(seq => seq.map(b => blockMap(b.toString)))
 
         // group by location similarity
-        val inputs = PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[String,String]]]]
+        val slots = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
+        val candidates = for( i <- 0 until slots.size) yield {
+          Path(slots(i).toString + "/" + i) //generate different path for slots on the same worker
+        }
+        log.warn(s"candidate size: ${candidates.size}. Default parallel: $defParallel .")
+        val inputs = if (candidates.size == defParallel) {
+          log.warn("group input data by MinminScheduling.")
+          PlanningUtils.groupDDMByMinminScheduling(children, candidates)
+        } else {
+          log.warn("group input data by DDM boundary.")
+          PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[String, String]]]]
+        }
         val func = target.func.asInstanceOf[ParallelFunction[String,R]]
 
         val mediator = inputs.map(seq => new DFM(id = leafHdm.id + "_b" + inputs.indexOf(seq), children = seq, dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner))

@@ -30,6 +30,14 @@ trait SchedulingTestData {
     res
   }
 
+  def generateWorkerPath(addressPool:Seq[String], factor:Int)= {
+    val res = mutable.Buffer.empty[String]
+    for(address <- addressPool; i <- 1 to factor){
+      res += s"akka.tcp://slaveSys@${address}/user/smsSlave/"
+    }
+    res
+  }
+
   def generateWorkers(addressPool:Seq[String]) = {
     addressPool.map(addr => s"akka.tcp://masterSys@$addr/user/smsSlave/")
   }

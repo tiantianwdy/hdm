@@ -1,6 +1,7 @@
 package org.nicta.hdm.io
 
 import org.junit.Test
+import org.nicta.hdm.scheduling.SchedulingTestData
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.functions.NullFunc
 import org.nicta.wdy.hdm.io.{DataParser, Path}
@@ -8,11 +9,12 @@ import org.nicta.wdy.hdm.model.DDM
 import org.nicta.wdy.hdm.planing.PlanningUtils
 
 import scala.collection.mutable.ListBuffer
+import scala.util.Random
 
 /**
  * Created by tiantian on 4/01/15.
  */
-class PathTest {
+class PathTest extends SchedulingTestData{
 
   val datasource = Seq(
     Path("hdfs://17.110.0.1:9001/user/spark/benchmark/1node/rankings/part-00001"),
@@ -150,16 +152,22 @@ class PathTest {
     HDMContext.init()
 //    val path = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/"
 //    val ddms = DataParser.explainBlocks(Path(path))
-    val ddms = generatePath().map(path => new DDM(location = path, preferLocation = path, func = new NullFunc[String]))
-    val grouped = PlanningUtils.groupDDMByBoundary(ddms, 32)
-//    val grouped = Path.groupDDMByLocation(ddms, 4)
-    println(s"total group:${grouped.size}")
-    grouped foreach{ddm =>
-      println(s"group size:${ddm.size}")
-      ddm.foreach(p => print(s"path: ${p.preferLocation} , " +
-        s" Value: ${Path.path2Int(p.preferLocation)} ; "))
-      println("")
-    }
-
+    val numOfWorker = 20
+    val blockSizeRange = 128
+    val pathPool = initAddressPool(numOfWorker)
+    val candidates = generateWorkers(pathPool).map(Path(_))
+    val paths = generateInputPath(pathPool, 1067).map(Path(_))
+    val ddms = paths.map(path => new DDM(location = path, preferLocation = path, func = new NullFunc[String], blockSize = 128*1000 + 1L))
+//    val grouped = PlanningUtils.groupDDMByBoundary(ddms, 160)
+////    val grouped = Path.groupDDMByLocation(ddms, 4)
+//    candidates.foreach(println(_))
+    val grouped = PlanningUtils.groupDDMByMinminScheduling(ddms, candidates)
+        println(s"total group:${grouped.size}")
+        grouped foreach{ddm =>
+          println(s"group tasks:${ddm.size}, groupTotalSize = ${ddm.map(_.blockSize).reduce(_ + _)}" )
+          ddm.foreach(p => print(s"path: ${p.preferLocation} , " +
+            s" Size: ${p.blockSize} ; "))
+          println("")
+        }
   }
 }
