@@ -91,7 +91,7 @@ class TechfestDemo {
 //    benchmark.testReduceByKey(data,len, parallelism)
     benchmark.testMap(data,len, parallelism)
 
-    onEvent(hdm, "collect")(parallelism)
+    onEvent(hdm, "compute")(parallelism)
     Thread.sleep(50000000)
   }
 
