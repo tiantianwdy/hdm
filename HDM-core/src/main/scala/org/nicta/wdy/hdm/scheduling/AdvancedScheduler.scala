@@ -60,7 +60,11 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
         SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
       }.toSeq
 
-      val plans = schedulingPolicy.plan(tasks, candidates, 1D, 10D , 20D)
+      val plans = schedulingPolicy.plan(tasks, candidates,
+        HDMContext.SCHEDULING_FACTOR_CPU,
+        HDMContext.SCHEDULING_FACTOR_IO ,
+        HDMContext.SCHEDULING_FACTOR_NETWORK)
+
       val scheduledTasks = taskQueue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
       plans.foreach(tuple => {
         scheduledTasks.get(tuple._1) match {
