@@ -51,6 +51,7 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
           }
           blkIds ++= req.msg.blockIds
         } while(!requestsQueue.isEmpty)
+
         outGoingMsg.addAndGet(blkIds.length)
         val address = if (channel.remoteAddress() ne null ) channel.remoteAddress() else channel.localAddress()
         try{
@@ -77,7 +78,7 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
         override def initChannel(c: SocketChannel): Unit = {
           c.pipeline()
 //            .addLast(new StringEncoder)
-            .addLast("encoder", new NettyQueryEncoder4x(serializerInstance))
+            .addLast("encoder", new NettyQueryFrameEncoder4x(serializerInstance))
             .addLast("frameDecoder", NettyConnectionManager.getFrameDecoder())
             .addLast("decoder", new NettyBlockByteDecoder4x(serializerInstance, HDMContext.getCompressor()))
             .addLast("handler", new NettyBlockFetcherHandler(outGoingMsg, workingSize, callbackMap))

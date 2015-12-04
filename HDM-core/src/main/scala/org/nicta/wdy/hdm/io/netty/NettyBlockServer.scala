@@ -44,18 +44,19 @@ class NettyBlockServer(val port:Int,
       .childHandler(new ChannelInitializer[SocketChannel] {
         override def initChannel(c: SocketChannel): Unit = {
           c.pipeline()
-          .addLast(new NettyBlockResponseEncoder4x(serializerInstance, HDMContext.getCompressor()))
-//            .addLast(NettyConnectionManager.getFrameDecoder())
-            .addLast(new NettyQueryDecoder4x(serializerInstance))
+          .addLast("encoder", new NettyBlockResponseEncoder4x(serializerInstance, HDMContext.getCompressor()))
+            .addLast("frameDecoder", NettyConnectionManager.getFrameDecoder())
+            .addLast("decoder", new NettyQueryDecoder4x(serializerInstance))
+            .addLast("handler", new NettyBlockServerHandler(blockManager))
 //            .addLast(new StringDecoder)
 //            .addLast(new ProtobufEncoder)
 //            .addLast(new ProtobufDecoder)
-            .addLast(new NettyBlockServerHandler(blockManager))
+
         }
       })
         .option[ByteBufAllocator](ChannelOption.ALLOCATOR, allocator)
         .childOption[ByteBufAllocator](ChannelOption.ALLOCATOR, allocator)
-//      .option[java.lang.Integer](ChannelOption.SO_BACKLOG, 128)
+//        .option[java.lang.Integer](ChannelOption.SO_BACKLOG, 128)
 //      .option[java.lang.Integer](ChannelOption.SO_SNDBUF, 1024)
 //      .childOption[java.lang.Boolean](ChannelOption.SO_KEEPALIVE, true)
 
@@ -98,9 +99,14 @@ class NettyBlockServerHandler(blockManager: HDMBlockManager) extends  ChannelInb
     query.blockIds.foreach{id =>
       val blk = blockManager.getBlock(id)
       if(blk ne null){
+        while(!ctx.channel().isActive){
+          log.warn(s"Reconnecting to ${ctx.channel().remoteAddress()}")
+          ctx.connect(ctx.channel().remoteAddress()).awaitUninterruptibly(60*1000)
+        }
         ctx.writeAndFlush(blk).addListener(NettyChannelListener(ctx.channel(), System.currentTimeMillis()))
       }
     }
+//    ctx.flush()
   } catch {
     case e: Throwable => e.printStackTrace()
   } finally {

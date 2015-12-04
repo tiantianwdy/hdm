@@ -12,6 +12,8 @@ import scala.collection.mutable.ArrayBuffer
  */
 object NettyTestServer {
 
+  val blkSize = 160*8
+
   val serializer = new JavaSerializer(HDMContext.defaultConf).newInstance()
   val blockServer = new NettyBlockServer(9091,
     4,
@@ -30,19 +32,17 @@ object NettyTestServer {
 
   val data = ArrayBuffer.empty[String] ++= text
 
-  val data2 = ArrayBuffer.fill[(String, List[Double])](130000){
+  val data2 = ArrayBuffer.fill[(String, List[Double])](10000){
     ("0xb601998146d35e06", List(1D))
   }
 
 
   def main(args:Array[String]): Unit ={
     HDMBlockManager.initBlockServer()
-    HDMBlockManager().add("blk-001", Block("blk-001",data2))
-    HDMBlockManager().add("blk-002", Block("blk-002",data2))
-    HDMBlockManager().add("blk-003", Block("blk-003",data2))
-    HDMBlockManager().add("blk-004", Block("blk-003",data2))
-    HDMBlockManager().add("blk-005", Block("blk-005",data2))
-    HDMBlockManager().add("blk-006", Block("blk-006",data2))
+    for(i <- 0 until blkSize){
+      val id = s"blk-00$i"
+      HDMBlockManager().add(id, Block(id, data2))
+    }
 
   }
 }

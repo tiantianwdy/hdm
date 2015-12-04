@@ -11,9 +11,9 @@ case class NettyChannelListener(channel:Channel, startTime:Long) extends Channel
   override def operationComplete(future: ChannelFuture): Unit = {
     if(future.isSuccess){
       val end = System.currentTimeMillis() - startTime
-      log.info(s"send msg to ${channel.remoteAddress().toString} successed in $end ms.")
+      log.info(s"send msg to ${channel.remoteAddress().toString} succeeded in $end ms.")
     } else {
-      log.error(s"send msg to ${channel.remoteAddress().toString} failed.")
+      log.error(s"send msg to ${channel.remoteAddress().toString} failed.", future.cause())
       channel.close()
     }
   }

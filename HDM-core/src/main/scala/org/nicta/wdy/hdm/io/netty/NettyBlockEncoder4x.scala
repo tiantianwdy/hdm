@@ -64,6 +64,7 @@ class NettyBlockResponseEncoder4x(serializerInstance: SerializerInstance, compre
       serialized
     }
     //    val buf = ctx.alloc().heapBuffer(data.length)
+    // data length + block Id length + length of this header
     out.writeInt(data.length + idData.length + 8)
     out.writeInt(idData.length)
     out.writeBytes(idData)
@@ -96,5 +97,18 @@ class NettyQueryEncoder4x(serializerInstance: SerializerInstance) extends Messag
   override def encode(ctx: ChannelHandlerContext, msg: HDMBlockMsg, out: util.List[AnyRef]): Unit = {
     val data = Unpooled.wrappedBuffer(serializerInstance.serialize(msg))
     out.add(data)
+  }
+}
+
+
+class NettyQueryFrameEncoder4x(serializerInstance: SerializerInstance) extends MessageToByteEncoder[HDMBlockMsg] with Logging{
+
+  override def encode(ctx: ChannelHandlerContext, msg: HDMBlockMsg, out: ByteBuf): Unit = {
+    val start = System.currentTimeMillis()
+    val data = serializerInstance.serialize(msg).array()
+    val end = System.currentTimeMillis() - start
+    log.info(s"encoded data:${data.length} bytes, in $end ms.")
+    out.writeInt(data.length  + 4)
+    out.writeBytes(data)
   }
 }

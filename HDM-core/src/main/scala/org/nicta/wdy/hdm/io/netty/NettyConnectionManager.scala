@@ -44,7 +44,7 @@ class NettyConnectionManager {
   def getConnection(host:String, port:Int):NettyBlockFetcher ={
     val cId = host + ":" + port
     if(!connectionCacheMap.containsKey(cId)) {
-      connectionCacheMap.put(cId, new ConnectionPool(connectionNumPerPeer,host, port))
+      connectionCacheMap.put(cId, new ConnectionPool(connectionNumPerPeer, host, port))
     }
     val activeCon = connectionCacheMap.get(cId).getNext()
     if(!activeCon.isRunning) activeCon.schedule()
