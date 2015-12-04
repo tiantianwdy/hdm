@@ -4,7 +4,7 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.concurrent.{LinkedBlockingDeque, TimeUnit}
 
 import org.nicta.wdy.hdm.functions.{ParCombinedFunc, ParallelFunction}
-import org.nicta.wdy.hdm.io.{DataParser, Path}
+import org.nicta.wdy.hdm.io.{BufferedBlockIterator, DataParser, Path}
 import org.nicta.wdy.hdm.message.FetchSuccessResponse
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
@@ -62,8 +62,22 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
 
     }
 
+  def runShuffleTaskIterator():Seq[DDM[_,R]] = {
+    val blockByAddress = input.map(_.location)
+    //randomize the request to avoid IO contense
+    val remoteBlocks = Utils.randomize(blockByAddress.toSeq)
+    val iterator = new BufferedBlockIterator[I](remoteBlocks)
+    val res = func.apply(iterator)
+    val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
+      Seq(DDM[R](taskId, res.toBuffer))
+    } else {
+      partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
+    }
+    ddms
+  }
+
   def runShuffleTaskAsync():Seq[DDM[_,R]] = {
-    log.info(s"Preparing input data for task: [${(taskId, func)}] ")
+    log.debug(s"Preparing input data for task: [${(taskId, func)}] ")
     var res:Buf[R] = Buf.empty[R]
     val blockCounter = new AtomicInteger(0)
     val countDownWatch = new AtomicInteger(0)
@@ -103,13 +117,13 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
     }*/
 
     if (func.isInstanceOf[ParCombinedFunc[I, _, R]]) {
-      log.info(s"Running as shuffle aggregation..")
+      log.debug(s"Running as shuffle aggregation..")
       val tempF = func.asInstanceOf[ParCombinedFunc[I, _, R]]
       val concreteFunc = tempF.asInstanceOf[ParCombinedFunc[I, tempF.mediateType.type, R]]
       var partialRes: Buf[tempF.mediateType.type] = Buf.empty[tempF.mediateType.type]
       while (!fetchingCompleted.get()) {
         val received = inputQueue.poll(60, TimeUnit.SECONDS)
-        log.info(s"start processing FetchResponse: ${received}.")
+        log.debug(s"start processing FetchResponse: ${received}.")
         val block = received match {
           case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
           case blk: Block[_] => blk.asInstanceOf[Block[_]]
@@ -122,7 +136,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
         // make sure all the data accepted has been processed
         // there are some racing possibilities for multi-threads if the two conditions are tested together
         val received = inputQueue.poll(60, TimeUnit.SECONDS)
-        log.info(s"start processing FetchResponse: ${received}.")
+        log.debug(s"start processing FetchResponse: ${received}.")
         val block = received match {
           case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
           case blk: Block[_] => blk.asInstanceOf[Block[_]]
@@ -139,7 +153,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       log.info(s"Running as parallel aggregation..")
       while (!fetchingCompleted.get()) {
         val received = inputQueue.poll(60, TimeUnit.SECONDS)
-        log.info(s"start processing FetchResponse: ${received}.")
+        log.debug(s"start processing FetchResponse: ${received}.")
         val block = received match {
           case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
           case blk: Block[_] => blk.asInstanceOf[Block[_]]
@@ -151,7 +165,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       while (!inputQueue.isEmpty) {
         // make sure all the data accepted has been processed
         val received = inputQueue.poll(60, TimeUnit.SECONDS)
-        log.info(s"start processing FetchResponse: ${received}.")
+        log.debug(s"start processing FetchResponse: ${received}.")
         val block = received match {
           case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
           case blk: Block[_] => blk.asInstanceOf[Block[_]]
@@ -175,27 +189,31 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
   def runSequenceTask(): Seq[DDM[_, R]] = {
     //load input data
     val start = System.currentTimeMillis()
-    val data = input.map { in =>
+    val data =
+    input.map{ in =>
       log.info(s"Input data preparing finished, task running: [${(taskId, func)}] ")
       val inputData = DataParser.readBlock(in, false, (in:Arr[Any]) => func.apply(in.asInstanceOf[Arr[I]]))
-//      log.info(s"Input data size ${inputData.data.size} ")
-//  apply function
-//      val res = func.apply(inputData.asInstanceOf[Block[I]].data.toIterator).toBuffer
+
       val end = System.currentTimeMillis() - start
       log.info(s"time consumed for function: $end ms.")
-      inputData.data
+      inputData
+//      val inputData = DataParser.readBlock(in, false)
+//      log.info(s"Input data size ${inputData.data.size} ")
+//      val res = func.apply(inputData.asInstanceOf[Block[I]].data.toIterator).toBuffer
+//      res
     }.flatten
+
     val end2 = System.currentTimeMillis() - start
-    log.info(s"time consumed for flatten: $end2 ms.")
+    log.info(s"time consumed for all inputs: $end2 ms.")
 //    log.trace(s"sequence results: ${data.take(10)}")
     //partition as seq of data
     val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
       Seq(DDM[R](taskId, data))
     } else {
-      log.info(s"Partitioning results with ${data.size} with partitioner: [${partitioner}] and partition number ${partitioner.partitionNum} .")
+      log.trace(s"Partitioning results with ${data.size} with partitioner: [${partitioner}] and partition number ${partitioner.partitionNum} .")
       partitioner.split(data).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
     }
-    log.info(s"Obtain results of blocks: ${ddms.length} .")
+    log.trace(s"Obtain results of blocks: ${ddms.length} .")
     ddms
   }
 
