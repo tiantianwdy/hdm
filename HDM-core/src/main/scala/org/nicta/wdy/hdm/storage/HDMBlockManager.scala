@@ -123,12 +123,12 @@ class DefaultHDMBlockManager extends HDMBlockManager with Logging{
       releasedBlockSize.set(0)
       HDMBlockManager.forceGC()
     }
-    log.info(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
+    log.trace(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
   }
 
   override def addAll(blocks: Map[String, Block[_]]): Unit = {
     blockCache.putAll(blocks)
-    log.info(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
+    log.trace(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
   }
 
   override def addAll(blocks: Seq[Block[_]]): Unit = {
@@ -137,7 +137,7 @@ class DefaultHDMBlockManager extends HDMBlockManager with Logging{
 
   override def add(id: String, block: Block[_]): Unit = {
     blockCache.put(id, block)
-    log.info(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
+    log.trace(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
   }
 
   override def addAllRef(brs: Seq[HDM[_, _]]): Unit = {
@@ -225,8 +225,8 @@ object HDMBlockManager extends Logging{
 
   def loadBlockAsync(path: Path, blockIds: Seq[String], blockHandler: Block[_] => Unit, remoteHandler: FetchSuccessResponse => Unit): Unit = {
     val (localBlks, remoteBlks) = blockIds.span(id => defaultManager.isCached(id))
-    log.info(s"local blocks:$localBlks")
-    log.info(s"remote blocks:$remoteBlks")
+    log.trace(s"local blocks:$localBlks")
+    log.trace(s"remote blocks:$remoteBlks")
     for (bId <- localBlks) {
       log.info(s"block:${bId} is at local")
       blockHandler.apply(defaultManager.getBlock(bId))
