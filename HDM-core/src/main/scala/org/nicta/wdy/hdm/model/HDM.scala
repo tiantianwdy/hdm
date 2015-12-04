@@ -174,7 +174,7 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
   }
 
   def sorted(implicit ordering: Ordering[R], parallelism:Int): HDM[_, R] = {
-    val hdm = this.cached
+    val hdm = this.cache()
     val reduceNumber = parallelism * HDMContext.PLANER_PARALLEL_NETWORK_FACTOR
     val sampleSize = math.min(100.0 * reduceNumber, 1e6)/ reduceNumber
 
