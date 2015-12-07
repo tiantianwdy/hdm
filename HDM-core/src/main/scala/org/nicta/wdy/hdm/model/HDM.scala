@@ -298,17 +298,21 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
   def sample(proportion:Either[Double, Int])(implicit parallelism:Int):Future[Iterator[R]] = {
     proportion match {
       case Left(percentage) =>
-        val sampleFunc = (in:Arr[R]) => {
+        val sampleFunc =  (in:Arr[R]) => {
           val size = (percentage * in.size).toInt
           Random.shuffle(in).take(size)
         }
-        sample(sampleFunc)
+        sample(sampleFunc)(parallelism)
       case Right(size) =>
-        this.traverse(parallelism).map(data => data.take(size))
+        val sizePerPartition = Math.min(1, Math.round(size.toFloat/(parallelism)))
+        val sampleFunc = (in:Arr[R]) => {
+          in.take(sizePerPartition)
+        }
+        sample(sampleFunc)(parallelism).map{arr => arr.take(size)}
     }
   }
 
-  def sample(sampleFunc:Arr[R] => Arr[R]):Future[Iterator[R]] = {
+  def sample(sampleFunc:Arr[R] => Arr[R])(implicit parallelism:Int):Future[Iterator[R]] = {
     this.mapPartitions(sampleFunc).traverse(parallelism)
   }
 
