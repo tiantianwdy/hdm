@@ -29,7 +29,7 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize
   val fetchingCompleted = new AtomicBoolean(false)
   val isReading = new AtomicBoolean(false)
   val inputQueue = new LinkedBlockingDeque[A]
-  val waitForReading = new Semaphore(0)
+  val waitForReading = new Semaphore(1)
 
   def this(hdms:Seq[HDM[_,_]]){
     this(hdms.flatMap(_.blocks).map(Path(_)), 100000)
@@ -46,30 +46,42 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize
 
   override def next(): A = {
     if(hasNext){
-      if(inputQueue.size() < bufferSize && readingOffset.get() < blockRefs.length && !isReading.get()){
-        isReading.set(true)
+      if(inputQueue.size() < bufferSize && readingOffset.get() < blockRefs.length){
         loadNextBlock(blockRefs(readingOffset.getAndIncrement()))
         if(inputQueue.nonEmpty){
           inputQueue.take()
         } else {
-          log.info(s"waiting for loading block...")
-          waitForReading.acquire()
-          log.info(s"waiting completed, start getting next element..")
           next()
         }
       } else {
         inputQueue.take()
       }
-    } else throw new RuntimeException("Null iterator")
+    } else null.asInstanceOf[A]
   }
 
   override def hasNext: Boolean = {
-    !inputQueue.isEmpty || !fetchingCompleted.get()
+    if (inputQueue.nonEmpty) true
+    else {
+      if (readingOffset.get() < blockRefs.length) {
+        loadNextBlock(blockRefs(readingOffset.getAndIncrement()))
+        if (inputQueue.nonEmpty) true
+        else {
+          hasNext
+        }
+      } else if (readingOffset.get() == blockRefs.length) {
+        waitForReading.acquire()
+        if (inputQueue.nonEmpty) true else false
+      } else false
+    }
   }
 
 
   def loadNextBlock(blockPath: Path) = {
+    log.info(s"waiting for loading block...")
+    waitForReading.acquire()
+    log.info(s"waiting completed, start loading next block..")
     log.info(s"Fetching block from ${blockPath} ...")
+    isReading.set(true)
     HDMBlockManager.loadBlockAsync(blockPath, Seq(blockPath.name), blockHandler, fetchHandler)
   }
 
@@ -80,6 +92,7 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize
     inputQueue.addAll(blk.asInstanceOf[Block[A]].data)
     isReading.set(false)
     log.info(s"Fetched block:${blk.id} with length ${blk.size}, progress: (${blockCounter.get}/${blockRefs.length}).")
+    waitForReading.release()
   }
 
   val fetchHandler = (resp:FetchSuccessResponse) => {
@@ -90,8 +103,8 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize
     inputQueue.addAll(data)
     isReading.set(false)
     log.info(s"Received fetch response:${resp.id} with ${data.length} elements, progress: (${blockCounter.get}/${blockRefs.length}).")
-    if(waitForReading.hasQueuedThreads())
-      waitForReading.release()
+//    if(waitForReading.hasQueuedThreads())
+    waitForReading.release()
    }
 
   def serializeBlock(received: Any):Seq[A] ={
