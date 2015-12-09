@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.executor
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.concurrent.{LinkedBlockingDeque, TimeUnit}
 
-import org.nicta.wdy.hdm.functions.{ParCombinedFunc, ParallelFunction}
+import org.nicta.wdy.hdm.functions.{Aggregator, ParCombinedFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.{BufferedBlockIterator, DataParser, Path}
 import org.nicta.wdy.hdm.message.FetchSuccessResponse
 import org.nicta.wdy.hdm.model._
@@ -11,6 +11,7 @@ import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
 import org.nicta.wdy.hdm.utils.Utils
 import org.nicta.wdy.hdm.{Arr, Buf}
 
+import scala.collection.mutable.Buffer
 import scala.concurrent._
 import scala.concurrent.duration.Duration
 import scala.reflect.{ClassTag, classTag}
@@ -99,6 +100,19 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       log.info(s"Received fetch response:${resp.id} with size ${resp.length}, progress: (${blockCounter.get}/${input.length}).")
     }
 
+    //aggregator semantics:
+    def aggregateNext[T: ClassTag, U: ClassTag](aggregator:Aggregator[Arr[T], Buf[U]]): Unit ={
+      val received = inputQueue.poll(60, TimeUnit.SECONDS)
+      log.debug(s"start processing FetchResponse: ${received}.")
+      val block = received match {
+        case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
+        case blk: Block[_] => blk.asInstanceOf[Block[_]]
+      }
+      aggregator.aggregate(block.asInstanceOf[Block[T]].data.toIterator)
+      val count = countDownWatch.incrementAndGet()
+      log.info(s"finished aggregation: $count/${input.length}.")
+    }
+
     //group block by host address
     val blockByAddress = input.map(_.location).groupBy{p =>
       p.address
@@ -110,14 +124,21 @@ case class Task[I:ClassTag,R: ClassTag](appId:String,
       log.info(s"Fetching block from ${blocks._1} ...")
       HDMBlockManager.loadBlockAsync(blocks._1, blocks._2, blockHandler, fetchHandler)
     }
-/*    while (inputIter.hasNext) {
-      val input = inputIter.next()
-      log.info(s"Fetching block:${input.location} ...")
-      HDMBlockManager.loadBlockAsync(input.location, blockHandler)
-    }*/
 
-    if (func.isInstanceOf[ParCombinedFunc[I, _, R]]) {
-      log.debug(s"Running as shuffle aggregation..")
+    if (func.isInstanceOf[Aggregator[Arr[I], Buf[R]]]){
+      log.info(s"Running aggregation with Aggregator..")
+      val aggregator = func.asInstanceOf[Aggregator[Arr[I], Buf[R]]]
+      aggregator.init(Buf.empty[R])
+      while (!fetchingCompleted.get()) {
+        aggregateNext(aggregator)
+      }
+      while (!inputQueue.isEmpty) {
+        aggregateNext(aggregator)
+      }
+      res = aggregator.result
+    }
+    else if (func.isInstanceOf[ParCombinedFunc[I, _, R]]) {
+      log.info(s"Running as shuffle aggregation..")
       val tempF = func.asInstanceOf[ParCombinedFunc[I, _, R]]
       val concreteFunc = tempF.asInstanceOf[ParCombinedFunc[I, tempF.mediateType.type, R]]
       var partialRes: Buf[tempF.mediateType.type] = Buf.empty[tempF.mediateType.type]
