@@ -366,10 +366,12 @@ class ParCombinedFunc [T:ClassTag,U:ClassTag,R:ClassTag](val dependency:FuncDepe
 }
 
 
-class SortFunc[T : ClassTag](val sortBeforeMerge:Boolean = false)(implicit ordering: Ordering[T]) extends ParallelFunction[T,T] {
+class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)(implicit ordering: Ordering[T]) extends ParallelFunction[T,T] with Aggregator[Arr[T], Buf[T]]{
 
   override val dependency: FuncDependency = FullDep
 
+  @transient
+  private var buffer: Array[T] = Array.empty[T]
 
   override def apply(params: Arr[T]): Arr[T] = {
     if(classTag[T] == classTag[Int]){
@@ -391,7 +393,7 @@ class SortFunc[T : ClassTag](val sortBeforeMerge:Boolean = false)(implicit order
 //        println("sorting array of Int")
         val array = params.toArray.asInstanceOf[Array[Int]]
         //if params has not been sorted
-        if(sortBeforeMerge)
+        if(sortInMerge)
           Sorting.quickSort(array)
         val resArray = sorted.toArray.asInstanceOf[Array[Int]]
         //merge sorted sequences
@@ -400,7 +402,7 @@ class SortFunc[T : ClassTag](val sortBeforeMerge:Boolean = false)(implicit order
 //        println("sorting array of Any")
         val array = params.toArray
         //if params has not been sorted
-        if(sortBeforeMerge)
+        if(sortInMerge)
           Sorting.quickSort(array)
         val resArray = sorted.toArray
         //merge sorted sequences
@@ -426,6 +428,31 @@ class SortFunc[T : ClassTag](val sortBeforeMerge:Boolean = false)(implicit order
         val newRes = Array.concat(resArray, array)
         Sorting.quickSort(newRes)
         newRes.toBuffer
+    }
+  }
+
+  override def init(zero: Buf[T]): Unit = {
+    buffer = zero.toArray
+  }
+
+  override def result: Buf[T] = {
+    if (sortInMerge) {
+      val bufArray = buffer
+      if (classTag[T] == classTag[Int]) {
+        Sorting.quickSort(bufArray.asInstanceOf[Array[Int]])
+      } else {
+        Sorting.stableSort(bufArray)
+      }
+      bufArray.toBuffer
+    } else
+      buffer.toBuffer
+  }
+
+  override def aggregate(params: Arr[T]): Unit = {
+    if (sortInMerge) {
+      buffer ++= params
+    } else {
+      buffer = SortingUtils.mergeSorted(params.toArray, buffer)
     }
   }
 
