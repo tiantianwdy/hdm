@@ -1,5 +1,7 @@
 package org.nicta.wdy.hdm.functions
 
+import org.nicta.wdy.hdm.Buf
+
 import scala.collection.mutable.Buffer
 
 /**
@@ -24,11 +26,13 @@ trait Aggregatable[T,R] extends  Serializable {
 
 }
 
-trait ShuffleAggregatable[K, T, R] extends Aggregatable[T,R]{
+trait Aggregator[T, R] extends  Serializable {
 
-  def zero(params:T): R
+  def init(zero:R)
 
-  def map(param:T): K
+  def aggregate(params:T): Unit
+
+  def result: R
 
 }
 
