@@ -3,6 +3,7 @@ package org.nicta.hdm.functions
 import java.util
 
 import org.junit.Test
+import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.functions.SortFunc
 import org.nicta.wdy.hdm.utils.SortingUtils
 
@@ -93,7 +94,7 @@ class SortingTest {
     val sortedInputs = inputs.map{ in =>
       val cloned = in.clone()
       Sorting.quickSort(cloned)
-      cloned.toBuffer
+      cloned.toIterator
     }
     // array sorting after contact
     val start = System.currentTimeMillis()
@@ -107,26 +108,61 @@ class SortingTest {
     println(allInput.take(10).mkString("(", ",", ")"))
 
     // time for merge the sorted inputs
+
     val start2 = System.currentTimeMillis()
     var sorted = sorting(buf).toArray
-    for(buffer <- inputBufs){
-      sorted = SortingUtils.mergeSorted(buffer.toArray, sorted)
+    for(nextInput <- sortedInputs){
+      sorted = SortingUtils.mergeSorted(nextInput.toArray, sorted)
     }
     val res = sorted.toBuffer
     val end2 = System.currentTimeMillis()
     println(res.take(10).mkString("(", ",", ")"))
     println(s" time consumed for merge sorted array sorting: ${end2 - start2} ms.")
 
-    val start3 = System.currentTimeMillis()
-    var sorted3 = sorting(buf).toBuffer
-    for(buffer <- inputBufs){
-      sorted3 = sorting.aggregate(buffer, sorted3)
+
+  }
+
+  @Test
+  def testSortingFunction(): Unit ={
+    val batchNum = 500000
+    val iter = 20
+    val data = generateData(batchNum)
+    val buf = data.toIterator
+    val sorting = new SortFunc[Int]
+
+    val inputs = for ( i <- 1 to iter) yield {
+      generateData(batchNum)
     }
+//    val inputBufs = inputs.map(_.toIterator)
+
+    val sortedInputs = inputs.map{ in =>
+      val cloned = in.clone()
+      Sorting.quickSort(cloned)
+      cloned.toIterator
+    }
+
+    val start = System.currentTimeMillis()
+    var allInput: Buf[Int] = Buf.empty[Int]
+    for (arr <- inputs) {
+      allInput ++= arr
+    }
+    val res = sorting(allInput.toIterator)
+    val end = System.currentTimeMillis()
+    println(s" time consumed for applying SortingFunc: ${end - start} ms.")
+    println(res.take(10).mkString("(", ",", ")"))
+
+
+//    var sorted3 = sorting(buf).toBuffer
+    val aggregating = new SortFunc[Int]
+    val start3 = System.currentTimeMillis()
+    for (nextInput <- sortedInputs) {
+//      sorted3 = sorting.aggregate(buffer, sorted3)
+      aggregating.aggregate(nextInput)
+    }
+    val res3 = aggregating.result
     val end3 = System.currentTimeMillis()
-    println(sorted.take(10).mkString("(", ",", ")"))
+    println(res3.take(10).mkString("(", ",", ")"))
     println(s" time consumed for Aggregated sorting: ${end3 - start3} ms.")
-
-
   }
 
 }
