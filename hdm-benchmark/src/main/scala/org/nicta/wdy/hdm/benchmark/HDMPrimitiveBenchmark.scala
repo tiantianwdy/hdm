@@ -75,6 +75,8 @@ object HDMBenchmark {
         iterativeBenchmark.testWeatherLR(data, 12, 3, parallelism, true)
       case "weatherKMeans" =>
         iterativeBenchmark.testWeatherKMeans(data, 12, 3, parallelism, 128, false)
+      case "weatherKMeansCached" =>
+        iterativeBenchmark.testWeatherKMeans(data, 12, 3, parallelism, 128, true)
         //tests for SQL
       case "select" =>
         if(dataTag == "userVisits")
