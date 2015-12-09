@@ -68,8 +68,10 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize
         else {
           hasNext
         }
-      } else if (readingOffset.get() == blockRefs.length) {
+      } else if (readingOffset.get() == blockRefs.length && isReading.get()) {
+        log.warn(s"Waiting for loading the last block...")
         waitForReading.acquire()
+        log.warn(s"Completed waiting for loading the last block...")
         if (inputQueue.nonEmpty) true else false
       } else false
     }
@@ -79,9 +81,10 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize
   def loadNextBlock(blockPath: Path) = {
     log.info(s"waiting for loading block...")
     waitForReading.acquire()
+    isReading.set(true)
     log.info(s"waiting completed, start loading next block..")
     log.info(s"Fetching block from ${blockPath} ...")
-    isReading.set(true)
+
     HDMBlockManager.loadBlockAsync(blockPath, Seq(blockPath.name), blockHandler, fetchHandler)
   }
 
@@ -107,7 +110,7 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize
     waitForReading.release()
    }
 
-  def serializeBlock(received: Any):Seq[A] ={
+  def serializeBlock(received: Any):Seq[A] = {
     val block = received match {
       case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[A]](resp.data)
       case blk: Block[_] => blk.asInstanceOf[Block[A]]
