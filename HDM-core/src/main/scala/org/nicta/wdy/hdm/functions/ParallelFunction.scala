@@ -29,6 +29,10 @@ abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFu
 
   val dependency:FuncDependency
 
+  def has(feature:FunctionFeature):Boolean = ParallelFunction.hasFeature(this, feature)
+
+  def none(feature:FunctionFeature):Boolean = !has(feature)
+
   def andThen[U:ClassTag](func: ParallelFunction[R, U]): ParallelFunction[T, U] = {
     val f = (seq:Arr[T]) => func(this.apply(seq))
     val combinedDep = if(this.dependency == FullDep || func.dependency == FullDep) FullDep else PartialDep
@@ -104,10 +108,11 @@ class ParMapFunc [T:ClassTag,R:ClassTag](val f: T=>R)  extends ParallelFunction[
 
 }
 
-class ParMapAllFunc [T:ClassTag,R:ClassTag](f: Arr[T]=>Arr[R])  extends ParallelFunction[T,R] {
+class ParMapAllFunc [T:ClassTag,R:ClassTag](val f: Arr[T]=>Arr[R])  extends ParallelFunction[T,R] {
 
 
   val dependency = FullDep
+
 
   override def apply(params: Arr[T]): Arr[R] = {
     f(params)
@@ -151,7 +156,7 @@ class ParReduceFunc[T:ClassTag ,R >:T :ClassTag](val f: (R, R) => R)  extends Pa
   }
 }
 
-class ParFoldFunc[T:ClassTag, R:ClassTag](z:R)(f: (R, T) => R)  extends ParallelFunction[T, R] {
+class ParFoldFunc[T:ClassTag, R:ClassTag](z:R)(val f: (R, T) => R)  extends ParallelFunction[T, R] {
 
   val dependency = FullDep
 
@@ -461,6 +466,22 @@ class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)(implicit ordering:
 
 
 object ParallelFunction {
+
+  val featureMapping:Map[Class[_ <: ParallelFunction[_,_]], Seq[FunctionFeature]] = Map(
+    classOf[ParFindByFunc[_]] -> Seq(Pruning),
+    classOf[ParGroupByFunc[_,_]] -> Seq(Aggregation),
+    classOf[ParFoldFunc[_,_]] -> Seq(Aggregation, Pruning),
+    classOf[ParReduceFunc[_,_]] -> Seq(Aggregation, Pruning),
+    classOf[ParReduceBy[_,_]] -> Seq(Aggregation, Pruning),
+    classOf[ParMapFunc[_,_]] -> Seq(PureParallel),
+    classOf[ParMapAllFunc[_,_]] -> Seq(PureParallel)
+  )
+
+  def hasFeature(func:ParallelFunction[_,_], feature:FunctionFeature): Boolean = {
+    featureMapping.contains(func.getClass) &&
+      featureMapping(func.getClass).contains(feature)
+  }
+
 
 
 }
