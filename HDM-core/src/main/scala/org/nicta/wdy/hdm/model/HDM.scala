@@ -3,8 +3,6 @@ package org.nicta.wdy.hdm.model
 import org.nicta.wdy.hdm.utils.SampleUtils
 import org.nicta.wdy.hdm.{Arr, ClosureCleaner}
 
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{Await, Future}
 import scala.reflect.runtime.universe.{WeakTypeTag,weakTypeOf}
 import scala.reflect.{classTag,ClassTag}
@@ -12,7 +10,7 @@ import scala.reflect.{classTag,ClassTag}
 import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions._
 import org.nicta.wdy.hdm.io.Path
-import org.nicta.wdy.hdm.storage.{HDMBlockManager, BlockState, BlockRef}
+import org.nicta.wdy.hdm.storage.{BlockState, BlockRef}
 
 import scala.util.{Left, Random, Try}
 
@@ -21,7 +19,7 @@ import scala.util.{Left, Random, Try}
  *
  * HDM : Hierarchy Distributed Matrices
  */
-abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
+abstract class HDM[T:ClassTag, R:ClassTag] extends  Serializable {
 
   @transient
   implicit val executionContext = HDMContext.executionContext //todo to changed to get from dynamic hdm context
@@ -53,6 +51,8 @@ abstract class HDM[T:ClassTag, R:ClassTag] extends Serializable{
   val partitioner: Partitioner[R]
 
   var isCache: Boolean
+
+  var depth: Int = 0
 
   val inType = classTag[T]
 
