@@ -44,10 +44,6 @@
         <url>http://repo1.maven.org/maven2</url>
     </pluginRepository>
 
-<!--    <pluginRepository>
-        <id>scm-baidu-snapshots</id>
-        <url>http://maven.scm.baidu.com:8081/nexus/content/groups/public-snapshots</url>
-    </pluginRepository>-->
 
 </pluginRepositories>
 

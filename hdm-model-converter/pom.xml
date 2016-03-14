@@ -155,7 +155,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>org.nicta.wdy.hdm.benchmark.HDMBenchmark</mainClass>
+                            <mainClass>org.nicta.wdy.hdm.examples.HDMBenchmark</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
