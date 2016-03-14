@@ -10,7 +10,7 @@ import scala.reflect._
 /**
  * Created by tiantian on 23/11/15.
  */
-case class TwoInputTask[I: ClassTag, U: ClassTag, R: ClassTag](appId: String,
+case class TwoInputTask[I: ClassTag, U: ClassTag, R: ClassTag](appId: String, version:String,
                                                                taskId: String,
                                                                input1: Seq[HDM[_, I]],
                                                                input2: Seq[HDM[_, U]],
