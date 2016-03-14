@@ -28,7 +28,8 @@ class SchedulingPolicyTest extends SchedulingTestData {
     }
   }
 
-  def generateResources():Seq[Path]= {
+  def generateResources(amount:Int = 8):Seq[Path]= {
+    val pathPool = initAddressPool(amount)
     generateWorkers(pathPool).map(Path(_))
   }
 
@@ -48,10 +49,10 @@ class SchedulingPolicyTest extends SchedulingTestData {
 
   @Test
   def testMinminScheduling(): Unit ={
-    val numTask = 20
+    val numTask = 4
     val inputEachTask = 2
     val tasks = generateTasks(numTask, inputEachTask)
-    val resources = generateResources()
+    val resources = generateResources(2)
     val cpuFactor = 1F
     val ioFactor = 10F
     val networkFactor = 20F
@@ -67,7 +68,7 @@ class SchedulingPolicyTest extends SchedulingTestData {
     val numTask = 48
     val inputEachTask = 8
     val tasks = generateTasks(numTask, inputEachTask)
-    val resources = generateResources()
+    val resources = generateResources(8)
 
     val cpuFactor = 5F
     val ioFactor = 10F

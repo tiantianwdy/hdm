@@ -3,6 +3,8 @@ package org.nicta.wdy.hdm.executor
 import java.util.concurrent.{Semaphore, ConcurrentHashMap}
 import java.util.concurrent.atomic.AtomicInteger
 
+import org.nicta.wdy.hdm.scheduling.Scheduler
+
 import scala.collection.mutable
 import scala.collection.JavaConversions._
 
@@ -47,13 +49,17 @@ class DefResourceManager extends ResourceManager{
   }
 
   override def addResource(resId: String, defaultVal: Int): Unit = {
+    val oldValue = if(followerMap.containsKey(resId)) followerMap.get(resId).get()
+                   else 0
     followerMap.put(resId, new AtomicInteger(defaultVal))
-    if(defaultVal > 0)
-      workingSize.release(defaultVal)
+    if(defaultVal > oldValue){
+      workingSize.release(defaultVal - oldValue)
+    }
   }
 
   override def removeResource(resId: String): Unit = {
-    followerMap.remove(resId)
+    val value = followerMap.remove(resId).get()
+    workingSize.acquire(value)
 //    workingSize.tryAcquire()
   }
 
@@ -92,7 +98,7 @@ class DefResourceManager extends ResourceManager{
   }
 
   override def waitForNonEmpty(): Unit = {
-    while (workingSize.availablePermits() < 0) {
+    while (Scheduler.getAllAvailableWorkers(getAllResources()).size <= 0) {
       Thread.sleep(100)
     }
   }

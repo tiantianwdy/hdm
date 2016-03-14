@@ -78,7 +78,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
             // trace task
             val eTrace = ExecutionTrace(task.taskId,
               task.appId,
-              "task.appVersion",
+              task.version,
               "task.instanceID",
               task.func.toString,
               task.input.map(_.id),

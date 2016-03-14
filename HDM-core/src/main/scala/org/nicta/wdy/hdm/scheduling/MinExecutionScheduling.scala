@@ -29,8 +29,9 @@ class MinExecutionScheduling(val comparison:(Double, Double) => Boolean) extends
    * @return
    */
   override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, String] = {
-    val results = mutable.Map.empty[String, String]
+    require(resources != null && resources.nonEmpty)
 
+    val results = mutable.Map.empty[String, String]
     //initialize time matrices
     computationTimeMatrix ++= inputs.map(p => (p.id -> calculateComputationTIme(p, resources, computeFactor, ioFactor, networkFactor)))
     jobCompletionTimeMatrix ++= inputs.map(p => (p.id -> calculateComputationTIme(p, resources, computeFactor, ioFactor, networkFactor)))
