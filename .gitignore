@@ -2,6 +2,7 @@
 *.log
 *.iml
 .idea
+.tmp
 
 # sbt specific
 dist/*
