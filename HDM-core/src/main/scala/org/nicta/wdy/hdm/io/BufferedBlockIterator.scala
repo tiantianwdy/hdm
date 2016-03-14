@@ -22,7 +22,9 @@ import scala.reflect.ClassTag
  * @param blockRefs
  * @tparam A
  */
-class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize:Int = 100000) extends BufferedIterator[A] with Logging{
+class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], 
+                                        val bufferSize:Int = 100000,
+                                        val classLoader: ClassLoader = ClassLoader.getSystemClassLoader) extends BufferedIterator[A] with Logging{
 
   val blockCounter = new AtomicInteger(0)
   val readingOffset = new AtomicInteger(0)
@@ -102,7 +104,7 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize
     if (blockCounter.incrementAndGet() >= blockRefs.length) {
       fetchingCompleted.set(true)
     }
-    val data = serializeBlock(resp)
+    val data = deserializeBlock(resp)
     inputQueue.addAll(data)
     isReading.set(false)
     log.info(s"Received fetch response:${resp.id} with ${data.length} elements, progress: (${blockCounter.get}/${blockRefs.length}).")
@@ -110,9 +112,9 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], val bufferSize
     waitForReading.release()
    }
 
-  def serializeBlock(received: Any):Seq[A] = {
+  def deserializeBlock(received: Any):Seq[A] = {
     val block = received match {
-      case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[A]](resp.data)
+      case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[A]](resp.data, classLoader)
       case blk: Block[_] => blk.asInstanceOf[Block[A]]
       case x:Any => Block(Seq.empty[A])
     }

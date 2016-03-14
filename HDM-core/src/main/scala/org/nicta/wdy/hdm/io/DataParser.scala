@@ -29,7 +29,9 @@ trait DataParser {
 
   def readBlock[T: ClassTag](path:Path)(implicit serializer:BlockSerializer[T]):Block[T]
 
-  def readBlock[T: ClassTag, R:ClassTag](path:Path, func:Iterator[T] => Iterator[R])(implicit serializer:BlockSerializer[T]):Buf[R]
+  def readBlock[T: ClassTag, R:ClassTag](path:Path,
+                                         func:Iterator[T] => Iterator[R],
+                                         classLoader: ClassLoader)(implicit serializer:BlockSerializer[T]):Buf[R]
 
   def readBatch[T: ClassTag](path:Seq[Path])(implicit serializer:BlockSerializer[T]):Seq[Block[T]] = ???
 
@@ -58,7 +60,9 @@ class HdfsParser extends DataParser{
   }
 
 
-  override  def readBlock[String: ClassTag, R: ClassTag](path: Path, func:Iterator[String] => Iterator[R])(implicit serializer: BlockSerializer[String] = new StringSerializer): Buf[R] = {
+  override  def readBlock[String: ClassTag, R: ClassTag](path: Path,
+                                                         func:Iterator[String] => Iterator[R],
+                                                         classLoader: ClassLoader)(implicit serializer: BlockSerializer[String] = new StringSerializer): Buf[R] = {
     val conf = new Configuration()
     conf.set("fs.default.name", path.protocol + path.address)
     val filePath = new HPath(path.relativePath)
@@ -95,7 +99,9 @@ class FileParser extends DataParser{
   override def writeBlock[T: ClassTag](path: Path, bl: Block[T])(implicit serializer: BlockSerializer[T]): Unit = ???
 
 
-  override def readBlock[T: ClassTag, R: ClassTag](path: Path, func: (Iterator[T]) => Iterator[R])(implicit serializer: BlockSerializer[T]): Buf[R] = ???
+  override def readBlock[T: ClassTag, R: ClassTag](path: Path,
+                                                   func: (Iterator[T]) => Iterator[R],
+                                                   classLoader: ClassLoader)(implicit serializer: BlockSerializer[T]): Buf[R] = ???
 
   override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T]): Block[T] = ???
 
@@ -108,7 +114,9 @@ class MysqlParser extends DataParser{
   override def writeBlock[T: ClassTag](path: Path, bl: Block[T])(implicit serializer: BlockSerializer[T]): Unit = ???
 
 
-  override def readBlock[T: ClassTag, R: ClassTag](path: Path, func: (Iterator[T]) => Iterator[R])(implicit serializer: BlockSerializer[T]): Buf[R] = ???
+  override def readBlock[T: ClassTag, R: ClassTag](path: Path,
+                                                   func: (Iterator[T]) => Iterator[R],
+                                                   classLoader: ClassLoader)(implicit serializer: BlockSerializer[T]): Buf[R] = ???
 
   override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T]): Block[T] = ???
 
@@ -125,7 +133,9 @@ class HDMParser extends DataParser {
   }
 
 
-  override def readBlock[T: ClassTag, R: ClassTag](path: Path, func: (Iterator[T]) => Iterator[R])(implicit serializer: BlockSerializer[T] = null): Buf[R] = ???
+  override def readBlock[T: ClassTag, R: ClassTag](path: Path,
+                                                   func: (Iterator[T]) => Iterator[R],
+                                                   classLoader: ClassLoader)(implicit serializer: BlockSerializer[T] = null): Buf[R] = ???
 
   override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T] = null): Block[T] = {
     blockManager.getBlock(path.name).asInstanceOf[Block[T]]
@@ -147,8 +157,10 @@ class NettyParser extends DataParser {
   }
 
 
-  override def readBlock[T: ClassTag, R: ClassTag](path: Path, func: (Iterator[T]) => Iterator[R])(implicit serializer: BlockSerializer[T] = null): Buf[R] = {
-    val iterator = new BufferedBlockIterator[T](Seq(path))
+  override def readBlock[T: ClassTag, R: ClassTag](path: Path,
+                                                   func: (Iterator[T]) => Iterator[R],
+                                                   classLoader: ClassLoader)(implicit serializer: BlockSerializer[T] = null): Buf[R] = {
+    val iterator = new BufferedBlockIterator[T](blockRefs = Seq(path), classLoader = classLoader)
     val data = func(iterator)
     val id = path.name
     data.toBuffer
@@ -185,10 +197,12 @@ object DataParser extends Logging{
     case _ => throw new IOException("Unsupported data protocol:" + path.protocol)
   }
 
-  def readBlock[R:ClassTag](path:Path, func:Arr[Any] => Arr[R]):Buf[R] = path.protocol.toLowerCase match {
-    case "hdm://" => new HDMParser().readBlock(path, func)
-    case "hdfs://" => new HdfsParser().readBlock(path, func.asInstanceOf[Arr[String] => Arr[R]])
-    case "netty://" => new NettyParser().readBlock(path, func)
+  def readBlock[R:ClassTag](path:Path,
+                            func:Arr[Any] => Arr[R],
+                            classLoader: ClassLoader):Buf[R] = path.protocol.toLowerCase match {
+    case "hdm://" => new HDMParser().readBlock(path, func, classLoader)
+    case "hdfs://" => new HdfsParser().readBlock(path, func.asInstanceOf[Arr[String] => Arr[R]], classLoader)
+    case "netty://" => new NettyParser().readBlock(path, func, classLoader)
     //    case "file://" => new FileParser().readBlock(path)
     //    case "mysql://" => new MysqlParser().readBlock(path)
     case _ => throw new IOException("Unsupported data protocol:" + path.protocol)
@@ -227,7 +241,10 @@ object DataParser extends Logging{
     }
   }
 
-  def readBlock[R:ClassTag](in:HDM[_,_], removeFromCache:Boolean, func:Arr[Any] => Arr[R]):Buf[R] = {
+  def readBlock[R:ClassTag](in:HDM[_,_],
+                            removeFromCache:Boolean,
+                            func:Arr[Any] => Arr[R],
+                            classLoader: ClassLoader):Buf[R] = {
     if (!HDMBlockManager().isCached(in.id)) {
       in.location.protocol match {
         case Path.AKKA =>
@@ -242,12 +259,12 @@ object DataParser extends Logging{
           }
 
         case Path.HDFS =>
-          val bl = DataParser.readBlock(in.location, func)
+          val bl = DataParser.readBlock(in.location, func, classLoader)
 //          log.info(s"finished reading block with size: ${Block.byteSize(bl)/ (1024*1024F)} MB. ")
           bl.toBuffer
 
         case Path.NETTY=>
-          val bl = DataParser.readBlock(in.location, func)
+          val bl = DataParser.readBlock(in.location, func, classLoader)
 //          log.info(s"finished reading block with size: ${Block.byteSize(bl)/ (1024*1024F)} MB. ")
           bl.toBuffer
       }

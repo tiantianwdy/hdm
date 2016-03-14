@@ -7,6 +7,7 @@ import org.nicta.wdy.hdm.functions.{Aggregator, ParCombinedFunc, ParallelFunctio
 import org.nicta.wdy.hdm.io.{BufferedBlockIterator, DataParser, Path}
 import org.nicta.wdy.hdm.message.FetchSuccessResponse
 import org.nicta.wdy.hdm.model._
+import org.nicta.wdy.hdm.server.DependencyManager
 import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
 import org.nicta.wdy.hdm.utils.Utils
 import org.nicta.wdy.hdm.{Arr, Buf}
@@ -79,6 +80,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String, version:String,
 
   def runShuffleTaskAsync():Seq[DDM[_,R]] = {
     log.debug(s"Preparing input data for task: [${(taskId, func)}] ")
+    val classLoader = DependencyManager().getClassLoader(appId, version)
     var res:Buf[R] = Buf.empty[R]
     val blockCounter = new AtomicInteger(0)
     val countDownWatch = new AtomicInteger(0)
@@ -105,7 +107,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String, version:String,
       val received = inputQueue.poll(60, TimeUnit.SECONDS)
       log.debug(s"start processing FetchResponse: ${received}.")
       val block = received match {
-        case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
+        case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data, classLoader)
         case blk: Block[_] => blk.asInstanceOf[Block[_]]
       }
       aggregator.aggregate(block.asInstanceOf[Block[T]].data.toIterator)
@@ -146,7 +148,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String, version:String,
         val received = inputQueue.poll(60, TimeUnit.SECONDS)
         log.debug(s"start processing FetchResponse: ${received}.")
         val block = received match {
-          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
+          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data, classLoader)
           case blk: Block[_] => blk.asInstanceOf[Block[_]]
         }
         partialRes = concreteFunc.partialAggregate(block.asInstanceOf[Block[I]].data.toIterator, partialRes)
@@ -159,7 +161,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String, version:String,
         val received = inputQueue.poll(60, TimeUnit.SECONDS)
         log.debug(s"start processing FetchResponse: ${received}.")
         val block = received match {
-          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
+          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data, classLoader)
           case blk: Block[_] => blk.asInstanceOf[Block[_]]
         }
         partialRes = concreteFunc.partialAggregate(block.asInstanceOf[Block[I]].data.toIterator, partialRes)
@@ -176,7 +178,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String, version:String,
         val received = inputQueue.poll(60, TimeUnit.SECONDS)
         log.debug(s"start processing FetchResponse: ${received}.")
         val block = received match {
-          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
+          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data, classLoader)
           case blk: Block[_] => blk.asInstanceOf[Block[_]]
         }
         res = func.aggregate(block.asInstanceOf[Block[I]].data.toIterator, res)
@@ -188,7 +190,7 @@ case class Task[I:ClassTag,R: ClassTag](appId:String, version:String,
         val received = inputQueue.poll(60, TimeUnit.SECONDS)
         log.debug(s"start processing FetchResponse: ${received}.")
         val block = received match {
-          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data)
+          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data, classLoader)
           case blk: Block[_] => blk.asInstanceOf[Block[_]]
         }
         res = func.aggregate(block.asInstanceOf[Block[I]].data.toIterator, res)
@@ -210,10 +212,13 @@ case class Task[I:ClassTag,R: ClassTag](appId:String, version:String,
   def runSequenceTask(): Seq[DDM[_, R]] = {
     //load input data
     val start = System.currentTimeMillis()
+    val classLoader = DependencyManager().getClassLoader(appId, version)
     val data =
     input.map{ in =>
       log.info(s"Input data preparing finished, task running: [${(taskId, func)}] ")
-      val inputData = DataParser.readBlock(in, false, (in:Arr[Any]) => func.apply(in.asInstanceOf[Arr[I]]))
+      val inputData = DataParser.readBlock(in, false,
+                                           (in : Arr[Any]) => func.apply(in.asInstanceOf[Arr[I]]),
+                                           classLoader)
 
       val end = System.currentTimeMillis() - start
       log.info(s"time consumed for function: $end ms.")
