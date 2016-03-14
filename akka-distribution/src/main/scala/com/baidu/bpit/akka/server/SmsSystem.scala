@@ -30,7 +30,7 @@ import java.util.concurrent.TimeUnit
 import java.net.InetAddress
 
 /**
- * akka system 的接口封装类，可以直接使用
+ * Akka system 的接口封装类，可以直接使用
  * 具体使用示例参考 SmsSystemTest
  * @author wudongyao
  * @date 2013-6-17
