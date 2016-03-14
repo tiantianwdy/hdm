@@ -20,7 +20,7 @@ import scala.reflect.{ClassTag, classTag}
 /**
  * Created by Tiantian on 2014/12/1.
  */
-case class Task[I:ClassTag,R: ClassTag](appId:String,
+case class Task[I:ClassTag,R: ClassTag](appId:String, version:String,
                      taskId:String,
                      input:Seq[HDM[_, I]],
                      func:ParallelFunction[I,R],
