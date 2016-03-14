@@ -52,7 +52,6 @@ class AppManager {
     referenceMap.putAll(refs)
   }
   
-  
 
 }
 

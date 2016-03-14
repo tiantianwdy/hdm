@@ -5,6 +5,9 @@ import java.util.concurrent.{Semaphore, ConcurrentHashMap, LinkedBlockingQueue, 
 import java.util.concurrent.atomic.AtomicBoolean
 
 
+import org.nicta.wdy.hdm.server.ProvenanceManager
+import org.nicta.wdy.hdm.server.provenance.ExecutionTrace
+
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Future, Promise, ExecutionContext}
 import scala.reflect.ClassTag
@@ -15,7 +18,7 @@ import akka.pattern._
 import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions.{ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path
-import org.nicta.wdy.hdm.message.AddTaskMsg
+import org.nicta.wdy.hdm.message.{SerializedTaskMsg, AddTaskMsg}
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 import org.nicta.wdy.hdm.utils.Logging
@@ -27,6 +30,7 @@ import org.nicta.wdy.hdm.utils.Logging
 class AdvancedScheduler(val blockManager:HDMBlockManager,
                         val promiseManager:PromiseManager,
                         val resourceManager: ResourceManager,
+                        val historyManager: ProvenanceManager,
                         val actorSys:ActorSystem,
                         val schedulingPolicy:SchedulingPolicy)(implicit val executorService:ExecutionContext) extends Scheduler with Logging{
 
@@ -71,6 +75,19 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           case Some(task) =>
             taskQueue.remove(task)
             scheduleTask(task, tuple._2)
+            // trace task
+            val eTrace = ExecutionTrace(task.taskId,
+              task.appId,
+              "task.appVersion",
+              "task.instanceID",
+              task.func.toString,
+              task.input.map(_.id),
+              Seq(task.taskId),
+              tuple._2,
+              task.createTime,
+              -1L,
+              "Running")
+            historyManager.addExecTrace(eTrace)
           case None => //do nothing
         }
       })
@@ -102,10 +119,11 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     promise
   }
 
-  override def submitJob(appId: String, hdms: Seq[HDM[_, _]]): Future[HDM[_, _]] = {
+  override def submitJob(appId: String, version:String, hdms: Seq[HDM[_, _]]): Future[HDM[_, _]] = {
     hdms.map { h =>
       blockManager.addRef(h)
       val task = Task(appId = appId,
+        version = version,
         taskId = h.id,
         input = h.children.asInstanceOf[Seq[HDM[_, h.inType.type]]],
         func = h.func.asInstanceOf[ParallelFunction[h.inType.type, h.outType.type]],
@@ -146,6 +164,10 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       log.warn(s"no matched promise found: ${taskId}")
     }
     triggerTasks(appId)
+    // update task trace
+//    val eTrace = if(blks ne null) historyManager.getExecTrace(taskId).copy(outputPath= blks.map(_.toURL), status = "Completed")
+//    else historyManager.getExecTrace(taskId).copy(status = "Completed")
+//    historyManager.updateExecTrace(eTrace)
   }
 
 
@@ -186,7 +208,10 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
 
   private def runRemoteTask[ R: ClassTag](workerPath: String, task: ParallelTask[R]): Future[Seq[String]] = {
-    val future = (actorSys.actorSelection(workerPath) ? AddTaskMsg(task)).mapTo[Seq[String]]
+    val taskBytes = HDMContext.defaultSerializer.serialize(task).array
+    val msg = SerializedTaskMsg(task.appId, task.version, task.taskId, taskBytes)
+//    val msg = AddTaskMsg(task)
+    val future = (actorSys.actorSelection(workerPath) ? msg).mapTo[Seq[String]]
     future
   }
 

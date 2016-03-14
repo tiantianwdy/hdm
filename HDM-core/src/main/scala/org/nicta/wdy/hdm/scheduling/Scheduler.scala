@@ -26,7 +26,7 @@ trait Scheduler {
 
   implicit val executorService:ExecutionContext
 
-  def submitJob(appId:String, hdms:Seq[HDM[_,_]]): Future[HDM[_,_]]
+  def submitJob(appId:String, version:String, hdms:Seq[HDM[_,_]]): Future[HDM[_,_]]
 
   def addTask[R](task:ParallelTask[R]):Promise[HDM[_, R]]
 
@@ -178,18 +178,19 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
     promise
   }
 
-  def jobReceived(appId:String, hdm:HDM[_,_], parallelism:Int): Future[HDM[_, _]] = {
+  def jobReceived(appId:String, version:String, hdm:HDM[_,_], parallelism:Int): Future[HDM[_, _]] = {
     appManager.addApp(appId, hdm)
     val plan = HDMContext.explain(hdm, parallelism)
     appManager.addPlan(appId, plan)
-    submitJob(appId, plan)
+    submitJob(appId, version, plan)
   }
 
   //todo move and implement at job compiler
-  override def submitJob(appId: String, hdms: Seq[HDM[_, _]]): Future[HDM[_, _]] = {
+  override def submitJob(appId: String, version:String, hdms: Seq[HDM[_, _]]): Future[HDM[_, _]] = {
     hdms.map { h =>
       blockManager.addRef(h)
       val task = Task(appId = appId,
+        version = version,
         taskId = h.id,
         input = h.children.asInstanceOf[Seq[HDM[_, h.inType.type]]],
         func = h.func.asInstanceOf[ParallelFunction[h.inType.type, h.outType.type]],

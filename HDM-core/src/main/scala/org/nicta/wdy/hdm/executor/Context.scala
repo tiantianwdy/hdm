@@ -13,7 +13,8 @@ import org.nicta.wdy.hdm.message._
 import org.nicta.wdy.hdm.model.{GroupedSeqHDM, HDM, PairHDM}
 import org.nicta.wdy.hdm.planing.StaticPlaner
 import org.nicta.wdy.hdm.scheduling.{AdvancedScheduler, SchedulingPolicy}
-import org.nicta.wdy.hdm.serializer.{JavaSerializer, SerializerInstance}
+import org.nicta.wdy.hdm.serializer.{SerializableByteBuffer, JavaSerializer, SerializerInstance}
+import org.nicta.wdy.hdm.server.{ProvenanceManager, DependencyManager}
 import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
 import org.nicta.wdy.hdm.utils.Logging
 
@@ -41,6 +42,8 @@ object HDMContext extends  Context with Logging{
 
   lazy val defaultConf = ConfigFactory.load("hdm-core.conf")
 
+  lazy val DEFAULT_DEPENDENCY_BASE_PATH = Try {defaultConf.getString("hdm.dep.base.path")} getOrElse ("target/repo/hdm")
+
   lazy val parallelismFactor = Try {defaultConf.getDouble("hdm.executor.parallelism.factor")} getOrElse (1.0D)
 
   lazy val PLANER_PARALLEL_CPU_FACTOR = Try {defaultConf.getInt("hdm.planner.parallelism.cpu.factor")} getOrElse (CORES)
@@ -50,6 +53,8 @@ object HDMContext extends  Context with Logging{
   lazy val DEFAULT_BLOCK_ID_LENGTH = defaultSerializer.serialize(newLocalId()).array().length
 
   val defaultSerializer:SerializerInstance = new JavaSerializer(defaultConf).newInstance()
+
+  val defaultSerializerFactory = new JavaSerializer(defaultConf)
 
   val DEFAULT_COMPRESSOR = new SnappyCompressionCodec(defaultConf)
 
@@ -100,6 +105,10 @@ object HDMContext extends  Context with Logging{
   val BLOCK_MANAGER_NAME:String =  "BlockManager"
 
   val JOB_RESULT_DISPATCHER:String = "ResultDispatcher"
+
+  var appName = "defaultApp"
+
+  var version = "0.0.1"
 
   def clusterBlockPath = leaderPath.get() + "/" + BLOCK_MANAGER_NAME
 
@@ -171,8 +180,8 @@ object HDMContext extends  Context with Logging{
       val resourceManager = new DefResourceManager
       val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
       //    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
-      val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system, schedulingPolicy)
-      hdmBackEnd = new HDMServerBackend(appManager, blockManager, scheduler, planer, resourceManager, promiseManager)
+      val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, schedulingPolicy)
+      hdmBackEnd = new HDMServerBackend(appManager, blockManager, scheduler, planer, resourceManager, promiseManager, DependencyManager())
       log.warn(s"created new HDMServerBackend.")
     }
     hdmBackEnd
@@ -191,7 +200,7 @@ object HDMContext extends  Context with Logging{
 
   def compute(hdm:HDM[_, _], parallelism:Int):Future[HDM[_,_]] = {
 //    addJob(hdm.id, explain(hdm, parallelism))
-    submitJob(hdm.id, hdm, parallelism)
+    submitJob(appName, version, hdm, parallelism)
   }
 
   def declareHdm(hdms:Seq[HDM[_,_]], declare:Boolean = true) = {
@@ -232,14 +241,17 @@ object HDMContext extends  Context with Logging{
     else throw new Exception("add job dispatcher failed.")
   }
 
-  def submitJob(appId:String, hdm:HDM[_,_], parallel:Int): Future[HDM[_,_]] = {
+  def submitJob(appName:String, version:String, hdm:HDM[_,_], parallel:Int): Future[HDM[_,_]] = {
     val rootPath =  SmsSystem.rootPath
-    HDMContext.declareHdm(Seq(hdm))
-    val promise = SmsSystem.askLocalMsg(JOB_RESULT_DISPATCHER, AddHDMsMsg(appId, Seq(hdm), rootPath + "/"+JOB_RESULT_DISPATCHER)) match {
+//    HDMContext.declareHdm(Seq(hdm))
+    val promise = SmsSystem.askLocalMsg(JOB_RESULT_DISPATCHER, RegisterPromiseMsg(appName, version, rootPath + "/"+JOB_RESULT_DISPATCHER)) match {
       case Some(promise) => promise.asInstanceOf[Promise[HDM[_,_]]]
       case none => null
     }
-    SmsSystem.askAsync(leaderPath.get()+ "/"+CLUSTER_EXECUTOR_NAME, SubmitJobMsg(appId, hdm, rootPath + "/"+JOB_RESULT_DISPATCHER, parallel))
+    //    val jobMsg = SubmitJobMsg(appId, hdm, rootPath + "/"+JOB_RESULT_DISPATCHER, parallel)
+    val jobBytes = HDMContext.defaultSerializer.serialize(hdm).array
+    val jobMsg = new SerializedJobMsg(appName, version, jobBytes, rootPath + "/"+JOB_RESULT_DISPATCHER, parallel)
+    SmsSystem.askAsync(leaderPath.get()+ "/"+CLUSTER_EXECUTOR_NAME, jobMsg)
     if(promise ne null) promise.future
     else throw new Exception("add job dispatcher failed.")
   }

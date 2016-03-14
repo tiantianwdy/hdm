@@ -86,7 +86,7 @@ object ClusterExecutorContext {
 
   def apply(numCores: Int):ExecutionContext = {
 //    apply(Executors.newFixedThreadPool(numCores + 1))
-    ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(numCores + 1))
+    ExecutionContext.fromExecutorService(Executors.newFixedThreadPool(numCores + 1, DynamicDependencyThreadFactory()))
   }
 
   def apply(localExecutor: ExecutorService):ExecutionContext = {

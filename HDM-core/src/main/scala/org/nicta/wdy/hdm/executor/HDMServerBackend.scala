@@ -3,6 +3,8 @@ package org.nicta.wdy.hdm.executor
 import org.nicta.wdy.hdm.model.HDM
 import org.nicta.wdy.hdm.planing.HDMPlaner
 import org.nicta.wdy.hdm.scheduling.Scheduler
+import org.nicta.wdy.hdm.server.provenance.ApplicationTrace
+import org.nicta.wdy.hdm.server.{DependencyManager, ProvenanceManager}
 import org.nicta.wdy.hdm.storage.HDMBlockManager
 
 import scala.concurrent.{Future, Promise}
@@ -15,7 +17,8 @@ class HDMServerBackend(val appManager: AppManager,
                        val scheduler: Scheduler,
                        val planner: HDMPlaner,
                        val resourceManager: ResourceManager,
-                       val eventManager: PromiseManager) {
+                       val eventManager: PromiseManager,
+                       val dependencyManager:DependencyManager) {
 
 
 
@@ -29,11 +32,11 @@ class HDMServerBackend(val appManager: AppManager,
     }.start()
   }
 
-  def jobReceived(jobId:String, hdm:HDM[_,_], parallelism:Int):Future[_] ={
+  def jobReceived(jobId:String, version:String, hdm:HDM[_,_], parallelism:Int):Future[_] ={
     appManager.addApp(jobId, hdm)
     val plan = HDMContext.explain(hdm, parallelism)
     appManager.addPlan(jobId, plan)
-    scheduler.submitJob(jobId, plan)
+    scheduler.submitJob(jobId, version, plan)
   }
 
 
@@ -42,6 +45,14 @@ class HDMServerBackend(val appManager: AppManager,
     eventManager.addPromise(task.taskId, promise)
     scheduler.addTask(task)
     promise.future
+  }
+
+  def submitApplicationBytes(appName:String, version:String, content:Array[Byte], author:String): Unit = {
+    dependencyManager.submit(appName,version, content, author, false)
+  }
+
+  def addDep(appName:String, version:String, depName:String, content:Array[Byte], author:String): Unit = {
+    dependencyManager.addDep(appName, version, depName, content, author, false)
   }
 
 
