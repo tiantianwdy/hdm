@@ -21,6 +21,7 @@ import java.io._
 import java.nio.ByteBuffer
 
 import com.typesafe.config.Config
+import org.nicta.wdy.hdm.executor.DynamicDependencyThreadFactory
 
 import scala.reflect.ClassTag
 
@@ -118,7 +119,7 @@ class JavaSerializer(conf: Config) extends Serializer with Externalizable {
   private var extraDebugInfo = true
 
   override def newInstance(): SerializerInstance = {
-    val classLoader = defaultClassLoader.getOrElse(Thread.currentThread.getContextClassLoader)
+    val classLoader = defaultClassLoader.getOrElse(DynamicDependencyThreadFactory.defaultClassLoader())
     new JavaSerializerInstance(counterReset, extraDebugInfo, classLoader)
   }
 
