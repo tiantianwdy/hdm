@@ -1,4 +1,4 @@
-package org.nicta.wdy.hdm.benchmark
+package org.nicta.wdy.hdm.examples
 
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.executor.HDMContext._

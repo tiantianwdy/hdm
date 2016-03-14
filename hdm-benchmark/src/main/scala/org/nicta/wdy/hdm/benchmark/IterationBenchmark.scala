@@ -1,12 +1,11 @@
 package org.nicta.wdy.hdm.benchmark
 
-import breeze.linalg.{squaredDistance, Vector, DenseVector}
+import breeze.linalg.{DenseVector, Vector, squaredDistance}
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.executor.HDMContext._
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
 
-import scala.collection.mutable
 import scala.math._
 import scala.util.Random
 

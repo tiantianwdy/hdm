@@ -1,12 +1,9 @@
 package org.nicta.wdy.hdm.benchmark
 
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
 
-import scala.concurrent.ExecutionContext
-import ExecutionContext.Implicits.global
-import scala.util.{Failure, Success}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 /**
  * Created by tiantian on 7/01/15.
@@ -24,6 +21,8 @@ object HDMBenchmark {
     val parallelism = args(3).toInt
     val dataTag = if(args.length >= 5) args(4) else "ranking"
     val len = if(args.length >= 6) args(5).toInt else 3
+    HDMContext.appName = "hdm-examples"
+    HDMContext.version = "0.0.1"
 
     val start = System.currentTimeMillis()
 

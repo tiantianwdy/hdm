@@ -1,4 +1,4 @@
-package org.nicta.wdy.hdm.benchmark
+package org.nicta.wdy.hdm.examples
 
 import junit.framework.Test
 
