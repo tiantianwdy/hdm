@@ -1,7 +1,7 @@
 package org.nicta.hdm.benchmark
 
 import org.junit.{After, Test}
-import org.nicta.wdy.hdm.benchmark.{UservisitsSQLBenchmark, IterationBenchmark, KVBasedPrimitiveBenchmark}
+import org.nicta.wdy.hdm.examples.{UservisitsSQLBenchmark, IterationBenchmark, KVBasedPrimitiveBenchmark}
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.executor.HDMContext._
 import com.baidu.bpit.akka.messages.{AddMsg, Query}
@@ -30,6 +30,13 @@ class TechfestDemo {
         this is line 6
         this is line 7
     """.split("\\s+")
+
+
+  @Test
+  def testStartSlave(): Unit = {
+    HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
+    Thread.sleep(50000000)
+  }
 
 
   @Test
