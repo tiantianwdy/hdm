@@ -18,7 +18,7 @@ import scala.util.Try
  */
 trait HDMPlaner extends Serializable {
 
-  def plan(hdm:HDM[_,_], parallelism:Int):Seq[HDM[_,_]]
+  def plan(hdm:AbstractHDM[_], parallelism:Int):Seq[AbstractHDM[_]]
 
 }
 
@@ -38,38 +38,46 @@ trait DynamicPlaner {
  *
  */
 
-object StaticPlaner extends HDMPlaner{
+object StaticPlaner extends HDMPlaner {
 
   val physicalPlaner = new DefaultPhysicalPlanner(HDMBlockManager(), isStatic = true)
-  
+
   val logicalPlanner = new DefaultLocalPlaner
 
   /**
    * ordered optimizers
    */
-  val logicOptimizers:Seq[LogicalOptimizer] = Seq(
+  val logicOptimizers: Seq[LogicalOptimizer] = Seq(
     new CacheOptimizer(),
-//    new FilterLifting(),
+    //    new FilterLifting(),
     new FunctionFusion()
   )
 
-  val physicalOptimizers:Seq[PhysicalOptimizer] = Seq.empty[PhysicalOptimizer]
+  val physicalOptimizers: Seq[PhysicalOptimizer] = Seq.empty[PhysicalOptimizer]
 
-  override def plan(hdm:HDM[_,_], maxParallelism:Int):Seq[HDM[_,_]] = {
-    val explainedMap  = new java.util.HashMap[String, HDM[_,_]]()// temporary map to save updated hdms
-    var optimized = hdm
-    // optimization
-    logicOptimizers foreach { optimizer =>
-      optimized = optimizer.optimize(optimized)
-    }
-    // logical planning
-    val logicPlan = logicalPlanner.plan(optimized, maxParallelism)
-    //physical planning
-    logicPlan.map{ h =>
-      val input = Try {h.children.map(cld => explainedMap.get(cld.id)).asInstanceOf[Seq[HDM[_,h.inType.type]]]} getOrElse {Seq.empty[HDM[_,h.inType.type]]}
-      val newHdms = physicalPlaner.plan(input, h.asInstanceOf[HDM[h.inType.type, h.outType.type]], h.parallelism)
-      newHdms.foreach(nh => explainedMap.put(nh.id, nh))
-      newHdms
-    }
-  }.flatten
+  override def plan(hdm: AbstractHDM[_], maxParallelism: Int): Seq[AbstractHDM[_]] = hdm match {
+    case dfm: HDM[_, _] => {
+      val explainedMap = new java.util.HashMap[String, HDM[_, _]]() // temporary map to save updated hdms
+      var optimized:AbstractHDM[_] = dfm
+      // optimization
+      logicOptimizers foreach { optimizer =>
+        optimized = optimizer.optimize(optimized)
+      }
+      // logical planning
+      val logicPlan = logicalPlanner.plan(optimized, maxParallelism)
+      //physical planning
+      logicPlan.map { h =>
+        val input = Try {
+          h.children.map(cld => explainedMap.get(cld.id)).asInstanceOf[Seq[HDM[_, dfm.inType.type]]]
+        } getOrElse {
+          Seq.empty[HDM[_, dfm.inType.type]]
+        }
+        val newHdms = physicalPlaner.plan(input, h.asInstanceOf[HDM[dfm.inType.type, dfm.outType.type]], h.parallelism)
+        newHdms.foreach(nh => explainedMap.put(nh.id, nh))
+        newHdms
+      }
+    }.flatten
+
+//    case DualDFM =>
+  }
 }

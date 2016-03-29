@@ -6,7 +6,7 @@ import java.util.concurrent.ConcurrentHashMap
 import scala.collection.JavaConversions._
 import scala.language.existentials
 
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.{AbstractHDM, HDM}
 
 /**
  * Created by tiantian on 7/03/15.
@@ -17,7 +17,7 @@ class AppManager {
 
   val referenceMap:ConcurrentHashMap[String, Int] = new ConcurrentHashMap[String, Int]
   
-  def addApp(appId:String, hdm:HDM[_,_]): Unit = {
+  def addApp(appId:String, hdm:AbstractHDM[_]): Unit = {
     appBuffer.put(appId, Application(id = hdm.id, namespace = appId, source = hdm))
   }
   
@@ -25,7 +25,7 @@ class AppManager {
     appBuffer.get(appId)
   }
   
-  def addPlan(appId:String, nPlan:Seq[HDM[_,_]] ) = {
+  def addPlan(appId:String, nPlan:Seq[AbstractHDM[_]] ) = {
     val app = appBuffer.get(appId)
     if(app != null) appBuffer.put(appId, app.copy(plan = nPlan))
   }
@@ -58,8 +58,8 @@ class AppManager {
 
 case class Application(id:String, 
                       namespace:String,
-                       source:HDM[_,_], 
-                       plan:Seq[HDM[_,_]] = Seq.empty[HDM[_,_]],
+                       source:AbstractHDM[_],
+                       plan:Seq[AbstractHDM[_]] = Seq.empty[HDM[_,_]],
                        state:String = "REGISTERED"){
   
 }

@@ -26,11 +26,11 @@ trait Scheduler {
 
   implicit val executorService:ExecutionContext
 
-  def submitJob(appId:String, version:String, hdms:Seq[HDM[_,_]]): Future[HDM[_,_]]
+  def submitJob(appId:String, version:String, hdms:Seq[AbstractHDM[_]]): Future[AbstractHDM[_]]
 
-  def addTask[R](task:ParallelTask[R]):Promise[HDM[_, R]]
+  def addTask[R](task:ParallelTask[R]):Promise[AbstractHDM[R]]
 
-  def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[HDM[_, _]]): Unit
+  def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[AbstractHDM[_]]): Unit
 
   def init()
 
@@ -38,7 +38,7 @@ trait Scheduler {
 
   def stop()
 
-  protected def scheduleTask [R:ClassTag](task:ParallelTask[R], workerPath:String):Promise[HDM[_, R]]
+  protected def scheduleTask [R:ClassTag](task:ParallelTask[R], workerPath:String):Promise[AbstractHDM[R]]
 
 }
 
@@ -73,8 +73,8 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
 
   implicit val timeout = Timeout(5L, TimeUnit.MINUTES)
 
-  override protected def scheduleTask[R: ClassTag](task: ParallelTask[R], workerPath:String): Promise[HDM[_, R]] = {
-    val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[HDM[_, R]]]
+  override protected def scheduleTask[R: ClassTag](task: ParallelTask[R], workerPath:String): Promise[AbstractHDM[R]] = {
+    val promise = promiseMap.get(task.taskId).asInstanceOf[Promise[AbstractHDM[R]]]
 
 
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {
@@ -167,8 +167,8 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
     workingSize.release(totalSlots)
   }
 
-  override def addTask[R](task: ParallelTask[R]): Promise[HDM[_, R]] = {
-    val promise = Promise[HDM[_, R]]()
+  override def addTask[R](task: ParallelTask[R]): Promise[AbstractHDM[R]] = {
+    val promise = Promise[AbstractHDM[R]]()
     promiseMap.put(task.taskId, promise)
     if (!appBuffer.containsKey(task.appId))
       appBuffer.put(task.appId, new ListBuffer[ParallelTask[_]])
@@ -178,7 +178,7 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
     promise
   }
 
-  def jobReceived(appId:String, version:String, hdm:HDM[_,_], parallelism:Int): Future[HDM[_, _]] = {
+  def jobReceived(appId:String, version:String, hdm:HDM[_,_], parallelism:Int): Future[AbstractHDM[_]] = {
     appManager.addApp(appId, hdm)
     val plan = HDMContext.explain(hdm, parallelism)
     appManager.addPlan(appId, plan)
@@ -186,23 +186,26 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
   }
 
   //todo move and implement at job compiler
-  override def submitJob(appId: String, version:String, hdms: Seq[HDM[_, _]]): Future[HDM[_, _]] = {
-    hdms.map { h =>
-      blockManager.addRef(h)
-      val task = Task(appId = appId,
-        version = version,
-        taskId = h.id,
-        input = h.children.asInstanceOf[Seq[HDM[_, h.inType.type]]],
-        func = h.func.asInstanceOf[ParallelFunction[h.inType.type, h.outType.type]],
-        dep = h.dependency,
-        partitioner = h.partitioner.asInstanceOf[Partitioner[h.outType.type ]])
-      addTask(task)
+  override def submitJob(appId: String, version:String, hdms: Seq[AbstractHDM[_]]): Future[AbstractHDM[_]] = {
+    hdms.map { h => h match {
+      case hdm: HDM[_, _] =>
+        blockManager.addRef(hdm)
+        val task = Task(appId = appId,
+          version = version,
+          taskId = h.id,
+          input = h.children.asInstanceOf[Seq[HDM[_, hdm.inType.type]]],
+          func = h.func.asInstanceOf[ParallelFunction[hdm.inType.type, h.outType.type]],
+          dep = h.dependency,
+          partitioner = h.partitioner.asInstanceOf[Partitioner[h.outType.type]])
+        addTask(task)
+     }
     }.last.future
+
   }
 
 
 
-  def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[HDM[_, _]]): Unit = {
+  def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[AbstractHDM[_]]): Unit = {
     val blockSeq = blks.flatMap(_.blocks)
     val ref = HDMBlockManager().getRef(taskId) match {
       case dfm: DFM[_ , _] => dfm.copy(blocks = blockSeq, state = Computed)

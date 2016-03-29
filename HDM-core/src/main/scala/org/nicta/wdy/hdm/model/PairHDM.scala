@@ -61,6 +61,12 @@ class PairHDM[T:ClassTag, K:ClassTag,V:ClassTag](self:HDM[T,(K,V)]) extends Seri
     self.map(t => (t._2, t._1))
   }
 
+  def join[U:ClassTag](hdm:HDM[_, (K, U)]):HDM[_,(K,(U,V))] = ???
+    // val input1 = hdm.partitionByKey
+    // val input2 = this.partitionByKey
+    // val new DoubleInputHDM(input1, input2).mapPartition()
+
+
 }
 
 

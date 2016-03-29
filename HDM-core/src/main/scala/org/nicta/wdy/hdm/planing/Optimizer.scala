@@ -20,7 +20,7 @@ trait LogicalOptimizer extends Serializable {
    * @param cur  input HDM
    * @return     optimized HDM
    */
-  def optimize[I:ClassTag, R:ClassTag](cur: HDM[I, R]): HDM[_, R]
+  def optimize[R:ClassTag](cur: AbstractHDM[R]): AbstractHDM[R]
 
 }
 
@@ -42,26 +42,32 @@ class FunctionFusion extends LogicalOptimizer with Logging{
    * @param cur  current HDM
    * @return     optimized HDM
    */
-  override def optimize[I:ClassTag, R:ClassTag](cur: HDM[I, R]): HDM[_, R] = {
-//    var cur = hdm
-    if(cur.children == null) cur
-    else {
-      if((cur.dependency == OneToOne | cur.dependency == OneToN)
-        && cur.children.forall(child => (child.dependency == OneToOne |  child.dependency == NToOne))){
-         if(cur.children.size == 1 && !cur.children.head.isCache) {
-           val child = cur.children.head
-           val first = child.asInstanceOf[HDM[child.inType.type, I]]
-           val second = cur
-           log.info(s"function fusion ${first.func} with ${second.func}")
-           optimize(first.andThen(second))
-         } else {
-           val seq = cur.children.map(c => optimize(c.asInstanceOf[HDM[c.inType.type, I]]))
-           cur.copy(children = seq)
-         }
-      } else {
-        val seq = cur.children.map(c => optimize(c.asInstanceOf[HDM[c.inType.type, I]]))
-        cur.copy(children = seq)
-      }
+  override def optimize[R: ClassTag](cur: AbstractHDM[R]): AbstractHDM[R] = {
+    //    var cur = hdm
+    cur match {
+      case curHDM: HDM[_, R] =>
+        if (cur.children == null || cur.children.isEmpty) cur
+        else {
+          if ((cur.dependency == OneToOne | cur.dependency == OneToN)
+            && cur.children.forall(child => (child.dependency == OneToOne | child.dependency == NToOne))) {
+            if (cur.children.size == 1 && !cur.children.head.isCache) {
+              val child = cur.children.head
+              val first = child.asInstanceOf[AbstractHDM[child.outType.type]]
+              val second = cur.asInstanceOf[HDM[child.outType.type, R]]
+              log.info(s"function fusion ${first.func} with ${second.func}")
+              optimize(first.andThen(second))
+            } else {
+              val seq = cur.children.map(c => optimize(c.asInstanceOf[AbstractHDM[curHDM.inType.type]]))
+              curHDM.asInstanceOf[HDM[curHDM.inType.type, R]].copy(children = seq)
+            }
+          } else {
+            val seq = cur.children.map(c => optimize(c.asInstanceOf[AbstractHDM[curHDM.inType.type]]))
+            curHDM.asInstanceOf[HDM[curHDM.inType.type, R]].copy(children = seq)
+          }
+        }
+
+//      case dualHDM:DualDFM[_,_,_] =>
+
     }
 
   }
@@ -75,34 +81,29 @@ class FilterLifting extends  LogicalOptimizer with Logging{
    * @param cur  input HDM
    * @return     optimized HDM
    */
-  override def optimize[I: ClassTag, R: ClassTag](cur: HDM[I, R]): HDM[_, R] = {
-    if(cur.children == null) cur
-    else {
-      if(cur.func.isInstanceOf[ParFindByFunc[_]] &&  cur.children.forall(child => child.func.isInstanceOf[ParMapFunc[_,_]])){
-        val filterFunc = cur.func.asInstanceOf[ParFindByFunc[I]]
-        val child = cur.children.head
-        val mapFunc = child.func.asInstanceOf[ParMapFunc[child.inType.type ,I]]
-        val nf = mapFunc.f.andThen(filterFunc.f)
-        val newChildren = cur.children.map{ c =>
-          c.children.map{_.asInstanceOf[HDM[_, child.inType.type]].filter(nf)}
-        }.flatten
-        log.info(s"Lift filter ${cur.func} in front of ${child.func} .")
-        new DFM(children = newChildren.map(optimize(_)), func = mapFunc, dependency = cur.dependency, partitioner = cur.partitioner.asInstanceOf[Partitioner[I]]).asInstanceOf[HDM[_, R]]
-      }
-/*      if(cur.func.isInstanceOf[FindByKey[_,_]] &&  cur.children.forall(child => child.func.isInstanceOf[ParGroupByFunc[_,_]])){
-        val fbk = cur.func.asInstanceOf[FindByKey[_,_]]
-        val nfbk = cur.func.asInstanceOf[FindByKey[I,fbk.kType.type]]
-        val head = cur.children.head
-        val gb = head.func.asInstanceOf[ParGroupByFunc[I, fbk.kType.type]]
-        val newChildren = cur.children.map{ c =>
-          c.asInstanceOf[HDM[_,I]].filter( e => nfbk.f(gb.f(e))).copy(dependency = OneToOne, partitioner = new KeepPartitioner[I](1))
+  override def optimize[R: ClassTag](cur: AbstractHDM[R]): AbstractHDM[R] = {
+    cur match {
+      case curHDM: HDM[_, R] =>
+        if (cur.children == null) cur
+        else {
+          if (cur.func.isInstanceOf[ParFindByFunc[_]] && cur.children.forall(child => child.func.isInstanceOf[ParMapFunc[_, _]])) {
+            val filterFunc = cur.func.asInstanceOf[ParFindByFunc[R]]
+            val child = cur.children.head.asInstanceOf[HDM[_, R]]
+            val mapFunc = child.func.asInstanceOf[ParMapFunc[child.inType.type, R]]
+            val nf = mapFunc.f.andThen(filterFunc.f)
+            val newChildren = cur.children.map { c =>
+              c.children.map {
+                _.asInstanceOf[HDM[_, child.inType.type]].filter(nf)
+              }
+            }.flatten
+            log.info(s"Lift filter ${cur.func} in front of ${child.func} .")
+            new DFM(children = newChildren.map(optimize(_)), func = mapFunc, dependency = cur.dependency, partitioner = cur.partitioner.asInstanceOf[Partitioner[R]]).asInstanceOf[HDM[_, R]]
+          } else {
+            val seq = cur.children.map(c => optimize(c.asInstanceOf[AbstractHDM[curHDM.inType.type]]))
+            curHDM.asInstanceOf[HDM[curHDM.inType.type, R]].copy(children = seq)
+          }
         }
-        head.asInstanceOf[HDM[I,R]].copy(children = newChildren)
-      }*/
-      else {
-        val seq = cur.children.map(c => optimize(c.asInstanceOf[HDM[c.inType.type, I]]))
-        cur.copy(children = seq)
-      }
+//    case dualHDM:DualDFM[_,_,_] =>
     }
   }
 }
@@ -118,7 +119,7 @@ class CacheOptimizer extends  LogicalOptimizer with Logging{
    * @param cur  input HDM
    * @return     optimized HDM
    */
-  override def optimize[I: ClassTag, R: ClassTag](cur: HDM[I, R]): HDM[_, R] = {
+  override def optimize[R: ClassTag](cur: AbstractHDM[R]): AbstractHDM[R] = {
     if (cur.isCache && HDMBlockManager().checkState(cur.id, Computed)) {
       val cached = HDMBlockManager().getRef(cur.id).asInstanceOf[HDM[_, R]]
       log.info(s"Replace HDM ${cur} with cached: ${cached} .")
@@ -126,8 +127,12 @@ class CacheOptimizer extends  LogicalOptimizer with Logging{
     } else if(cur.children == null) {
       cur
     } else {
-      val inputSeq = cur.children.map(c => optimize(c.asInstanceOf[HDM[c.inType.type, I]]))
-      cur.copy(children = inputSeq)
+      cur match {
+        case curHDM: HDM[_, R] =>
+          val seq = cur.children.map(c => optimize(c.asInstanceOf[AbstractHDM[curHDM.inType.type]]))
+          curHDM.asInstanceOf[HDM[curHDM.inType.type, R]].copy(children = seq)
+//      case dualHDM:DualDFM[_,_,_] =>
+      }
     }
   }
 

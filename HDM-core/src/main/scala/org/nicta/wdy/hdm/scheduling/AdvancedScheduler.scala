@@ -109,8 +109,8 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     resourceManager.release(totalSlots)
   }
 
-  override def addTask[R](task: ParallelTask[R]): Promise[HDM[_, R]] = {
-    val promise = promiseManager.createPromise[HDM[_, R]](task.taskId)
+  override def addTask[R](task: ParallelTask[R]): Promise[AbstractHDM[R]] = {
+    val promise = promiseManager.createPromise[AbstractHDM[R]](task.taskId)
     if (!appBuffer.containsKey(task.appId))
       appBuffer.put(task.appId, new ListBuffer[ParallelTask[ _]])
     val lst = appBuffer.get(task.appId)
@@ -119,22 +119,24 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     promise
   }
 
-  override def submitJob(appId: String, version:String, hdms: Seq[HDM[_, _]]): Future[HDM[_, _]] = {
-    hdms.map { h =>
-      blockManager.addRef(h)
-      val task = Task(appId = appId,
-        version = version,
-        taskId = h.id,
-        input = h.children.asInstanceOf[Seq[HDM[_, h.inType.type]]],
-        func = h.func.asInstanceOf[ParallelFunction[h.inType.type, h.outType.type]],
-        dep = h.dependency,
-        partitioner = h.partitioner.asInstanceOf[Partitioner[h.outType.type ]])
-      addTask(task)
+  override def submitJob(appId: String, version:String, hdms: Seq[AbstractHDM[_]]): Future[AbstractHDM[_]] = {
+    hdms.map { h => h match {
+      case hdm: HDM[_, _] =>
+        blockManager.addRef(h)
+        val task = Task(appId = appId,
+          version = version,
+          taskId = h.id,
+          input = h.children.asInstanceOf[Seq[HDM[_, hdm.inType.type]]],
+          func = h.func.asInstanceOf[ParallelFunction[hdm.inType.type, hdm.outType.type]],
+          dep = h.dependency,
+          partitioner = h.partitioner.asInstanceOf[Partitioner[hdm.outType.type]])
+        addTask(task)
+      }
     }.last.future
   }
 
 
-  override def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[HDM[_, _]]): Unit = {
+  override def taskSucceeded(appId: String, taskId: String, func: String, blks: Seq[AbstractHDM[_]]): Unit = {
 
     val ref = blockManager.getRef(taskId) match {
       case dfm: DFM[_, _] =>
@@ -171,8 +173,8 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
   }
 
 
-  override protected def scheduleTask[R: ClassTag](task: ParallelTask[R], workerPath:String): Promise[HDM[_, R]] = {
-    val promise = promiseManager.getPromise(task.taskId).asInstanceOf[Promise[HDM[_, R]]]
+  override protected def scheduleTask[R: ClassTag](task: ParallelTask[R], workerPath:String): Promise[AbstractHDM[R]] = {
+    val promise = promiseManager.getPromise(task.taskId).asInstanceOf[Promise[AbstractHDM[R]]]
 
 
     if (task.func.isInstanceOf[ParUnionFunc[_]]) {

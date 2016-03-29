@@ -31,11 +31,12 @@ class TaskTest extends ClusterTestSuite {
     hdms foreach { h =>
       HDMBlockManager().addRef(h)
       if (h.isInstanceOf[DFM[_,_]] && curNum < maxTaskNum){
+        val dfm = h.asInstanceOf[DFM[_,_]]
         val task = Task(appId = HDMContext.appName, version = HDMContext.version,
           taskId = h.id,
-          input = h.children.asInstanceOf[Seq[HDM[_, h.inType.type]]],
+          input = h.children.asInstanceOf[Seq[HDM[_, dfm.inType.type]]],
           dep = h.dependency,
-          func = h.func.asInstanceOf[ParallelFunction[h.inType.type, h.outType.type]])
+          func = h.func.asInstanceOf[ParallelFunction[dfm.inType.type, dfm.outType.type]])
         ClusterExecutor.runTaskConcurrently(task)
         curNum += 1
       }

@@ -8,7 +8,7 @@ import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.netty.{NettyBlockServer, NettyConnectionManager, NettyBlockFetcher}
 import org.nicta.wdy.hdm.io.{DataParser, Path}
 import org.nicta.wdy.hdm.message.{FetchSuccessResponse, QueryBlockMsg}
-import org.nicta.wdy.hdm.model.{DFM, HDM, DDM}
+import org.nicta.wdy.hdm.model.{AbstractHDM, DFM, HDM, DDM}
 import java.util.concurrent.ConcurrentHashMap
 
 import org.nicta.wdy.hdm.utils.Logging
@@ -21,9 +21,9 @@ import scala.reflect.ClassTag
  */
 trait HDMBlockManager {
 
-  def getRefs(ids:Seq[String]): Seq[HDM[_,_]]
+  def getRefs(ids:Seq[String]): Seq[AbstractHDM[_]]
 
-  def findRefs(idPattern: String => Boolean): Seq[HDM[_,_]]
+  def findRefs(idPattern: String => Boolean): Seq[AbstractHDM[_]]
 
   def declare(br:HDM[_,_]): HDM[_,_]
 
@@ -33,9 +33,9 @@ trait HDMBlockManager {
 
   def getBlock(id:String):Block[_]
 
-  def getRef (id:String): HDM[_,_]
+  def getRef (id:String): AbstractHDM[_]
 
-  def addRef(br:HDM[_,_])
+  def addRef(br:AbstractHDM[_])
 
   def addAllRef(brs: Seq[HDM[_,_]])
 
@@ -89,7 +89,7 @@ class DefaultHDMBlockManager extends HDMBlockManager with Logging{
 
   val blockCache = new ConcurrentHashMap[String, Block[_]]()
 
-  val blockRefMap = new ConcurrentHashMap[String, HDM[_,_]]()
+  val blockRefMap = new ConcurrentHashMap[String, AbstractHDM[_]]()
 
   val releasedBlockSize = new AtomicInteger(0)
 
@@ -144,11 +144,11 @@ class DefaultHDMBlockManager extends HDMBlockManager with Logging{
     brs.foreach(addRef(_))
   }
 
-  override def addRef(br: HDM[_, _]): Unit = {
+  override def addRef(br: AbstractHDM[_]): Unit = {
     blockRefMap.put(br.id, br)
   }
 
-  override def getRef(id: String): HDM[_, _] = {
+  override def getRef(id: String): AbstractHDM[_] = {
     blockRefMap.get(id)
   }
 
@@ -165,11 +165,11 @@ class DefaultHDMBlockManager extends HDMBlockManager with Logging{
     br
   }
 
-  override def findRefs(idPattern: (String) => Boolean): Seq[HDM[_, _]] = {
+  override def findRefs(idPattern: (String) => Boolean): Seq[AbstractHDM[_]] = {
     getRefs(blockRefMap.keySet().filter(idPattern).toSeq)
   }
 
-  override def getRefs(ids: Seq[String]): Seq[HDM[_, _]] = {
+  override def getRefs(ids: Seq[String]): Seq[AbstractHDM[_]] = {
     ids.map(blockRefMap.get(_))
   }
 

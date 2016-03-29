@@ -371,7 +371,9 @@ class ParCombinedFunc [T:ClassTag,U:ClassTag,R:ClassTag](val dependency:FuncDepe
 }
 
 
-class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)(implicit ordering: Ordering[T]) extends ParallelFunction[T,T] with Aggregator[Arr[T], Buf[T]]{
+class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)
+                            (implicit ordering: Ordering[T])
+  extends ParallelFunction[T,T] with Aggregator[Arr[T], Buf[T]]{
 
   override val dependency: FuncDependency = FullDep
 

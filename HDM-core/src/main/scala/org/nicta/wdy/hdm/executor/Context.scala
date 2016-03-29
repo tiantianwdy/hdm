@@ -10,7 +10,7 @@ import org.nicta.wdy.hdm.functions.SerializableFunction
 import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.io.{CompressionCodec, SnappyCompressionCodec}
 import org.nicta.wdy.hdm.message._
-import org.nicta.wdy.hdm.model.{GroupedSeqHDM, HDM, PairHDM}
+import org.nicta.wdy.hdm.model.{AbstractHDM, GroupedSeqHDM, HDM, PairHDM}
 import org.nicta.wdy.hdm.planing.StaticPlaner
 import org.nicta.wdy.hdm.scheduling.{AdvancedScheduler, SchedulingPolicy}
 import org.nicta.wdy.hdm.serializer.{SerializableByteBuffer, JavaSerializer, SerializerInstance}
@@ -198,7 +198,7 @@ object HDMContext extends  Context with Logging{
     planer.plan(hdm, parallelism)
   }
 
-  def compute(hdm:HDM[_, _], parallelism:Int):Future[HDM[_,_]] = {
+  def compute(hdm:AbstractHDM[_], parallelism:Int):Future[HDM[_,_]] = {
 //    addJob(hdm.id, explain(hdm, parallelism))
     submitJob(appName, version, hdm, parallelism)
   }
@@ -241,7 +241,7 @@ object HDMContext extends  Context with Logging{
     else throw new Exception("add job dispatcher failed.")
   }
 
-  def submitJob(appName:String, version:String, hdm:HDM[_,_], parallel:Int): Future[HDM[_,_]] = {
+  def submitJob(appName:String, version:String, hdm:AbstractHDM[_], parallel:Int): Future[HDM[_,_]] = {
     val rootPath =  SmsSystem.rootPath
 //    HDMContext.declareHdm(Seq(hdm))
     val promise = SmsSystem.askLocalMsg(JOB_RESULT_DISPATCHER, RegisterPromiseMsg(appName, version, rootPath + "/"+JOB_RESULT_DISPATCHER)) match {
