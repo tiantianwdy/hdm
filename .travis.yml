@@ -1,0 +1,8 @@
+language: java
+java:
+    - 1.8
+
+script:
+    - mvn -q clean verify
+    - mvn -q test
+    - mvn package -Dmaven.test.skip=true -Dmaven.javadoc.skip=true
