@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.storage
 
 import java.net.InetSocketAddress
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import com.baidu.bpit.akka.monitor.SystemMonitorService
 import org.nicta.wdy.hdm.executor.HDMContext
@@ -9,9 +9,9 @@ import org.nicta.wdy.hdm.io.netty.{NettyBlockServer, NettyConnectionManager, Net
 import org.nicta.wdy.hdm.io.{DataParser, Path}
 import org.nicta.wdy.hdm.message.{FetchSuccessResponse, QueryBlockMsg}
 import org.nicta.wdy.hdm.model.{AbstractHDM, DFM, HDM, DDM}
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{BlockingQueue, ConcurrentHashMap}
 
-import org.nicta.wdy.hdm.utils.Logging
+import org.nicta.wdy.hdm.utils.{Utils, Logging}
 import org.nicta.wdy.hdm.Arr
 import scala.concurrent.Future
 import scala.reflect.ClassTag
@@ -232,15 +232,56 @@ object HDMBlockManager extends Logging{
       blockHandler.apply(defaultManager.getBlock(bId))
     }
     // change to support of different protocol
-    val blockFetcher = NettyConnectionManager.getInstance.getConnection(path.host, path.port)
-    //
-    val success = blockFetcher.sendRequest(QueryBlockMsg(remoteBlks, path.host + ":" + path.port), remoteHandler)
-    if (!success) throw new RuntimeException("send block request failed to path:" + path)
-    //      NettyConnectionManager.getInstance.recycleConnection(path.host, path.port, blockFetcher)
+    if(remoteBlks.nonEmpty){
+      val blockFetcher = NettyConnectionManager.getInstance.getConnection(path.host, path.port)
+      val success = blockFetcher.sendRequest(QueryBlockMsg(remoteBlks, path.host + ":" + path.port), remoteHandler)
+      if (!success) throw new RuntimeException("send block request failed to path:" + path)
+      //      NettyConnectionManager.getInstance.recycleConnection(path.host, path.port, blockFetcher)
+    }
   }
 
   def loadBlockAsync(path:Path, blockHandler: Block[_] => Unit, remoteHandler: FetchSuccessResponse => Unit): Unit ={
     loadBlockAsync(path, Seq(path.name), blockHandler,  remoteHandler)
+  }
+
+  /**
+   * Incrementally loading blocks and add to a blocking queue, after completed set the watcher to true
+   *
+   * @param hdms
+   * @param queue
+   * @param completeWatcher
+   */
+  def loadBlocksIntoQueue(hdms:Seq[_<: AbstractHDM[_]], queue: BlockingQueue[AnyRef], completeWatcher:AtomicBoolean): Unit ={
+    val blockCounter = new AtomicInteger(0)
+
+    val blockHandler = (blk: Block[_]) => {
+      if (blockCounter.incrementAndGet() >= hdms.length) {
+        completeWatcher.set(true)
+      }
+      queue.offer(blk)
+      log.info(s"Fetched block:${blk.id}, progress: (${blockCounter.get}/${hdms.length}).")
+    }
+
+    val fetchHandler = (resp: FetchSuccessResponse) => {
+      if (blockCounter.incrementAndGet() >= hdms.length) {
+        completeWatcher.set(true)
+      }
+      queue.offer(resp)
+      log.info(s"Received fetch response:${resp.id} with size ${resp.length}, progress: (${blockCounter.get}/${hdms.length}).")
+    }
+
+    //group block by host address
+    val blockByAddress = hdms.map(_.location).groupBy { p =>
+      p.address
+    }.map(bl => (Path(bl._1), bl._2.map(_.name)))
+    //randomize the request to avoid IO contense
+    val remoteBlocks = Utils.randomize(blockByAddress.toSeq)
+
+    for (blocks <- remoteBlocks) {
+      log.info(s"Fetching block from ${blocks._1} ...")
+      HDMBlockManager.loadBlockAsync(blocks._1, blocks._2, blockHandler, fetchHandler)
+    }
+
   }
 
   def loadOrDeclare[T: ClassTag](br:DDM[_,T]) :Block[T] = {

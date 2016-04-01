@@ -21,12 +21,11 @@ import scala.util.{Left, Random, Try}
  */
 abstract class HDM[T:ClassTag, R:ClassTag] extends  AbstractHDM[R] {
 
+  val inType = classTag[T]
 
   override val children: Seq[ _<: AbstractHDM[T]]
 
   override val func:ParallelFunction[T, R]
-
-  val inType = classTag[T]
 
   override def andThen[U:ClassTag](hdm: HDM[R,U]):HDM[T, U]
 
@@ -314,16 +313,16 @@ abstract class AbstractHDM[R: ClassTag] extends Serializable {
     sorted(ordering, parallelism)
   }
 
-  def cogroup[K, U](other:AbstractHDM[U], f1: R=>K, f2: U => K): AbstractHDM[(K,(Iterable[R], Iterable[U]))] = {
+  def cogroup[K:ClassTag, U:ClassTag](other:AbstractHDM[U], f1: R=>K, f2: U => K): AbstractHDM[(K,(Iterable[R], Iterable[U]))] = {
     val inputThis = this.partition(f1(_).hashCode())
     val inputThat = other.partition(f2(_).hashCode())
     val groupFunc = new CoGroupFunc[R,U,K](f1, f2)
-    new DualDFM[R, U, (K,(Iterable[R], Iterable[U]))](input1 = Seq(inputThis), input2 = Seq(inputThat), dependency = PartialNToOne, func = groupFunc, distribution = distribution, location = location, keepPartition = true)
+    new DualDFM[R, U, (K,(Iterable[R], Iterable[U]))](input1 = Seq(inputThis), input2 = Seq(inputThat), dependency = NToOne, func = groupFunc, distribution = distribution, location = location, keepPartition = true)
 //    new DFM[Any,(K, (Iterable[R], Iterable[U]))](children = Seq(inputThis, inputThat).asInstanceOf[Seq[HDM[_, Any]]], dependency = PartialNToOne, func = groupFunc , distribution = distribution, location = location, keepPartition = true)
 
   }
 
-  def joinBy[K, U](other:AbstractHDM[U], f1: R => K, f2: U => K): AbstractHDM[(K, R, U)] = {
+  def joinBy[K:ClassTag, U:ClassTag](other:AbstractHDM[U], f1: R => K, f2: U => K): AbstractHDM[(K, R, U)] = {
     this.cogroup(other, f1, f2).mapPartitions{ arr =>
       arr.flatMap{ tup =>
         for{r <- tup._2._1; u <- tup._2._2} yield {(tup._1, r, u)}
@@ -353,7 +352,7 @@ abstract class AbstractHDM[R: ClassTag] extends Serializable {
 
   // actions
 
-  def compute(implicit parallelism:Int):Future[HDM[_, _]]  =  HDMContext.compute(this, parallelism)
+  def compute(implicit parallelism:Int):Future[AbstractHDM[_]]  =  HDMContext.compute(this, parallelism)
 
 
   def traverse(implicit parallelism:Int):Future[Iterator[R]] = {

@@ -4,7 +4,7 @@ import java.util.concurrent.Callable
 
 import org.nicta.wdy.hdm._
 import org.nicta.wdy.hdm.functions.SerializableFunction
-import org.nicta.wdy.hdm.model.{DDM, HDM,DataDependency}
+import org.nicta.wdy.hdm.model.{AbstractHDM, DDM, HDM, DataDependency}
 import org.nicta.wdy.hdm.utils.Logging
 
 import scala.reflect.ClassTag
@@ -20,7 +20,7 @@ abstract class ParallelTask [R : ClassTag] extends Serializable with Callable[Se
 
   val taskId: String
 
-  def input:Seq[HDM[_,_]]
+  def input:Seq[AbstractHDM[_]]
 
   val dep: DataDependency
 

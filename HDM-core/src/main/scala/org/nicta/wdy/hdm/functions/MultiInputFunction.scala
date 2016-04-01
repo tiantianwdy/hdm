@@ -3,11 +3,22 @@ package org.nicta.wdy.hdm.functions
 import org.nicta.wdy.hdm._
 
 import scala.collection.mutable.{Buffer, HashMap}
+import scala.reflect.ClassTag
 
 /**
  * Created by tiantian on 23/11/15.
  */
-trait DualInputFunction[T, U, R] extends SerializableFunction[(Arr[T], Arr[U]), Arr[R]] with Aggregatable[(Arr[T], Arr[U]), Buf[R]] {
+abstract class DualInputFunction[T: ClassTag, U: ClassTag, R: ClassTag] extends SerializableFunction[(Arr[T], Arr[U]), Arr[R]] with Aggregatable[(Arr[T], Arr[U]), Buf[R]] {
+
+
+  def andThen[V: ClassTag](func:ParallelFunction[R, V]):DualInputFunction[T, U, V] = {
+    this match {
+      case comp:ComposedDualInputFunction[T,U, Any, R] =>
+        new ComposedDualInputFunction(dualFunc = comp.dualFunc, pFunc = comp.pFunc.andThen(func))
+      case other:DualInputFunction[T, U, R] =>
+        new ComposedDualInputFunction(dualFunc = this, pFunc = func)
+    }
+  }
 
 }
 
@@ -17,7 +28,7 @@ trait ThreeInputFunction[T, U, I, R] extends SerializableFunction[(Arr[T], Arr[U
 }
 
 
-class CoGroupFunc[T, U, K](f1:T => K, f2: U => K ) extends DualInputFunction[T, U, (K, (Iterable[T], Iterable[U]))]
+class CoGroupFunc[T: ClassTag, U: ClassTag, K: ClassTag](f1:T => K, f2: U => K ) extends DualInputFunction[T, U, (K, (Iterable[T], Iterable[U]))]
                                                    with Aggregator[(Arr[T],Arr[U]), Buf[(K, (Iterable[T], Iterable[U]))]]{
   @transient
   private var tempBuffer = HashMap.empty[K,(Iterable[T], Iterable[U])]
@@ -55,7 +66,8 @@ class CoGroupFunc[T, U, K](f1:T => K, f2: U => K ) extends DualInputFunction[T, 
   }
 
   override def init(zero: Buf[(K, (Iterable[T], Iterable[U]))]): Unit = {
-    tempBuffer ++= zero
+    if(zero ne null)
+    tempBuffer = HashMap.empty[K,(Iterable[T], Iterable[U])] ++= zero
   }
 
   override def aggregate(params: (Arr[T], Arr[U])): Unit = {
@@ -79,7 +91,7 @@ class CoGroupFunc[T, U, K](f1:T => K, f2: U => K ) extends DualInputFunction[T, 
 
 }
 
-class JoinByFunc[T, U, K](f1:T => K, f2: U => K ) extends DualInputFunction[T, U, (Iterable[T], Iterable[U])]
+class JoinByFunc[T: ClassTag, U: ClassTag, K: ClassTag](f1:T => K, f2: U => K ) extends DualInputFunction[T, U, (Iterable[T], Iterable[U])]
                                                   with Aggregator[(Arr[T],Arr[U]), Buf[(Iterable[T], Iterable[U])]]{
 
   private var res: HashMap[K,(Iterable[T], Iterable[U])] = _

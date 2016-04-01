@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.executor
 
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.{AbstractHDM, HDM}
 import org.nicta.wdy.hdm.planing.HDMPlaner
 import org.nicta.wdy.hdm.scheduling.Scheduler
 import org.nicta.wdy.hdm.server.provenance.ApplicationTrace
@@ -32,7 +32,7 @@ class HDMServerBackend(val appManager: AppManager,
     }.start()
   }
 
-  def jobReceived(jobId:String, version:String, hdm:HDM[_,_], parallelism:Int):Future[_] ={
+  def jobReceived(jobId:String, version:String, hdm:AbstractHDM[_], parallelism:Int):Future[_] ={
     appManager.addApp(jobId, hdm)
     val plan = HDMContext.explain(hdm, parallelism)
     appManager.addPlan(jobId, plan)

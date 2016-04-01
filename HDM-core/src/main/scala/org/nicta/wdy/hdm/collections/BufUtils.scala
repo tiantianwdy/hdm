@@ -77,4 +77,6 @@ object Iterator {
   def apply[A:ClassTag](elems:Traversable[A]):Iterator[A]  = {
     elems.toIterator
   }
+
+  def empty[A:ClassTag]:Iterator[A] = Iterator.empty[A]
 }

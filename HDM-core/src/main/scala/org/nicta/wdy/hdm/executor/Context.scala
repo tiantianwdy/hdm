@@ -192,13 +192,13 @@ object HDMContext extends  Context with Logging{
     else null
   }
 
-  def explain(hdm:HDM[_, _],parallelism:Int) = {
+  def explain(hdm:AbstractHDM[_],parallelism:Int) = {
 //    val hdmOpt = new FunctionFusion().optimize(hdm)
 //    planer.plan(hdmOpt, parallelism)
     planer.plan(hdm, parallelism)
   }
 
-  def compute(hdm:AbstractHDM[_], parallelism:Int):Future[HDM[_,_]] = {
+  def compute(hdm:AbstractHDM[_], parallelism:Int):Future[AbstractHDM[_]] = {
 //    addJob(hdm.id, explain(hdm, parallelism))
     submitJob(appName, version, hdm, parallelism)
   }
@@ -241,11 +241,11 @@ object HDMContext extends  Context with Logging{
     else throw new Exception("add job dispatcher failed.")
   }
 
-  def submitJob(appName:String, version:String, hdm:AbstractHDM[_], parallel:Int): Future[HDM[_,_]] = {
+  def submitJob(appName:String, version:String, hdm:AbstractHDM[_], parallel:Int): Future[AbstractHDM[_]] = {
     val rootPath =  SmsSystem.rootPath
 //    HDMContext.declareHdm(Seq(hdm))
     val promise = SmsSystem.askLocalMsg(JOB_RESULT_DISPATCHER, RegisterPromiseMsg(appName, version, rootPath + "/"+JOB_RESULT_DISPATCHER)) match {
-      case Some(promise) => promise.asInstanceOf[Promise[HDM[_,_]]]
+      case Some(promise) => promise.asInstanceOf[Promise[AbstractHDM[_]]]
       case none => null
     }
     //    val jobMsg = SubmitJobMsg(appId, hdm, rootPath + "/"+JOB_RESULT_DISPATCHER, parallel)

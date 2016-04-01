@@ -7,7 +7,7 @@ import com.baidu.bpit.akka.actors.worker.WorkActor
 import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor.{HDMServerBackend, HDMContext}
 import org.nicta.wdy.hdm.message._
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.{AbstractHDM, HDM}
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -138,7 +138,7 @@ class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int) exte
     case SerializedJobMsg(appName, version, serHDM, resultHandler, parallel) =>
       val appLoader = hdmBackend.dependencyManager.getClassLoader(appName, version)
       val serializer = HDMContext.defaultSerializer
-      val hdm = serializer.deserialize[HDM[_,_]](ByteBuffer.wrap(serHDM), appLoader)
+      val hdm = serializer.deserialize[AbstractHDM[_]](ByteBuffer.wrap(serHDM), appLoader)
       val appId = hdmBackend.dependencyManager.appId(appName, version)
       val senderPath = sender.path
       val fullPath = ActorPath.fromString(resultHandler).toStringWithAddress(senderPath.address)

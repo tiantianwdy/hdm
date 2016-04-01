@@ -16,7 +16,7 @@ import akka.actor.ActorSystem
 import akka.util.Timeout
 import akka.pattern._
 import org.nicta.wdy.hdm.executor._
-import org.nicta.wdy.hdm.functions.{ParUnionFunc, ParallelFunction}
+import org.nicta.wdy.hdm.functions.{DualInputFunction, ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.message.{SerializedTaskMsg, AddTaskMsg}
 import org.nicta.wdy.hdm.model._
@@ -130,6 +130,18 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           func = h.func.asInstanceOf[ParallelFunction[hdm.inType.type, hdm.outType.type]],
           dep = h.dependency,
           partitioner = h.partitioner.asInstanceOf[Partitioner[hdm.outType.type]])
+        addTask(task)
+
+      case dualDFM: DualDFM[_, _ ,_] =>
+        blockManager.addRef(dualDFM)
+        val task = new TwoInputTask(appId = appId,
+          version = version,
+          taskId = h.id,
+          input1 = dualDFM.input1.asInstanceOf[Seq[AbstractHDM[dualDFM.inType1.type]]],
+          input2 = dualDFM.input2.asInstanceOf[Seq[AbstractHDM[dualDFM.inType2.type]]],
+          func = dualDFM.func.asInstanceOf[DualInputFunction[dualDFM.inType1.type, dualDFM.inType2.type, dualDFM.outType.type]],
+          dep = h.dependency,
+          partitioner = h.partitioner.asInstanceOf[Partitioner[dualDFM.outType.type]])
         addTask(task)
       }
     }.last.future

@@ -55,10 +55,10 @@ object StaticPlaner extends HDMPlaner {
 
   val physicalOptimizers: Seq[PhysicalOptimizer] = Seq.empty[PhysicalOptimizer]
 
-  override def plan(hdm: AbstractHDM[_], maxParallelism: Int): Seq[AbstractHDM[_]] = hdm match {
-    case dfm: HDM[_, _] => {
-      val explainedMap = new java.util.HashMap[String, HDM[_, _]]() // temporary map to save updated hdms
-      var optimized:AbstractHDM[_] = dfm
+  override def plan(hdm: AbstractHDM[_], maxParallelism: Int): Seq[AbstractHDM[_]] = {
+
+      val explainedMap = new java.util.HashMap[String, AbstractHDM[_]]() // temporary map to save updated hdms
+      var optimized:AbstractHDM[_] = hdm
       // optimization
       logicOptimizers foreach { optimizer =>
         optimized = optimizer.optimize(optimized)
@@ -66,18 +66,36 @@ object StaticPlaner extends HDMPlaner {
       // logical planning
       val logicPlan = logicalPlanner.plan(optimized, maxParallelism)
       //physical planning
-      logicPlan.map { h =>
-        val input = Try {
-          h.children.map(cld => explainedMap.get(cld.id)).asInstanceOf[Seq[HDM[_, dfm.inType.type]]]
-        } getOrElse {
-          Seq.empty[HDM[_, dfm.inType.type]]
-        }
-        val newHdms = physicalPlaner.plan(input, h.asInstanceOf[HDM[dfm.inType.type, dfm.outType.type]], h.parallelism)
-        newHdms.foreach(nh => explainedMap.put(nh.id, nh))
-        newHdms
-      }
-    }.flatten
 
-//    case DualDFM =>
-  }
+        logicPlan.map { h =>
+          h match {
+            case dfm: HDM[_, _] =>
+              val input = Try {
+                h.children.map(cld => explainedMap.get(cld.id)).asInstanceOf[Seq[HDM[_, dfm.inType.type]]]
+              } getOrElse {
+                Seq.empty[HDM[_, dfm.inType.type]]
+              }
+              val newHdms = physicalPlaner.plan(input, h.asInstanceOf[HDM[dfm.inType.type, dfm.outType.type]], h.parallelism)
+              newHdms.foreach(nh => explainedMap.put(nh.id, nh))
+              newHdms
+
+            case dfm : DualDFM[_, _, _] =>
+              val input1 = Try {
+                dfm.input1.map(cld => explainedMap.get(cld.id)).asInstanceOf[Seq[HDM[_, dfm.inType1.type]]]
+              } getOrElse {
+                Seq.empty[HDM[_, dfm.inType1.type]]
+              }
+              val input2 = Try {
+                dfm.input2.map(cld => explainedMap.get(cld.id)).asInstanceOf[Seq[HDM[_, dfm.inType2.type]]]
+              } getOrElse {
+                Seq.empty[HDM[_, dfm.inType2.type]]
+              }
+              val newHdms = physicalPlaner.planMultiDFM(Seq(input1, input2), dfm, dfm.parallelism)
+              newHdms.foreach(nh => explainedMap.put(nh.id, nh))
+              newHdms
+          }
+        }.flatten
+      //
+    }
+
 }

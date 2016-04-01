@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.planing
 
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.model.{AbstractHDM, NToN, NToOne, HDM}
+import org.nicta.wdy.hdm.model._
 
 /**
  * Created by tiantian on 7/01/15.
@@ -33,12 +33,23 @@ class DefaultLocalPlaner(val cpuParallelFactor :Int = HDMContext.PLANER_PARALLEL
       }
       else hdm
     }.withPartitionNum(followingParallel)
-
-    if(hdm.children == null || hdm.children.isEmpty){
-      Seq{newHead}
-    } else {
-      val subHDMs = hdm.children.map( h => dftAccess(h, defParallel, newHead.parallelism)).flatten
-      subHDMs :+ newHead
+    hdm match {
+      case h:HDM[_,_] =>
+        if(hdm.children == null || hdm.children.isEmpty){
+          Seq{newHead}
+        } else {
+          val subHDMs = hdm.children.map( h => dftAccess(h, defParallel, newHead.parallelism)).flatten
+          subHDMs :+ newHead
+        }
+      case dh:DualDFM[_, _, _] =>
+        if(dh.input1 == null || dh.input1.isEmpty || dh.input2 == null || dh.input2.isEmpty ){
+          Seq{newHead}
+        } else {
+          val input1 = dh.input1.map( h => dftAccess(h, defParallel, newHead.parallelism)).flatten
+          val input2 = dh.input2.map( h => dftAccess(h, defParallel, newHead.parallelism)).flatten
+          input1 ++ input2 :+ newHead
+        }
     }
+
   }
 }

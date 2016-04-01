@@ -217,11 +217,6 @@ class ParGroupByFunc[T: ClassTag, K: ClassTag](val f: T => K) extends ParallelFu
     tempMap.toBuffer
   }
 
-//  def getAggregator(): Aggregator[Seq[T], Seq[(K, Seq[T])]] ={
-//    val z = (e:T) => Buffer(f(e) -> Buffer(e))
-//    val a = (e:T, v: Buffer[T]) => v += e
-//    new ShuffleBlockAggregator(f = this.f(_), zero = z(_), aggr = a(_, _)  )
-//  }
 }
 
 class ParReduceBy[T:ClassTag, K :ClassTag](fk: T=> K, fr: (T, T) => T) extends ParallelFunction[T,(K,T)] {
@@ -255,14 +250,6 @@ class ParReduceBy[T:ClassTag, K :ClassTag](fk: T=> K, fr: (T, T) => T) extends P
         tempMap += k -> elem
       }
     }
-/*    params.groupBy(fk).toSeq.map(d => (d._1, d._2.reduce(fr))) foreach { tup =>
-      if(tempMap.contains(tup._1)){
-        val v = tempMap.apply(tup._1)
-        tempMap.update(tup._1, fr(v, tup._2))
-      } else {
-        tempMap += tup
-      }
-    }*/
     tempMap.toBuffer
   }
 }

@@ -20,6 +20,8 @@ import scala.reflect.ClassTag
 trait PhysicalPlanner extends Serializable{
 
   def plan[I: ClassTag, R: ClassTag](input: Seq[HDM[_,I]], target: HDM[I, R], parallelism:Int):Seq[HDM[_, _]]
+
+  def planMultiDFM(inputs:Seq[Seq[AbstractHDM[_]]], target: AbstractHDM[_], defParallel:Int): Seq[AbstractHDM[_]]
 }
 
 
@@ -35,7 +37,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
 
   def resourceManager = HDMContext.getServerBackend().resourceManager
 
-  def getStaticBlockUrls(hdm :HDM[_,_]):Seq[String] = hdm match {
+  def getStaticBlockUrls(hdm: AbstractHDM[_]):Seq[String] = hdm match {
     case dfm: HDM[_,_] =>
       val bn = hdm.parallelism
       for (i <- 0 until bn) yield hdm.id + "_b" + i
@@ -43,7 +45,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
     case x => Seq.empty[String]
   }
 
-  def getDynamicBlockUrls(hdm :HDM[_,_]):Seq[String] = {
+  def getDynamicBlockUrls(hdm: AbstractHDM[_]):Seq[String] = {
     val h = if(hdm.blocks ne null) hdm
     else blockManager.getRef(hdm.id)
     h.blocks.map(url => Path(url).name)
@@ -113,6 +115,55 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
       val newInput = inputArray.map(seq => seq.map(pid => new DDM(id = pid, location = null, func = new NullFunc[I])))
       val pHdms = newInput.map(seq => dfm.copy(id = dfm.id + "_b" + newInput.indexOf(seq), children = seq.asInstanceOf[Seq[HDM[_, I]]], parallelism = 1))
       val newParent = new DFM(id = dfm.id, children = pHdms.toIndexedSeq, func = new ParUnionFunc[R], dependency = dfm.dependency, partitioner = dfm.partitioner, parallelism = defParallel)
+      pHdms :+ newParent
+
+
+
+  }
+
+  override def planMultiDFM(inputs:Seq[Seq[AbstractHDM[_]]], target: AbstractHDM[_], defParallel:Int): Seq[AbstractHDM[_]] = target match {
+    case dualDFM:DualDFM[_, _, _] =>
+      val typedDFM = dualDFM.asInstanceOf[DualDFM[dualDFM.inType1.type, dualDFM.inType2.type, dualDFM.outType.type]]
+      val inputArray = Array.fill(defParallel){new ListBuffer[ListBuffer[String]]}
+      inputArray.foreach{ seq =>
+        for (i <- 1 to inputs.length) seq += ListBuffer.empty[String] // initialize input Array
+      }
+      for(input <- inputs){ //generate input blockIDs
+        val inputIdx = inputs.indexOf(input)
+        for(in <- input){
+          val inputIds = if (isStatic) getStaticBlockUrls(in)
+          else getDynamicBlockUrls(in)
+          val groupedIds = if(in.dependency == OneToOne || in.dependency == NToOne){ // parallel reading
+            inputIds.groupBy(id => inputIds.indexOf(id) % defParallel).values.toIndexedSeq
+          } else { // shuffle reading
+          val pNum = if(in.partitioner ne null) in.partitioner.partitionNum else 1
+            for( subIndex <- 0 until pNum) yield {
+              //            inputIds.map{bid => bid + "_p" + subIndex}
+              val dis = subIndex * pNum % inputIds.size
+              PlanningUtils.seqSlide(inputIds, dis).map{bid => bid + "_p" + subIndex} // slide partitions to avoid network contesting in shuffle
+            }.toIndexedSeq
+          }
+          for(index <- 0 until groupedIds.size) {
+            val buffer = inputArray(index % defParallel).apply(inputIdx)
+            buffer ++= groupedIds(index)
+          }
+        }
+      }
+      val newInput1 = inputArray.map(seq => seq(0).map(pid => new DDM(id = pid, location = null, func = new NullFunc[dualDFM.inType1.type])))
+      val newInput2 = inputArray.map(seq => seq(1).map(pid => new DDM(id = pid, location = null, func = new NullFunc[dualDFM.inType2.type])))
+      val newInputs = newInput1.zip(newInput2)
+      val pHdms = newInputs.map{ tup =>
+        typedDFM.copy(id =  dualDFM.id + "_b" + newInputs.indexOf(tup),
+            input1 = tup._1.asInstanceOf[Seq[AbstractHDM[dualDFM.inType1.type]]],
+            input2 = tup._2.asInstanceOf[Seq[AbstractHDM[dualDFM.inType2.type]]],
+            parallelism = 1)
+      }
+      val newParent = new DFM(id = typedDFM.id,
+        children = pHdms.toIndexedSeq.asInstanceOf[Seq[AbstractHDM[dualDFM.outType.type]]],
+        func = new ParUnionFunc[dualDFM.outType.type],
+        dependency = typedDFM.dependency,
+        partitioner = typedDFM.partitioner,
+        parallelism = defParallel)
       pHdms :+ newParent
   }
 }

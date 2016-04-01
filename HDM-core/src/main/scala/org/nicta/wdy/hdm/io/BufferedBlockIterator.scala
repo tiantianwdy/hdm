@@ -7,7 +7,7 @@ import java.util.concurrent.locks.ReentrantLock
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.message.FetchSuccessResponse
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.{AbstractHDM, HDM}
 import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager, BlockRef}
 import org.nicta.wdy.hdm.utils.Logging
 
@@ -33,7 +33,7 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path],
   val inputQueue = new LinkedBlockingDeque[A]
   val waitForReading = new Semaphore(1)
 
-  def this(hdms:Seq[HDM[_,_]]){
+  def this(hdms:Seq[AbstractHDM[_]]){
     this(hdms.flatMap(_.blocks).map(Path(_)), 100000)
   }
 

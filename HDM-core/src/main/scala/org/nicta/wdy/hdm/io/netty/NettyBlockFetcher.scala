@@ -54,7 +54,7 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
 
         outGoingMsg.addAndGet(blkIds.length)
         val address = if (channel.remoteAddress() ne null ) channel.remoteAddress() else channel.localAddress()
-        try{
+        if(address ne null ) try {
           val msg = QueryBlockMsg(blkIds, address.toString)
           channel.writeAndFlush(msg).addListener(NettyChannelListener(channel, System.currentTimeMillis()))
 //          Thread.sleep(100)
