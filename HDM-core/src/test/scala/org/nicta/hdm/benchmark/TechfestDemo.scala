@@ -6,7 +6,7 @@ import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.executor.HDMContext._
 import com.baidu.bpit.akka.messages.{AddMsg, Query}
 import org.nicta.wdy.hdm.io.Path
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.{AbstractHDM, HDM}
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.util.{Success, Failure}
@@ -102,7 +102,7 @@ class TechfestDemo {
     Thread.sleep(50000000)
   }
 
-  def onEvent(hdm:HDM[_,_], action:String)(implicit parallelism:Int) = action match {
+  def onEvent(hdm:AbstractHDM[_], action:String)(implicit parallelism:Int) = action match {
     case "compute" =>
       val start = System.currentTimeMillis()
       hdm.compute(parallelism).map { hdm =>
@@ -242,6 +242,30 @@ class TechfestDemo {
     Thread.sleep(1500000)
   }
 
+  @Test
+  def testCogroup(): Unit ={
+    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
+    implicit val parallelism = 1
+    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    HDMContext.init(leader = context)
+    Thread.sleep(1500)
+
+    val hdm = HDM(path)
+    val data1 = hdm.map{ w =>
+      val as = w.split(",")
+      (as(1).toInt, as(2))
+    }
+
+    val data2 = hdm.map{ w =>
+      val as = w.split(",")
+      (as(1).toInt, as(2))
+    }
+
+    val res = data1.cogroup(data2, (d1:(Int, String))  => d1._1 % 100, (d2:(Int, String)) => d2._1 % 100)
+    onEvent(res, "sample")
+    Thread.sleep(15000000)
+  }
 
   @After
   def after() {

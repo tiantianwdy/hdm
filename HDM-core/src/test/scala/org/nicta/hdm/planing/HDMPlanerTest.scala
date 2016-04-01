@@ -94,4 +94,23 @@ class HDMPlanerTest {
 
   }
 
+  @Test
+  def testCogroupPlanning(): Unit ={
+    HDMContext.init()
+    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
+    val hdm = HDM(path)
+    val data1 = hdm.map{ w =>
+      val as = w.split(",")
+      (as(1).toInt, as(2))
+    }
+
+    val data2 = hdm.map{ w =>
+      val as = w.split(",")
+      (as(1).toInt, as(3))
+    }
+
+    val res = data1.joinBy(data2, (d1:(Int, String))  => d1._1, (d2:(Int, String)) => d2._1)
+    HDMContext.explain(res, 1).foreach(println(_))
+  }
+
 }
