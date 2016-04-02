@@ -179,9 +179,12 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     }
     triggerTasks(appId)
     // update task trace
-//    val eTrace = if(blks ne null) historyManager.getExecTrace(taskId).copy(outputPath= blks.map(_.toURL), status = "Completed")
-//    else historyManager.getExecTrace(taskId).copy(status = "Completed")
-//    historyManager.updateExecTrace(eTrace)
+    val trace = historyManager.getExecTrace(taskId)
+    if(trace ne null){
+      val newTrace = if(blks ne null) trace.copy(outputPath= blks.map(_.toURL), status = "Completed")
+      else trace.copy(status = "Completed")
+      historyManager.updateExecTrace(newTrace)
+    }
   }
 
 

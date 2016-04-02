@@ -30,7 +30,7 @@ case class ExecutionTrace(taskId:String,
                           endTime:Long,
                           status:String) extends Provenance {
 
-  def id = s"$appName#$version#$instanceID#$taskId"
+  def uuid = s"$appName#$version#$instanceID#$taskId"
 
 }
 

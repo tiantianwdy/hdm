@@ -74,7 +74,7 @@ class ProvenanceManagerImpl extends ProvenanceManager {
   }
 
   override def updateExecTrace(exeTrace: ExecutionTrace): Unit = {
-    exeTraceMap.put(exeTrace.id, exeTrace)
+    exeTraceMap.put(exeTrace.taskId, exeTrace)
   }
 
 
@@ -93,8 +93,8 @@ class ProvenanceManagerImpl extends ProvenanceManager {
   override def addExecTrace(exeTrace: ExecutionTrace): Unit = {
     val appId = s"${exeTrace.appName}#${exeTrace.version}"
     appInstancesMap.getOrElseUpdate(appId, new CopyOnWriteArrayList[String]) += exeTrace.instanceID
-    instanceHistory.getOrElseUpdate(exeTrace.instanceID, new CopyOnWriteArrayList[String]) += exeTrace.id
-    exeTraceMap.put(exeTrace.id, exeTrace)
+    instanceHistory.getOrElseUpdate(exeTrace.instanceID, new CopyOnWriteArrayList[String]) += exeTrace.taskId
+    exeTraceMap.put(exeTrace.taskId, exeTrace)
   }
 
   override def getAppTraces(appName: String): Seq[(String, ApplicationTrace)] = {
