@@ -91,7 +91,8 @@ class DualDFM[T: ClassTag, U: ClassTag, R: ClassTag](val id: String = HDMContext
       s"blocks:${blocks} \n" +
       s"parallelim:${parallelism} \n" +
       s"partitionNum:${if(partitioner ne null) partitioner.partitionNum else "" } \n" +
-      s"children:[${if(children ne null) Try {children.map(_.id).mkString(" , ")} else "" }] \n" +
+      s"input1:[${if(input1 ne null) Try {input1.map(_.id).mkString(" , ")} else "" }] \n" +
+      s"input2:[${if(input2 ne null) Try {input2.map(_.id).mkString(" , ")} else "" }] \n" +
       s"state: ${state} \n" +
       s"cache: ${isCache} \n" +
       "}"

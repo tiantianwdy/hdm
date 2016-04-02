@@ -109,7 +109,7 @@ class HDMPlanerTest {
       (as(1).toInt, as(3))
     }
 
-    val res = data1.joinBy(data2, (d1:(Int, String))  => d1._1, (d2:(Int, String)) => d2._1)
+    val res = data1.cogroup(data2, (d1:(Int, String))  => d1._1, (d2:(Int, String)) => d2._1)
     HDMContext.explain(res, 1).foreach(println(_))
   }
 

@@ -245,7 +245,7 @@ class TechfestDemo {
   @Test
   def testCogroup(): Unit ={
     val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
-    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
+    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
     implicit val parallelism = 1
     HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
     HDMContext.init(leader = context)
@@ -259,7 +259,7 @@ class TechfestDemo {
 
     val data2 = hdm.map{ w =>
       val as = w.split(",")
-      (as(1).toInt, as(2))
+      (as(2).toInt, as(1))
     }
 
     val res = data1.cogroup(data2, (d1:(Int, String))  => d1._1 % 100, (d2:(Int, String)) => d2._1 % 100)

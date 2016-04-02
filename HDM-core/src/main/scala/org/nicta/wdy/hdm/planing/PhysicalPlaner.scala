@@ -128,8 +128,8 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
       inputArray.foreach{ seq =>
         for (i <- 1 to inputs.length) seq += ListBuffer.empty[String] // initialize input Array
       }
-      for(input <- inputs){ //generate input blockIDs
-        val inputIdx = inputs.indexOf(input)
+      for(inputIdx <- 0 until inputs.size){ //generate input blockIDs
+        val input = inputs(inputIdx)
         for(in <- input){
           val inputIds = if (isStatic) getStaticBlockUrls(in)
           else getDynamicBlockUrls(in)
@@ -143,9 +143,9 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
               PlanningUtils.seqSlide(inputIds, dis).map{bid => bid + "_p" + subIndex} // slide partitions to avoid network contesting in shuffle
             }.toIndexedSeq
           }
-          for(index <- 0 until groupedIds.size) {
-            val buffer = inputArray(index % defParallel).apply(inputIdx)
-            buffer ++= groupedIds(index)
+          for(partitionIdx <- 0 until groupedIds.size) {
+            val buffer = inputArray(partitionIdx % defParallel).apply(inputIdx)
+            buffer ++= groupedIds(partitionIdx)
           }
         }
       }

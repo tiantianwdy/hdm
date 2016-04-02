@@ -1,7 +1,8 @@
 package org.nicta.hdm.executor
 
+import org.nicta.wdy.hdm.Arr
 import org.nicta.wdy.hdm.executor._
-import org.nicta.wdy.hdm.functions.{CoGroupFunc, ParallelFunction}
+import org.nicta.wdy.hdm.functions.{ParMapAllFunc, CoGroupFunc, ParallelFunction}
 import org.nicta.wdy.hdm.model.{NToOne, HDM, DDM}
 import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
 
@@ -67,12 +68,17 @@ class DualInputTaskTest {
     val groupFunc = (d:Double) => d.toInt % 100
     val func = new CoGroupFunc(groupFunc, groupFunc)
 
+    val sampleFfunc = (arr:Arr[(Int, (Iterable[Double], Iterable[Double]))]) => arr.take(10)
+    val nextFunc = new ParMapAllFunc(sampleFfunc)
+
+    val composedFunc = func.andThen(nextFunc)
+
     val task = new TwoInputTask(appId = HDMContext.appName, version = HDMContext.version,
       taskId = HDMContext.newLocalId(),
       input1 = input1,
       input2 = input2,
       dep = NToOne,
-      func = func)
+      func = composedFunc)
     val start = System.currentTimeMillis()
     val res = task.call()
     val end = System.currentTimeMillis()

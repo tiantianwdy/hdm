@@ -68,7 +68,7 @@ class FunctionFusion extends LogicalOptimizer with Logging{
 
       case dualHDM:DualDFM[_, _, R] =>
         val input1 = dualHDM.input1.map(c => optimize(c.asInstanceOf[AbstractHDM[dualHDM.inType1.type]]))
-        val input2 = dualHDM.input1.map(c => optimize(c.asInstanceOf[AbstractHDM[dualHDM.inType2.type]]))
+        val input2 = dualHDM.input2.map(c => optimize(c.asInstanceOf[AbstractHDM[dualHDM.inType2.type]]))
         dualHDM.asInstanceOf[DualDFM[dualHDM.inType1.type, dualHDM.inType2.type, R]].copy(input1 = input1, input2 = input2)
 
     }
@@ -136,7 +136,7 @@ class CacheOptimizer extends  LogicalOptimizer with Logging{
           curHDM.asInstanceOf[HDM[curHDM.inType.type, R]].copy(children = seq)
         case dualHDM:DualDFM[_, _, R] =>
           val input1 = dualHDM.input1.map(c => optimize(c.asInstanceOf[AbstractHDM[dualHDM.inType1.type]]))
-          val input2 = dualHDM.input1.map(c => optimize(c.asInstanceOf[AbstractHDM[dualHDM.inType2.type]]))
+          val input2 = dualHDM.input2.map(c => optimize(c.asInstanceOf[AbstractHDM[dualHDM.inType2.type]]))
           dualHDM.asInstanceOf[DualDFM[dualHDM.inType1.type, dualHDM.inType2.type, R]].copy(input1 = input1, input2 = input2)
       }
     }
