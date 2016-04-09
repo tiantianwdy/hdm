@@ -115,7 +115,7 @@ class SmsSystemTest extends TestCase with TestConfig {
         Thread.sleep(1500)
         val actorPath = SmsSystem.addActor(AddMsg("testActor", "akka.tcp://slaveSys@127.0.0.1:10010/user/smsSlave", "com.baidu.bpit.akka.MyActor", null))
         Thread.sleep(4500) //wait to completed
-        println(SmsSystem.askMsg(actorPath, f))
+        println(SmsSystem.askSync(actorPath, f))
         Thread.sleep(4500)
       }
     }.start

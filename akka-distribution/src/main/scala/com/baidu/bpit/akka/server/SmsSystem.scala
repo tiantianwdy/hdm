@@ -29,6 +29,8 @@ import com.baidu.bpit.akka.messages.StopMsg
 import java.util.concurrent.TimeUnit
 import java.net.InetAddress
 
+import scala.util.Random
+
 /**
  * Akka system 的接口封装类，可以直接使用
  * 具体使用示例参考 SmsSystemTest
@@ -173,12 +175,8 @@ object SmsSystem {
    * @param msg 消息对象
    * @return Option[Result]
    */
-  def askMsg(actorPath: String, msg: Any) = {
-    if (system eq null) {
-      val conf = ConfigFactory.load()
-      system = ActorSystem("default", conf)
-    }
-    val future = ask(system.actorSelection(actorPath), msg)
+  def askSync(actorPath: String, msg: Any) = {
+    val future = askAsync(actorPath, msg)
     try {
       Await.result[Any](future, maxWaitResponseTime) match {
         case result: Option[Any] => result
@@ -198,7 +196,9 @@ object SmsSystem {
    */
   def askAsync(actorPath: String, msg: Any) = {
     if (system eq null) {
-      val conf = ConfigFactory.load()
+      val port:Int = (15001 + Random.nextFloat()*5000).toInt
+      val conf = ConfigFactory.parseString(s"""akka.remote.netty.tcp.port = "$port" """)
+        .withFallback(ConfigFactory.load())
       system = ActorSystem("default", conf)
     }
     ask(system.actorSelection(actorPath), msg)
@@ -226,7 +226,7 @@ object SmsSystem {
     if (system eq null) {
       throw new AkkaException("Uninitiated local actor system")
     }
-    askMsg(s"$rootPath/$actorName", msg)
+    askSync(s"$rootPath/$actorName", msg)
   }
 
   /**
