@@ -1,0 +1,82 @@
+.nav-tree .list-group-item {
+    padding: 0;
+    position: relative;
+}
+.nav-tree .list-group-item a {
+    margin: 0;
+    padding-left: 3px;
+    height: 28px;
+    line-height: 28px;
+}
+.nav-tree .list-group-item.active > a {
+    padding-left: 0;
+}
+.nav-tree .list-group-item .glyphicon {
+    padding-left: 18px;
+}
+.nav-tree .list-group-item .glyphicon:before {
+    position: absolute;
+    top: 7px;
+    margin-left: -18px;
+    color: #666666;
+}
+.nav-tree .list-group-item > .caret {
+    position: absolute;
+    height: 28px;
+    width: 16px;
+    padding: 0;
+    border: none;
+    cursor: pointer;
+}
+.nav-tree .list-group-item > .caret:after {
+    display: none;
+}
+.nav-tree .list-group-item.has-children > .caret:after {
+    display: block;
+    content: url(http://ssl.gstatic.com/ui/v1/zippy/arrow_right.png);
+    left: 6px;
+    top: 3px;
+    position: absolute;
+}
+.nav-tree .list-group-item > .list-group {
+    display: none;
+}
+.nav-tree .open > .list-group {
+    display: block;
+}
+.nav-tree .list-group-item.has-children.open > .caret:after {
+    content: url(http://ssl.gstatic.com/ui/v1/zippy/arrow_down.png);
+    left: 5px;
+    top: 2px;
+}
+.nav-tree .list-group-item.has-children > .caret:hover {
+    background-color: #eeeeee;
+}
+
+/** nav-tree offset fixes (should be done with JavaScript) **/
+.nav-tree .list-group {
+  margin-bottom: 0;
+}
+.list-group .list-group-item > .caret {
+  margin-left: 10px;
+}
+.list-group a > span,
+.list-group .list-group .list-group-item > .caret {
+  margin-left: 25px;
+}
+.list-group .list-group a > span,
+.list-group .list-group .list-group .list-group-item > .caret {
+  margin-left: 40px;
+}
+.list-group .list-group .list-group a > span,
+.list-group .list-group .list-group .list-group .list-group-item > .caret {
+  margin-left: 55px;
+}
+.list-group .list-group .list-group .list-group a > span,
+.list-group .list-group .list-group .list-group .list-group .list-group-item > .caret {
+  margin-left: 70px;
+}
+.list-group .list-group .list-group .list-group .list-group a > span,
+.list-group .list-group .list-group .list-group .list-group .list-group .list-group-item > .caret {
+  margin-left: 85px;
+}

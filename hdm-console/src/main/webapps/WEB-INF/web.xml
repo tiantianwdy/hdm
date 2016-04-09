@@ -1,0 +1,140 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xmlns="http://java.sun.com/xml/ns/javaee"
+         xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_2_5.xsd"
+         id="data-pipeline-console" version="2.5">
+    <display-name>Pipeline61 Server</display-name>
+    <welcome-file-list>
+        <welcome-file>/html/index</welcome-file>
+        <welcome-file>/html/index.html</welcome-file>
+    </welcome-file-list>
+
+    <servlet>
+        <servlet-name>application-list-servlet</servlet-name>
+        <servlet-class>org.nicta.wdy.hdm.console.controllers.ApplicationController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>logical-flow-servlet</servlet-name>
+        <servlet-class>org.nicta.wdy.hdm.console.controllers.LogicalFlowController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>physical-flow-servlet</servlet-name>
+        <servlet-class>org.nicta.wdy.hdm.console.controllers.PhysicalFlowControlller</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>execution-lane-servlet</servlet-name>
+        <servlet-class>org.nicta.wdy.hdm.console.controllers.ExecutionTimeController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+<!--
+
+
+    <servlet>
+        <servlet-name>pipe-list-servlet</servlet-name>
+        <servlet-class>au.com.nicta.data.pipeline.console.controller.PipeListServlet</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>pipeline-execution-servlet</servlet-name>
+        <servlet-class>au.com.nicta.data.pipeline.console.controller.PipelineExecutionHistoryServlet</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>pipe-history-servlet</servlet-name>
+        <servlet-class>au.com.nicta.data.pipeline.console.controller.PipeHistoryServlet</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>execution-history-servlet</servlet-name>
+        <servlet-class>au.com.nicta.data.pipeline.console.controller.ExecutionHistoryServlet</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>execution-dag-servlet</servlet-name>
+        <servlet-class>au.com.nicta.data.pipeline.console.controller.ExecutionDAGServlet</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+-->
+    <servlet-mapping>
+        <servlet-name>application-list-servlet</servlet-name>
+        <url-pattern>/service/listApplications/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>logical-flow-servlet</servlet-name>
+        <url-pattern>/service/logicalFlow/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>physical-flow-servlet</servlet-name>
+        <url-pattern>/service/physicalFlow/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>execution-lane-servlet</servlet-name>
+        <url-pattern>/service/executionLane/*</url-pattern>
+    </servlet-mapping>
+    <!--
+
+
+    <servlet-mapping>
+        <servlet-name>pipe-list-servlet</servlet-name>
+        <url-pattern>/service/listPipes/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>pipeline-execution-servlet</servlet-name>
+        <url-pattern>/service/execPipelines/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>execution-history-servlet</servlet-name>
+        <url-pattern>/service/execHistory/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>pipe-history-servlet</servlet-name>
+        <url-pattern>/service/pipeHistory/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>execution-dag-servlet</servlet-name>
+        <url-pattern>/service/execDAG/*</url-pattern>
+    </servlet-mapping>
+    -->
+
+<!--
+
+    <servlet>
+        <servlet-name>mvc-dispatcher</servlet-name>
+        <servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+        <init-param>
+            <param-name>contextConfigLocation</param-name>
+            <param-value>classpath:spring/console-controllers.xml</param-value>
+        </init-param>
+        <init-param>
+            <param-name>dispatchOptionsRequest</param-name>
+            <param-value>true</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>mvc-dispatcher</servlet-name>
+        <url-pattern>/</url-pattern>
+    </servlet-mapping>
+-->
+
+</web-app>

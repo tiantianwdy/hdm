@@ -1,0 +1,23 @@
+.container {
+    width:100%;
+    border-radius: 25px;
+    border:1px solid lightsteelblue;
+    background-color:AliceBlue;
+//    box-shadow: 10px 10px 5px #888888;
+}
+.container div {
+    width:100%;
+}
+.container .header {
+    background-color:lightsteelblue;
+    border:1px solid lightblue;
+    border-radius: 30px;
+    padding: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    width:100%;
+}
+.container .content {
+    display: none;
+    padding : 5px;
+}
