@@ -45,7 +45,7 @@ class HDFSDataParserTest {
   def testHdfsPlaning(): Unit ={
     HDMContext.init()
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings")
-    StaticPlaner.plan(HDM(path), 4 ).foreach(println(_))
+    StaticPlaner.plan(HDM(path), 4 ).physicalPlan.foreach(println(_))
   }
 
   @Test

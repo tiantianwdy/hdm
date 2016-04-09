@@ -81,7 +81,7 @@ class TechfestDemo {
   @Test
   def testPrimitiveBenchMark(): Unit ={
     val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
-    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
+    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings"
 //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
     val parallelism = 1
     val len = 3
@@ -91,10 +91,10 @@ class TechfestDemo {
     HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1500)
     val hdm =
-    benchmark.testGroupBy(data,len, parallelism)
+//    benchmark.testGroupBy(data,len, parallelism)
 //    benchmark.testMultipleMap(data,len, parallelism)
 //    benchmark.testMultiMapFilter(data,len, parallelism, "a")
-//    benchmark.testFindByKey(data,len, parallelism, "a")
+    benchmark.testFindByKey(data,len, parallelism, "a")
 //    benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)
 

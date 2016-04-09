@@ -19,6 +19,7 @@ import scala.reflect._
  * Created by tiantian on 23/11/15.
  */
 case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, version:String,
+                                                               exeId:String,
                                                                taskId: String,
                                                                input1: Seq[AbstractHDM[T]],
                                                                input2: Seq[AbstractHDM[U]],

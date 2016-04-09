@@ -7,7 +7,7 @@ import com.baidu.bpit.akka.actors.worker.WorkActor
 import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor.{HDMServerBackend, HDMContext}
 import org.nicta.wdy.hdm.message._
-import org.nicta.wdy.hdm.model.{AbstractHDM, HDM}
+import org.nicta.wdy.hdm.model.{HDMPoJo, AbstractHDM, HDM}
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
@@ -52,6 +52,10 @@ class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int) exte
       log.info(s"received a dependency msg [${msg}}] ")
       processDepMsg(msg)
 
+    case  msg:QueryMsg =>
+      log.info(s"received a query msg [${msg}}] ")
+      processQueries(msg)
+
     case x:Any => log.info(s"received a unhanded msg [${x}}] ")
   }
 
@@ -61,6 +65,29 @@ class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int) exte
     hdmBackend.shutdown()
   }
 
+  protected def processQueries: PartialFunction[QueryMsg, Unit] ={
+    case msg:ApplicationsQuery =>
+      val apps = hdmBackend.dependencyManager.getAllApps()
+      val appMap = apps.map{ id =>
+        val (app, version) = hdmBackend.dependencyManager.unwrapAppId(id)
+        (id , hdmBackend.dependencyManager.getInstanceIds(app, version))
+      }.toSeq
+      sender() ! ApplicationsResp(appMap)
+
+    case ApplicationInsQuery(app, version) =>
+      val instances = hdmBackend.dependencyManager.getInstanceIds(app, version)
+      sender() ! ApplicationInsResp(app, version, instances)
+
+    case LogicalFLowQuery(exeId, opt) =>
+      val ins = hdmBackend.dependencyManager.getExeIns(exeId)
+      val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMPoJo(_))
+      sender() ! LogicalFLowResp(exeId, flow)
+
+    case ExecutionTraceQuery(execId) =>
+      val traces = hdmBackend.dependencyManager.historyManager.getInstanceTraces(execId)
+      val resp = ExecutionTraceResp(execId, traces)
+      sender() ! resp
+  }
   /**
    * handle dependency related msg
    * @return

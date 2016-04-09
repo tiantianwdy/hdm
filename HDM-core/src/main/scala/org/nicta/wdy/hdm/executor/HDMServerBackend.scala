@@ -12,7 +12,7 @@ import scala.concurrent.{Future, Promise}
 /**
  * Created by tiantian on 24/08/15.
  */
-class HDMServerBackend(val appManager: AppManager,
+class HDMServerBackend(
                        val blockManager: HDMBlockManager,
                        val scheduler: Scheduler,
                        val planner: HDMPlaner,
@@ -33,10 +33,10 @@ class HDMServerBackend(val appManager: AppManager,
   }
 
   def jobReceived(jobId:String, version:String, hdm:AbstractHDM[_], parallelism:Int):Future[_] ={
-    appManager.addApp(jobId, hdm)
-    val plan = HDMContext.explain(hdm, parallelism)
-    appManager.addPlan(jobId, plan)
-    scheduler.submitJob(jobId, version, plan)
+    val exeId = dependencyManager.addApp(jobId, version, hdm)
+    val plans = HDMContext.explain(hdm, parallelism)
+    dependencyManager.addPlan(exeId, plans)
+    scheduler.submitJob(jobId, version, exeId, plans.physicalPlan)
   }
 
 
@@ -48,7 +48,7 @@ class HDMServerBackend(val appManager: AppManager,
   }
 
   def submitApplicationBytes(appName:String, version:String, content:Array[Byte], author:String): Unit = {
-    dependencyManager.submit(appName,version, content, author, false)
+    dependencyManager.submit(appName, version, content, author, false)
   }
 
   def addDep(appName:String, version:String, depName:String, content:Array[Byte], author:String): Unit = {

@@ -74,7 +74,7 @@ class DualInputTaskTest {
     val composedFunc = func.andThen(nextFunc)
 
     val task = new TwoInputTask(appId = HDMContext.appName, version = HDMContext.version,
-      taskId = HDMContext.newLocalId(),
+      taskId = HDMContext.newLocalId(), exeId = "ins-1",
       input1 = input1,
       input2 = input2,
       dep = NToOne,

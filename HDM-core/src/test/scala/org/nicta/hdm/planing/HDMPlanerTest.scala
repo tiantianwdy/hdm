@@ -38,7 +38,7 @@ class HDMPlanerTest {
     val wordCount = hdm.map(d=> (d,1))
       .groupBy(_._1).map(t => (t._1, t._2.map(_._2))).reduce((t1,t2) => (t1._1, t1._2))
     val wordCountOpti = new FunctionFusion().optimize(wordCount)
-    val hdms = StaticPlaner.plan(wordCountOpti ,2)
+    val hdms = StaticPlaner.plan(wordCountOpti ,2).physicalPlan
     hdms.foreach(println(_))
   }
 
@@ -57,7 +57,7 @@ class HDMPlanerTest {
       //hdm.map(d=> (d,1)).groupBy(_._1)
       //.map(t => (t._1, t._2.map(_._2))).reduce(("", Seq(0)))((t1,t2) => (t1._1, t1._2))
 
-    HDMContext.explain(wordCount, 1).foreach(println(_))
+    HDMContext.explain(wordCount, 1).physicalPlan.foreach(println(_))
 
 /*    val wordCountOpti = new FunctionFusion().optimize(wordCount)
 
@@ -75,7 +75,7 @@ class HDMPlanerTest {
       as(1).toInt
     }.top(10)
     //.count()
-    StaticPlaner.plan(topk, 4).foreach(println(_))
+    StaticPlaner.plan(topk, 4).physicalPlan.foreach(println(_))
 
   }
 
@@ -90,7 +90,7 @@ class HDMPlanerTest {
     }.cache()
 
     val res = cache.reduce(_ + _)
-    HDMContext.explain(res, 1).foreach(println(_))
+    HDMContext.explain(res, 1).physicalPlan.foreach(println(_))
 
   }
 
@@ -110,7 +110,9 @@ class HDMPlanerTest {
     }
 
     val res = data1.cogroup(data2, (d1:(Int, String))  => d1._1, (d2:(Int, String)) => d2._1)
-    HDMContext.explain(res, 1).foreach(println(_))
+    print(System.currentTimeMillis())
+//    HDMContext.planer.logicalPlanner.plan(res, 1) foreach(println(_))
+//    HDMContext.explain(res, 1).foreach(println(_))
   }
 
 }

@@ -21,14 +21,14 @@ import scala.reflect.{ClassTag, classTag}
 /**
  * Created by Tiantian on 2014/12/1.
  */
-case class Task[I:ClassTag,R: ClassTag](appId:String, version:String,
-                     taskId:String,
-                     input:Seq[HDM[_, I]],
-                     func:ParallelFunction[I,R],
-                     dep:DataDependency,
-                     keepPartition:Boolean = true,
-                     partitioner: Partitioner[R] = null)
-                     extends ParallelTask[R]{
+case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
+                                          exeId: String,
+                                          taskId: String,
+                                          input: Seq[HDM[_, I]],
+                                          func: ParallelFunction[I, R],
+                                          dep: DataDependency,
+                                          keepPartition: Boolean = true,
+                                          partitioner: Partitioner[R] = null) extends ParallelTask[R] {
 
 
   final val inType = classTag[I]

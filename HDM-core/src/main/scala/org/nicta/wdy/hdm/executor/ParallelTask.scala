@@ -18,6 +18,8 @@ abstract class ParallelTask [R : ClassTag] extends Serializable with Callable[Se
 
   val version: String
 
+  val exeId:String
+
   val taskId: String
 
   def input:Seq[AbstractHDM[_]]
@@ -27,6 +29,8 @@ abstract class ParallelTask [R : ClassTag] extends Serializable with Callable[Se
   val keepPartition: Boolean
 
   val func:SerializableFunction[_, Arr[R]]
+
+  val partitioner:Partitioner[R]
 
   val createTime: Long = System.currentTimeMillis()
 

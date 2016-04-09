@@ -107,12 +107,13 @@ class DefScheduler(val blockManager:HDMBlockManager,
     promise
   }
 
-  override def submitJob(appId: String, version: String, hdms: Seq[AbstractHDM[_]]): Future[AbstractHDM[_]] = {
+  override def submitJob(appId: String, version: String, exeId:String, hdms: Seq[AbstractHDM[_]]): Future[AbstractHDM[_]] = {
     hdms.map { h => h match {
       case hdm: HDM[_, _] =>
         blockManager.addRef(h)
         val task = Task(appId = appId,
           version = version,
+          exeId = exeId,
           taskId = h.id,
           input = h.children.asInstanceOf[Seq[HDM[_, hdm.inType.type]]],
           func = h.func.asInstanceOf[ParallelFunction[hdm.inType.type, h.outType.type]],

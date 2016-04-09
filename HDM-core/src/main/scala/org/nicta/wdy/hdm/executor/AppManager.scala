@@ -56,10 +56,11 @@ class AppManager {
 }
 
 
-case class Application(id:String, 
-                      namespace:String,
-                       source:AbstractHDM[_],
-                       plan:Seq[AbstractHDM[_]] = Seq.empty[HDM[_,_]],
-                       state:String = "REGISTERED"){
-  
+case class Application(id: String,
+                       namespace: String,
+                       source: AbstractHDM[_],
+                       plan: Seq[AbstractHDM[_]] = Seq.empty[HDM[_, _]],
+                       planOpt: Seq[AbstractHDM[_]] = Seq.empty[HDM[_, _]],
+                       state: String = "REGISTERED") {
+
 }

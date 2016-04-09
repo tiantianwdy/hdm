@@ -4,11 +4,12 @@ import java.net.URLClassLoader
 import java.nio.charset.Charset
 import java.util.concurrent.{ConcurrentHashMap, Executors}
 
-import ch.qos.logback.classic.pattern.ClassOfCallerConverter
 import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor.{HDMContext, DynamicDependencyThreadFactory}
 import org.nicta.wdy.hdm.message.AddApplication
-import org.nicta.wdy.hdm.server.provenance.ApplicationTrace
+import org.nicta.wdy.hdm.model.AbstractHDM
+import org.nicta.wdy.hdm.planing.HDMPlans
+import org.nicta.wdy.hdm.server.provenance.{ExecutionInstance, ApplicationTrace}
 import org.nicta.wdy.hdm.utils.{DynamicURLClassLoader, Logging}
 
 import java.io.File
@@ -25,6 +26,10 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
   
   val classLoaderMap:mutable.Map[String, DynamicURLClassLoader] = new ConcurrentHashMap[String, DynamicURLClassLoader]()
 
+  val appInsBuffer = new ConcurrentHashMap[String, ExecutionInstance]
+  
+  val appInsMapping = new ConcurrentHashMap[String, mutable.Buffer[String]]
+
   def appLogPath = s"$dependencyBasePath/app/.dep"
 
   def depLogPath = s"$dependencyBasePath/dep/.dep"
@@ -40,6 +45,42 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
   def unwrapAppId(appId:String) = {
     val arr = appId.split("#")
     arr(0) -> arr(1)
+  }
+
+  def nextInstanceId():String = {
+    val timeStamp = System.currentTimeMillis()
+    s"Ins-${timeStamp.toHexString}"
+  }
+
+  def addApp(appName:String, version:String, hdm:AbstractHDM[_]): String = {
+    val exeId = nextInstanceId()
+    val aId = this.appId(appName, version)
+    appInsMapping.getOrElseUpdate(aId, mutable.Buffer.empty[String]) += exeId
+    appInsBuffer.put(exeId, ExecutionInstance(exeId, appName, version, hdm))
+    exeId
+  }
+
+  def getAllApps() = {
+    appInsMapping.keySet().toSeq
+  }
+
+  def getExeIns(exeId:String):ExecutionInstance = {
+    appInsBuffer.get(exeId)
+  }
+  
+  def getInstanceIds(appName:String, version:String):Seq[String] = {
+    val aId = this.appId(appName, version)
+    appInsMapping.get(aId)
+  }
+  
+  def getAppInstances(appName:String, version:String):Seq[ExecutionInstance] = {
+    val aId = this.appId(appName, version)
+    appInsMapping.get(aId).map(getExeIns(_))
+  }
+    
+  def addPlan(exeId:String, nPlan:HDMPlans ) = {
+    val app = appInsBuffer.get(exeId)
+    if(app != null) appInsBuffer.put(exeId, app.copy(logicalPlan = nPlan.logicalPlan, logicalPlanOpt = nPlan.logicalPlanOpt, physicalPlan = nPlan.physicalPlan))
   }
 
   private def loadDepFromFile(path:Path, autoCreate:Boolean = true): Unit = {

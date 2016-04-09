@@ -18,7 +18,7 @@ import scala.util.Try
  */
 trait HDMPlaner extends Serializable {
 
-  def plan(hdm:AbstractHDM[_], parallelism:Int):Seq[AbstractHDM[_]]
+  def plan(hdm:AbstractHDM[_], parallelism:Int):HDMPlans
 
 }
 
@@ -55,19 +55,23 @@ object StaticPlaner extends HDMPlaner {
 
   val physicalOptimizers: Seq[PhysicalOptimizer] = Seq.empty[PhysicalOptimizer]
 
-  override def plan(hdm: AbstractHDM[_], maxParallelism: Int): Seq[AbstractHDM[_]] = {
+  override def plan(hdm: AbstractHDM[_], maxParallelism: Int): HDMPlans = {
 
       val explainedMap = new java.util.HashMap[String, AbstractHDM[_]]() // temporary map to save updated hdms
       var optimized:AbstractHDM[_] = hdm
+
+      val originalFlow = logicalPlanner.plan(hdm, maxParallelism)
+
       // optimization
       logicOptimizers foreach { optimizer =>
         optimized = optimizer.optimize(optimized)
       }
-      // logical planning
-      val logicPlan = logicalPlanner.plan(optimized, maxParallelism)
-      //physical planning
 
-        logicPlan.map { h =>
+      // logical planning
+      val logicPlanOpt = logicalPlanner.plan(optimized, maxParallelism)
+
+      //physical planning
+      val physicalPlan =  logicPlanOpt.map { h =>
           h match {
             case dfm: HDM[_, _] =>
               val input = Try {
@@ -96,6 +100,7 @@ object StaticPlaner extends HDMPlaner {
           }
         }.flatten
       //
+      HDMPlans(originalFlow, logicPlanOpt, physicalPlan)
     }
 
 }

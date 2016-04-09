@@ -64,7 +64,7 @@ class DependencyManagerTest {
     val serJob = HDMContext.defaultSerializer.serialize(master).array()
     val jobMsg = SerializedJobMsg("hdm-examples", "0.0.1", serJob, "akka.tcp://slaveSys@127.0.0.1:20001/user/smsSlave"+ "/"+ HDMContext.JOB_RESULT_DISPATCHER, 2)
     Thread.sleep(100)
-    SmsSystem.askMsg(master, jobMsg)
+    SmsSystem.askSync(master, jobMsg)
     Thread.sleep(5000)
   }
 }

@@ -25,7 +25,7 @@ class TaskTest extends ClusterTestSuite {
     val rootPath = SmsSystem.rootPath
     println(rootPath)
     val hdm = HDM(path)
-    val hdms = HDMContext.explain(hdm, 4)
+    val hdms = HDMContext.explain(hdm, 4).physicalPlan
     hdms foreach (println(_))
     var curNum = 0
     hdms foreach { h =>
@@ -33,7 +33,7 @@ class TaskTest extends ClusterTestSuite {
       if (h.isInstanceOf[DFM[_,_]] && curNum < maxTaskNum){
         val dfm = h.asInstanceOf[DFM[_,_]]
         val task = Task(appId = HDMContext.appName, version = HDMContext.version,
-          taskId = h.id,
+          taskId = h.id, exeId = "",
           input = h.children.asInstanceOf[Seq[HDM[_, dfm.inType.type]]],
           dep = h.dependency,
           func = h.func.asInstanceOf[ParallelFunction[dfm.inType.type, dfm.outType.type]])

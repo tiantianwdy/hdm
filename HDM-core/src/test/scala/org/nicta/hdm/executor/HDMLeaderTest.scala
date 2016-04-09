@@ -47,7 +47,7 @@ class HDMLeaderTest extends ClusterTestSuite {
     //    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster","org.nicta.wdy.hdm.coordinator.BlockManagerLeader", null)
     //    SmsSystem.addActor(BLOCK_MANAGER_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorLeader", null)
 
-    val res = SmsSystem.askMsg("akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster", Query("smsSystem/allActors", "", "")).getOrElse("no response")
+    val res = SmsSystem.askSync("akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster", Query("smsSystem/allActors", "", "")).getOrElse("no response")
 
     println(res)
   }

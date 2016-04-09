@@ -58,7 +58,7 @@ class HDMClusterTest extends ClusterTestSuite{
         val data = new ReflectTest(text)
         val path = HDMContext.leaderPath.get()+ "/"+ HDMContext.BLOCK_MANAGER_NAME
         val msg = (hdm.id, hdm.partitioner, hdm.func, hdm.blocks)
-        SmsSystem.askMsg(path, hdm)
+        SmsSystem.askSync(path, hdm)
       }
     }.start
     Thread.sleep(60000)

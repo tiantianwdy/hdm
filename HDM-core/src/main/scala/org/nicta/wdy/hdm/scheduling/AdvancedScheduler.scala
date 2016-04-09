@@ -70,6 +70,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
         HDMContext.SCHEDULING_FACTOR_NETWORK)
 
       val scheduledTasks = taskQueue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
+      val now = System.currentTimeMillis()
       plans.foreach(tuple => {
         scheduledTasks.get(tuple._1) match {
           case Some(task) =>
@@ -79,12 +80,15 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
             val eTrace = ExecutionTrace(task.taskId,
               task.appId,
               task.version,
-              "task.instanceID",
+              task.exeId,
+              task.func.getClass.getSimpleName,
               task.func.toString,
               task.input.map(_.id),
               Seq(task.taskId),
               tuple._2,
-              task.createTime,
+              task.dep.toString,
+              task.partitioner.getClass.getCanonicalName,
+              now,
               -1L,
               "Running")
             historyManager.addExecTrace(eTrace)
@@ -119,12 +123,13 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     promise
   }
 
-  override def submitJob(appId: String, version:String, hdms: Seq[AbstractHDM[_]]): Future[AbstractHDM[_]] = {
+  override def submitJob(appId: String, version:String, exeId:String, hdms: Seq[AbstractHDM[_]]): Future[AbstractHDM[_]] = {
     hdms.map { h => h match {
       case hdm: HDM[_, _] =>
         blockManager.addRef(h)
         val task = Task(appId = appId,
           version = version,
+          exeId = exeId,
           taskId = h.id,
           input = h.children.asInstanceOf[Seq[HDM[_, hdm.inType.type]]],
           func = h.func.asInstanceOf[ParallelFunction[hdm.inType.type, hdm.outType.type]],
@@ -136,6 +141,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
         blockManager.addRef(dualDFM)
         val task = new TwoInputTask(appId = appId,
           version = version,
+          exeId = exeId,
           taskId = h.id,
           input1 = dualDFM.input1.asInstanceOf[Seq[AbstractHDM[dualDFM.inType1.type]]],
           input2 = dualDFM.input2.asInstanceOf[Seq[AbstractHDM[dualDFM.inType2.type]]],
@@ -168,6 +174,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       case ddm: DDM[_, _] => ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
+    val endTime = System.currentTimeMillis()
 //    HDMContext.declareHdm(Seq(ref))
     log.info(s"A task is succeeded : [${taskId + "_" + func}}] ")
     val promise = promiseManager.removePromise(taskId).asInstanceOf[Promise[HDM[_, _]]]
@@ -181,8 +188,8 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     // update task trace
     val trace = historyManager.getExecTrace(taskId)
     if(trace ne null){
-      val newTrace = if(blks ne null) trace.copy(outputPath= blks.map(_.toURL), status = "Completed")
-      else trace.copy(status = "Completed")
+      val newTrace = if(blks ne null) trace.copy(outputPath= blks.map(_.toURL), endTime = endTime, status = "Completed")
+      else trace.copy(endTime = endTime, status = "Completed")
       historyManager.updateExecTrace(newTrace)
     }
   }

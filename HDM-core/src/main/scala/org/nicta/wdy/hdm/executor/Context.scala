@@ -181,7 +181,7 @@ object HDMContext extends  Context with Logging{
       val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
       //    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
       val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, schedulingPolicy)
-      hdmBackEnd = new HDMServerBackend(appManager, blockManager, scheduler, planer, resourceManager, promiseManager, DependencyManager())
+      hdmBackEnd = new HDMServerBackend(blockManager, scheduler, planer, resourceManager, promiseManager, DependencyManager())
       log.warn(s"created new HDMServerBackend.")
     }
     hdmBackEnd

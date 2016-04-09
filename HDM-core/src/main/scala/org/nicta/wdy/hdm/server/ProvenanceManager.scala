@@ -26,6 +26,10 @@ trait ProvenanceManager {
 
   def getAppTraces(appName:String):Seq[(String, ApplicationTrace)]
 
+  def getAllAppIDs():Seq[String]
+
+  def getAppInstances(appName:String, version:String):Seq[String]
+
   def getExecTrace(id:String):ExecutionTrace
 
   def getInstanceTraces(instanceId:String):Seq[ExecutionTrace]
@@ -42,7 +46,10 @@ class ProvenanceManagerImpl extends ProvenanceManager {
    * appId -> version -> ApplicationTrace
    */
   private val appTraceMap = new ConcurrentHashMap[String, mutable.Map[String, ApplicationTrace]]()
-  
+
+  /**
+   * taskId -> executionTrace
+   */
   private val exeTraceMap = new ConcurrentHashMap[String, ExecutionTrace]()
 
   /**
@@ -51,7 +58,7 @@ class ProvenanceManagerImpl extends ProvenanceManager {
   private val instanceHistory = new ConcurrentHashMap[String, mutable.Buffer[String]]
 
   /**
-   * indexes : ${pipeName}#{$version} -> Seq of instanceId
+   * indexes : ${appName}#{$version} -> Seq of instanceId
    */
   private val appInstancesMap = new ConcurrentHashMap[String, mutable.Buffer[String]]
 
@@ -101,10 +108,23 @@ class ProvenanceManagerImpl extends ProvenanceManager {
     appTraceMap.getOrElse(appName, Seq.empty[(String, ApplicationTrace)]).toSeq
   }
 
+
+  override def getAppInstances(appName: String, version: String): Seq[String] = {
+    val appId = s"${appName}#${version}"
+    appInstancesMap.get(appId)
+  }
+
+
+  override def getAllAppIDs(): Seq[String] = {
+    appInstancesMap.keySet().toSeq
+  }
+
   override def getInstanceTraces(instanceId: String) = {
-    if(instanceHistory.contains(instanceId)){
+    if(instanceHistory.containsKey(instanceId)){
       instanceHistory.get(instanceId).map(getExecTrace(_))
-    } else null
+    } else {
+      null
+    }
   }
 
   override def getInstanceDAG(instanceId: String): ExecutionDAG = {
