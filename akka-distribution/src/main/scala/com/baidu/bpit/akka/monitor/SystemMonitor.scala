@@ -70,7 +70,7 @@ class SystemMonitor(val isLinux: Boolean, val systemId: String = "") extends Act
         MonitorData(
           monitorName = "systemMonitor",
           prop = "system/jvm",
-          key = s"$monitorId/memMax",
+          key = s"$monitorId/memUsed",
           value = jvmInfo(1).toString,
           source = monitorId),
         MonitorData(
@@ -78,6 +78,12 @@ class SystemMonitor(val isLinux: Boolean, val systemId: String = "") extends Act
           prop = "system/jvm",
           key = s"$monitorId/memTotal",
           value = jvmInfo(2).toString,
+          source = monitorId),
+        MonitorData(
+          monitorName = "systemMonitor",
+          prop = "system/jvm",
+          key = s"$monitorId/memMax",
+          value = jvmInfo(3).toString,
           source = monitorId))
       data
       /*

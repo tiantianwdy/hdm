@@ -18,7 +18,7 @@ object SystemMonitorService {
   def getCpuRate = {
     val curCpuInfo = LinuxSystemMonitor.getCpuInfo(8)
     val duration = System.currentTimeMillis() - lastCpuMonitorTime
-    val cpuRate = 100 * LinuxSystemMonitor.getCpuUtilization(lastCpuInfo, curCpuInfo, duration)
+    val cpuRate = 100D * LinuxSystemMonitor.getCpuUtilization(lastCpuInfo, curCpuInfo, duration)
     lastCpuMonitorTime = System.currentTimeMillis()
     lastCpuInfo = curCpuInfo
     cpuRate
@@ -57,13 +57,14 @@ object SystemMonitorService {
     val runtime = Runtime.getRuntime
     val maxMem = runtime.maxMemory
     val freeMem = runtime.freeMemory
-    val totalMem = runtime.totalMemory
-    Seq(freeMem, totalMem, maxMem)
+    val totalHeapMem = runtime.totalMemory
+    val usedMem = totalHeapMem - freeMem
+    Seq(freeMem, usedMem, totalHeapMem, maxMem)
   }
 
   def getJVMMemRate = {
     val memInfo = getJVMMemInfo
-    100 * (memInfo(1) - memInfo(0)) / memInfo(2).toDouble
+    100 * (memInfo(1) / memInfo(3).toDouble)
   }
 
   def main(args: Array[String]) {

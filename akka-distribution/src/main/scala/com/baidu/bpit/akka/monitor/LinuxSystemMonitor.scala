@@ -71,8 +71,9 @@ object LinuxSystemMonitor {
     val postTotalCpu = postCpuInfos.sum
     val total = postTotalCpu - preTotalCpu
     val idle = postCpuInfos(3) - preCpuInfos(3)
-    if (postTotalCpu - preTotalCpu != 0) (total - idle) / total
-    else 0D
+    if (postTotalCpu - preTotalCpu != 0) {
+      (total.toDouble - idle) / total
+    } else 0D
   }
 
   @throws[IOException]
