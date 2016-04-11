@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <link rel="import" href="header.html">
+</head>
+<body>
+<!--<#include "nav.html" />-->
+<div id="nav">
+    <nav class="navbar navbar-inverse navbar-fixed-top">
+        <div class="container-fluid">
+            <div class="navbar-header">
+                <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
+                        aria-expanded="false" aria-controls="navbar">
+                    <span class="sr-only">Toggle navigation</span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                    <span class="icon-bar"></span>
+                </button>
+                <a class="navbar-brand" href="/">HDM</a>
+            </div>
+            <div id="navbar" class="navbar-collapse collapse">
+                <ul class="nav navbar-nav navbar-left">
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/html/execution-manager.html">ExecutionManager</a></li>
+                    <li class="active"><a href="/html/resource-manager.html">ResourceManager</a></li>
+                    <li><a href="/html/dependency-manager.html">DependencyManager</a></li>
+                </ul>
+                <form class="navbar-form navbar-right">
+                    <input type="text" class="form-control" placeholder="Search...">
+                </form>
+            </div>
+        </div>
+    </nav>
+</div>
+
+<div class="container-fluid">
+    <!-- left side bar -->
+    <div class="row">
+        <div class="col-sm-2 col-md-2 sidebar">
+            <div id="slaveLists"/>
+        </div>
+    </div>
+    <div class="col-sm-10 col-sm-offset-2 col-md-10 col-md-offset-2">
+        <div class="bd">
+            <table id="htable"></table>
+        </div>
+        <div class="container">
+            <div class="header" id="slave-cluster-collapse">
+                <span>Show Cluster of nodes</span></div>
+            <div class="content">
+                <div id="slave-cluster"></div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="header" id="slave-monitor-collapse">
+                <span>Show Resource States of nodes</span></div>
+            <div class="content" id="monitor-main">
+                <div id="highstock-search" style="height: 300px; display:None "></div>
+                <div id="highstock-cpu" style="height: 300px; width:100%"></div>
+                <div id="highstock-mem" style="height: 300px"></div>
+                <div id="highstock-net" style="height: 300px"></div>
+                <div id="highstock-jvm" style="height: 300px"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script src="/res/js/libs/require-jquery.js"></script>
+<script src="/res/js/resource-manager.js"></script>
+
+</body>
+</html>

@@ -20,7 +20,7 @@ public class ApplicationController extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         ApplicationsQuery msg = new ApplicationsQuery();
-        String actor = AbstractController.master;
+        String actor = AbstractController.masterExecutor;
         ApplicationsResp res = (ApplicationsResp) SmsSystem.askSync(actor, msg).get();
         TreeVO vo = HDMViewAdapter.applicationsRespToTreeVO(res);
         String json = ObjectUtils.objectToJson(vo);

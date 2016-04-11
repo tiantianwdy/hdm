@@ -1,7 +1,6 @@
 package org.nicta.wdy.hdm.console.controllers;
 
 import com.baidu.bpit.akka.server.SmsSystem;
-import org.nicta.wdy.hdm.console.models.DagGraph;
 import org.nicta.wdy.hdm.console.models.TimeLanes;
 import org.nicta.wdy.hdm.console.views.HDMViewAdapter;
 import org.nicta.wdy.hdm.message.ExecutionTraceQuery;
@@ -22,7 +21,7 @@ public class ExecutionTimeController extends HttpServlet {
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String exeId = req.getParameter("executionTag");
         ExecutionTraceQuery msg = new ExecutionTraceQuery(exeId);
-        String actor = AbstractController.master;
+        String actor = AbstractController.masterExecutor;
         ExecutionTraceResp res = (ExecutionTraceResp) SmsSystem.askSync(actor, msg).get();
         TimeLanes vo = HDMViewAdapter.executionTraceToLanes(res);
         String json = ObjectUtils.objectToJson(vo);

@@ -19,8 +19,8 @@ var utils = {
        });
    },
 
-   collapseNative: function (cls, openLabel, closeLabel, callback) {
-       $("#" + cls).click(function () {
+   collapseNative: function (elemId, openLabel, closeLabel, callback) {
+       $("#" + elemId).click(function () {
            $header = $(this);
            //getting the next element
            $content = $header.next();
@@ -30,8 +30,9 @@ var utils = {
            } else {
              $content.show(500)
              $header.text(closeLabel)
+             if(callback) callback();
            };
-           if(callback) callback();
+
        });
    },
 

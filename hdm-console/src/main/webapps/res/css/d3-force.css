@@ -23,6 +23,23 @@ circle {
   stroke-width: 1.5px;
 }
 
+.node ellipse {
+  fill: #ccc;
+  cx: 0;
+  cy: 0;
+  r: 0;
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
+.node rect {
+  fill: #ccc;
+  rx: 5;
+  ry: 5;
+  stroke: #fff;
+  stroke-width: 1.5px;
+}
+
 div.tooltip {
   position: absolute;
   text-align: left;

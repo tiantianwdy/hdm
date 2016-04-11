@@ -39,6 +39,13 @@ body {
     ry: 5;
 }
 
+.node:hover {
+  //filter: url(#drop_shadow);
+}
+
+.node ellipse {
+ border-shadow: 10px 10px 5px #888888;
+}
 
 .edge rect {
     fill: #fff;

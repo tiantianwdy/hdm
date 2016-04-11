@@ -1,20 +1,23 @@
 
 
-var colorArray = ["white", "green", "blue", "orange", "red", "purple",  "black"]
+var d3ColorArray = ["firebrick", "GoldenRod", "Yellow", "GreenYellow", "LawnGreen", "green",  "ForestGreen",  "ForestGreen",  "ForestGreen"];
 
 function createDAG(elem, graph) {
 
-  var width = 560,
+  var width = 1000,
       height = 400;
 
   var force = d3.layout.force()
-      .charge(-300)
-      .linkDistance(120)
+      .charge(-200)
+      .linkDistance(160)
       .size([width, height]);
 
+  // remove old svg if exists
+  d3.select("#" + elem).select('svg').remove();
   var svg = d3.select("#" + elem).append("svg")
       .attr("width", width)
       .attr("height", height);
+
 
   force
       .nodes(graph.nodes)
@@ -22,6 +25,7 @@ function createDAG(elem, graph) {
       .start();
 
   renderWithCurveArrows(svg, force, graph)
+//  renderWithLines(svg, force, graph)
 
 
 };
@@ -29,6 +33,10 @@ function createDAG(elem, graph) {
 function renderWithCurveArrows(svg, force, graph){
 
   var color = d3.scale.category20();
+  var nodeType = ["circle", "rect", "ellipse", "star"]
+  var nodeSize = new Map();
+  nodeSize.set("Master", 16);
+  nodeSize.set("Worker", 10);
 
   var div = d3.select("body").append("div")
       .attr("class", "tooltip")
@@ -65,10 +73,10 @@ function renderWithCurveArrows(svg, force, graph){
 
     // add the nodes
   node.append("circle")
-      .attr("r", 12)
+      .attr("r", function(d){ return nodeSize.get(d.type); })
       .on("mouseover", function(d){ return addToolTip(d, div); })
       .on("mouseout", function(d){ return hideToolTip(d, div); })
-      .style("fill", function(d) { return colorArray[d.group]; });
+      .style("fill", function(d) { return d3ColorArray[d.group]; });
 
 //  node.append("title")
 //      .text(function(d) { return d.name; });
@@ -172,6 +180,7 @@ function renderWithLines(svg, force, graph) {
         div.html("name: " + d.name
                 + "<br/>" + "version: " + d.version
                 + "<br/>" + "type: " + d.type
+                + "<br/>" + "slots: " + d.group
                 + "<br/>" + "startTime: " + new Date(d.startTime).toLocaleTimeString("en-US", options)
                 + "<br/>" + "endTime: " + new Date(d.endTime).toLocaleTimeString("en-US", options)
                 + "<br/>" + "state: " + d.status)

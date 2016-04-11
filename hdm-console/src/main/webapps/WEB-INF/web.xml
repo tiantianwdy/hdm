@@ -23,7 +23,13 @@
 
     <servlet>
         <servlet-name>physical-flow-servlet</servlet-name>
-        <servlet-class>org.nicta.wdy.hdm.console.controllers.PhysicalFlowControlller</servlet-class>
+        <servlet-class>org.nicta.wdy.hdm.console.controllers.PhysicalFlowController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>execution-graph-servlet</servlet-name>
+        <servlet-class>org.nicta.wdy.hdm.console.controllers.ExecutionGraphController</servlet-class>
         <load-on-startup>2</load-on-startup>
     </servlet>
 
@@ -33,38 +39,26 @@
         <load-on-startup>2</load-on-startup>
     </servlet>
 
+    <servlet>
+        <servlet-name>node-list-servlet</servlet-name>
+        <servlet-class>org.nicta.wdy.hdm.console.controllers.ListNodesController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>node-monitor-servlet</servlet-name>
+        <servlet-class>org.nicta.wdy.hdm.console.controllers.NodeMonitorController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>node-cluster-servlet</servlet-name>
+        <servlet-class>org.nicta.wdy.hdm.console.controllers.NodeClusterController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
 <!--
 
-
-    <servlet>
-        <servlet-name>pipe-list-servlet</servlet-name>
-        <servlet-class>au.com.nicta.data.pipeline.console.controller.PipeListServlet</servlet-class>
-        <load-on-startup>2</load-on-startup>
-    </servlet>
-
-    <servlet>
-        <servlet-name>pipeline-execution-servlet</servlet-name>
-        <servlet-class>au.com.nicta.data.pipeline.console.controller.PipelineExecutionHistoryServlet</servlet-class>
-        <load-on-startup>2</load-on-startup>
-    </servlet>
-
-    <servlet>
-        <servlet-name>pipe-history-servlet</servlet-name>
-        <servlet-class>au.com.nicta.data.pipeline.console.controller.PipeHistoryServlet</servlet-class>
-        <load-on-startup>2</load-on-startup>
-    </servlet>
-
-    <servlet>
-        <servlet-name>execution-history-servlet</servlet-name>
-        <servlet-class>au.com.nicta.data.pipeline.console.controller.ExecutionHistoryServlet</servlet-class>
-        <load-on-startup>2</load-on-startup>
-    </servlet>
-
-    <servlet>
-        <servlet-name>execution-dag-servlet</servlet-name>
-        <servlet-class>au.com.nicta.data.pipeline.console.controller.ExecutionDAGServlet</servlet-class>
-        <load-on-startup>2</load-on-startup>
-    </servlet>
 
 -->
     <servlet-mapping>
@@ -83,9 +77,30 @@
     </servlet-mapping>
 
     <servlet-mapping>
+        <servlet-name>execution-graph-servlet</servlet-name>
+        <url-pattern>/service/executionGraph/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
         <servlet-name>execution-lane-servlet</servlet-name>
         <url-pattern>/service/executionLane/*</url-pattern>
     </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>node-list-servlet</servlet-name>
+        <url-pattern>/service/nodeList/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>node-monitor-servlet</servlet-name>
+        <url-pattern>/service/nodeMonitor/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>node-cluster-servlet</servlet-name>
+        <url-pattern>/service/nodeCluster/*</url-pattern>
+    </servlet-mapping>
+
     <!--
 
 

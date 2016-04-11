@@ -1,8 +1,10 @@
 package org.nicta.wdy.hdm.console.views
 
+import com.baidu.bpit.akka.configuration.ActorConfig
 import org.nicta.wdy.hdm.console.models._
 import org.nicta.wdy.hdm.io.Path
-import org.nicta.wdy.hdm.message.{ExecutionTraceResp, LogicalFLowResp, ApplicationsResp}
+import org.nicta.wdy.hdm.message.{NodeInfo, ExecutionTraceResp, LogicalFLowResp, ApplicationsResp}
+import org.nicta.wdy.hdm.model.HDMPoJo
 import org.nicta.wdy.hdm.server.provenance.ExecutionTrace
 
 import scala.collection.mutable
@@ -30,8 +32,26 @@ object HDMViewAdapter {
     root
   }
 
-  def logicalFLowRespToGraph(resp: LogicalFLowResp): DagGraph = {
-    val data = resp.results
+  def slaveListToTreeVO(master:String, data:Seq[ActorConfig]): TreeVO ={
+    val rootName = Path(master).address
+    val root = new TreeVO(rootName, 1)
+    data.foreach {
+      actor =>
+        val addr = Path(actor.actorPath).address
+        val child = new TreeVO(addr, actor.deploy.state)
+        root.addChild(child)
+    }
+    root
+  }
+
+  def slaveMonitorVO(data:Any):Array[Array[Any]] = {
+    data match {
+      case arr: Array[Array[Any]] => arr
+      case _ => Array.empty[Array[Any]]
+    }
+  }
+
+  def HDMPojoSeqToGraph(data: Seq[HDMPoJo]): DagGraph = {
     val graph = new DagGraph()
     val nodes = mutable.Buffer.empty[HDMNode]
     val nodeIdxes = mutable.HashMap.empty[String, HDMNode]
@@ -95,6 +115,26 @@ object HDMViewAdapter {
     graph
   }
 
+  def slaveClusterToGraphVO(data:Seq[NodeInfo]):DagGraph = {
+    val graph = new DagGraph()
+    val nodes = mutable.Buffer.empty[D3Node]
+    val links = mutable.Buffer.empty[D3Link]
+    val nodeIdxes = mutable.HashMap.empty[String, Int]
+    nodeIdxes ++= data.zipWithIndex.map(tup => tup._1.path -> tup._2)
+    data.foreach{
+      n =>
+        val idx = nodeIdxes(n.path)
+        nodes += new D3Node(idx, n.id, n.typ, n.parent, n.path, n.state, n.slots)
+        if (n.parent != null && nodeIdxes.contains(n.parent)) {
+          val pIdx = nodeIdxes(n.parent)
+          links += new D3Link(idx, pIdx, "")
+        }
+    }
+    graph.setLinks(links)
+    graph.setNodes(nodes)
+    graph
+  }
+
   def executionTraceToLanes(resp: ExecutionTraceResp): TimeLanes = {
     val data = resp.results
     val taskWorkerMap = mutable.HashMap.empty[String, mutable.Buffer[ExecutionTrace]]
@@ -102,34 +142,38 @@ object HDMViewAdapter {
     var minRange = System.currentTimeMillis()
     var maxRange = 0L
     val idxParttern = "_b"
-    data.foreach{ exe =>
-      val coreIdx = if(!exe.taskId.containsSlice(idxParttern)) "0"
-      else {
-        val seq = exe.taskId.split(idxParttern)
-        if(seq.length > 0) seq(1) else "0"
+    if (data ne null) {
+      data.foreach { exe =>
+        val coreIdx = if (!exe.taskId.containsSlice(idxParttern)) "0"
+        else {
+          val seq = exe.taskId.split(idxParttern)
+          if (seq.length > 0) seq(1) else "0"
+        }
+        if (exe.location ne null) {
+          val workerId = Path(exe.location).address + "-" + coreIdx
+          taskWorkerMap.getOrElseUpdate(workerId, mutable.Buffer.empty[ExecutionTrace]) += exe
+        }
+        if (exe.startTime < minRange) minRange = exe.startTime
+        if (exe.endTime > maxRange) maxRange = exe.endTime
       }
-      if(exe.location ne null){
-        val workerId = Path(exe.location).address + "-" + coreIdx
-        taskWorkerMap.getOrElseUpdate(workerId, mutable.Buffer.empty[ExecutionTrace]) += exe
-      }
-      if(exe.startTime < minRange) minRange = exe.startTime
-      if(exe.endTime > maxRange) maxRange = exe.endTime
     }
-    val lanes = taskWorkerMap.keySet.toSeq.zipWithIndex.map{ tup =>
+
+    val lanes = taskWorkerMap.keySet.toSeq.zipWithIndex.map { tup =>
       new Lane(tup._2, tup._1)
     }
     lanes.foreach(lane => laneIdx += lane.getLabel -> lane.getId)
-    val items = taskWorkerMap.map{ mapping =>
+
+    val items = taskWorkerMap.map { mapping =>
       val laneId = laneIdx.get(mapping._1) match {
         case Some(d) => d
         case None => 0
       }
-      mapping._2.map{exe =>
-        val time = if(exe.endTime < exe.startTime) System.currentTimeMillis() else exe.endTime
+      mapping._2.map { exe =>
+        val time = if (exe.endTime < exe.startTime) System.currentTimeMillis() else exe.endTime
         new LaneItem(exe.taskId, laneId, exe.startTime, time, exe.status, exe.function)
       }
     }.flatten.toSeq
-    if(maxRange <= 0) maxRange = System.currentTimeMillis()
+    if (maxRange <= 0) maxRange = System.currentTimeMillis()
 
     new TimeLanes(lanes, items, minRange, maxRange)
   }
