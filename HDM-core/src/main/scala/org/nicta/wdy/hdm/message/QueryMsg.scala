@@ -25,6 +25,17 @@ case class LogicalFLowQuery(execId:String, opt:Boolean) extends QueryMsg
 
 case class LogicalFLowResp(execId:String, results:Seq[HDMPoJo])extends QueryMsg
 
+case class PhysicalFlow(execId:String) extends QueryMsg
+
+case class PhysicalFlowResp(execId:String, results:Seq[HDMPoJo])extends QueryMsg
+
+case class AllSlavesQuery(parent:String)extends QueryMsg
+
+case class AllSLavesResp(results:Seq[NodeInfo])extends QueryMsg
+
 case class DependencyTraceQuery(appName:String, version:String) extends QueryMsg
 
 case class DependencyTraceResp(appName:String, version:String, results:Seq[(String, ApplicationTrace)]) extends QueryMsg
+
+
+case class NodeInfo(id:String, typ:String, parent:String, path:String,  joinTime:Long,  slots:Int, state:String) extends  Serializable

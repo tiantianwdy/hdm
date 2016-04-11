@@ -58,9 +58,11 @@ class DefResourceManager extends ResourceManager{
   }
 
   override def removeResource(resId: String): Unit = {
-    val value = followerMap.remove(resId).get()
-    workingSize.acquire(value)
-//    workingSize.tryAcquire()
+    if(followerMap.containsKey(resId)){
+      val value = followerMap.remove(resId).get()
+      workingSize.acquire(value)
+      //    workingSize.tryAcquire()
+    }
   }
 
   override def decResource(resId: String, value: Int): Unit = {

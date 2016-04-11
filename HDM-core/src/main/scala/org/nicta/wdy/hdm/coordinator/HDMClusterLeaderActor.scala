@@ -6,6 +6,7 @@ import akka.actor.ActorPath
 import com.baidu.bpit.akka.actors.worker.WorkActor
 import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor.{HDMServerBackend, HDMContext}
+import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.message._
 import org.nicta.wdy.hdm.model.{HDMPoJo, AbstractHDM, HDM}
 
@@ -83,10 +84,26 @@ class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int) exte
       val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMPoJo(_))
       sender() ! LogicalFLowResp(exeId, flow)
 
+    case PhysicalFlow(exeId) =>
+      val ins = hdmBackend.dependencyManager.getExeIns(exeId)
+      val flow = ins.physicalPlan.map(HDMPoJo(_))
+      sender() ! PhysicalFlowResp(exeId, flow)
+
     case ExecutionTraceQuery(execId) =>
       val traces = hdmBackend.dependencyManager.historyManager.getInstanceTraces(execId)
       val resp = ExecutionTraceResp(execId, traces)
       sender() ! resp
+
+    case AllSlavesQuery(parent) =>
+      val cur = System.currentTimeMillis()
+      val master = SmsSystem.rootPath
+      val nodes = hdmBackend.resourceManager.getAllResources().map{ tup =>
+        val id = Path(tup._1).address
+        NodeInfo(id, "Worker", master, tup._1, cur, tup._2.get(), "Running")
+      }
+      val masterNode = NodeInfo(Path(master).address, "Master", null, SmsSystem.rootPath, cur, 0, "Running")
+      val resp = if(nodes ne null) nodes.toSeq else Seq.empty[NodeInfo]
+      sender() ! AllSLavesResp(resp :+ masterNode)
   }
   /**
    * handle dependency related msg
