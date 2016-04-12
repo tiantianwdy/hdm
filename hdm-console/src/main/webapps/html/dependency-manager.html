@@ -48,6 +48,7 @@
 <nav class="navbar navbar-inverse navbar-fixed-top">
     <div class="container-fluid">
         <div class="navbar-header">
+            <a class="navbar-brand"><img  src="/res/img/hdm-logo-mini.png"  height="30" width="70"></a>
             <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#navbar"
                     aria-expanded="false" aria-controls="navbar">
                 <span class="sr-only">Toggle navigation</span>
@@ -55,12 +56,12 @@
                 <span class="icon-bar"></span>
                 <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand" href="/">HDM</a>
         </div>
         <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav navbar-left">
                 <li><a href="/">Home</a></li>
                 <li><a href="/html/execution-manager.html">ExecutionManager</a></li>
+                <li><a href="/html/resource-manager.html">ResourceManager</a></li>
                 <li class="active"><a href="/html/dependency-manager.html">DependencyManager</a></li>
             </ul>
             <form class="navbar-form navbar-right">
@@ -74,7 +75,7 @@
 
     <div class="row">
         <div class="col-sm-2 col-md-2 sidebar">
-            <div id="pipe-list-tree" />
+            <div id="app-versions-tree" />
 
         </div>
 
@@ -83,7 +84,7 @@
 
     <div class="col-sm-10 col-sm-offset-2 col-md-10 col-md-offset-2">
         <div class="container-fluid">
-            <div id="pipe-history-tree">
+            <div id="dependency-tree">
 
             </div>
         </div>
@@ -98,17 +99,7 @@
 
 </div>
 
-
-
-<script type="text/javascript">
-
-
-
-
-//    addTable("task-table", heading, stock)
-    createInteractiveTree("pipe-history-tree", dataJoinerHistory, graphDataInfo.nodes , 1080 ,560, 100)
-    quickTree("pipe-list-tree", pipeListTree)
-</script>
+<script src="/res/js/dependency-manager.js"></script>
 
 <!-- Bootstrap core JavaScript
 ================================================== -->

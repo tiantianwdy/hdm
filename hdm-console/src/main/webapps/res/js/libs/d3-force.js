@@ -177,10 +177,11 @@ function renderWithLines(svg, force, graph) {
            .duration(200)
            .style("opacity", 9);
 
-        div.html("name: " + d.name
-                + "<br/>" + "version: " + d.version
+        div.html("id: " + d.path
+                + "<br/>" + "name: " + d.name
                 + "<br/>" + "type: " + d.type
                 + "<br/>" + "slots: " + d.group
+                + "<br/>" + "address: " + d.name
                 + "<br/>" + "startTime: " + new Date(d.startTime).toLocaleTimeString("en-US", options)
                 + "<br/>" + "endTime: " + new Date(d.endTime).toLocaleTimeString("en-US", options)
                 + "<br/>" + "state: " + d.status)

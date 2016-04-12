@@ -57,6 +57,17 @@
         <load-on-startup>2</load-on-startup>
     </servlet>
 
+    <servlet>
+        <servlet-name>version-list-servlet</servlet-name>
+        <servlet-class>org.nicta.wdy.hdm.console.controllers.AllAppVersionsController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>dependency-trace-servlet</servlet-name>
+        <servlet-class>org.nicta.wdy.hdm.console.controllers.DependencyTraceController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
 <!--
 
 
@@ -101,6 +112,15 @@
         <url-pattern>/service/nodeCluster/*</url-pattern>
     </servlet-mapping>
 
+    <servlet-mapping>
+        <servlet-name>version-list-servlet</servlet-name>
+        <url-pattern>/service/versionList/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>dependency-trace-servlet</servlet-name>
+        <url-pattern>/service/dependencyTrace/*</url-pattern>
+    </servlet-mapping>
     <!--
 
 

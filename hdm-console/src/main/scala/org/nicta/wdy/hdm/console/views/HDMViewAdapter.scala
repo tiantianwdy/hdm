@@ -1,9 +1,11 @@
 package org.nicta.wdy.hdm.console.views
 
+import java.util.Date
+
 import com.baidu.bpit.akka.configuration.ActorConfig
 import org.nicta.wdy.hdm.console.models._
 import org.nicta.wdy.hdm.io.Path
-import org.nicta.wdy.hdm.message.{NodeInfo, ExecutionTraceResp, LogicalFLowResp, ApplicationsResp}
+import org.nicta.wdy.hdm.message._
 import org.nicta.wdy.hdm.model.HDMPoJo
 import org.nicta.wdy.hdm.server.provenance.ExecutionTrace
 
@@ -22,12 +24,30 @@ object HDMViewAdapter {
 
   def applicationsRespToTreeVO(resp: ApplicationsResp): TreeVO = {
     val data = resp.results
-    val root = new TreeVO("All Applications")
+    mapToTreeVO("All Jobs", data)
+  }
+
+  def allVersionsRespToTreeVO(resp: AllAppVersionsResp):TreeVO = {
+    val data = resp.results
+    mapToTreeVO("Applications", data)
+  }
+
+  def dependencyTraceToTreeVO(resp:DependencyTraceResp):TreeVO = {
+    val data = resp.results
+    val root = new TreeVO(resp.appName)
     data.foreach {
-      tup =>
+      tup => //(version, dependencyTrace)
         val child = new TreeVO(tup._1)
         root.addChild(child)
-        tup._2.foreach(ins => child.addChild(new TreeVO(ins)))
+        child.addChild(new TreeVO("Version: " + tup._2.version))
+        child.addChild(new TreeVO("Author: " + tup._2.author))
+        child.addChild(new TreeVO("Create Time: " + new Date(tup._2.createTime).toLocaleString))
+        if(tup._2.dependencies ne null){
+          val depNode = new TreeVO("Dependencies")
+          child.addChild(depNode)
+          val dep = tup._2.dependencies
+          dep.foreach(url => depNode.addChild(new TreeVO(url)))
+        }
     }
     root
   }
@@ -120,11 +140,11 @@ object HDMViewAdapter {
     val nodes = mutable.Buffer.empty[D3Node]
     val links = mutable.Buffer.empty[D3Link]
     val nodeIdxes = mutable.HashMap.empty[String, Int]
-    nodeIdxes ++= data.zipWithIndex.map(tup => tup._1.path -> tup._2)
+    nodeIdxes ++= data.zipWithIndex.map(tup => tup._1.id -> tup._2)
     data.foreach{
       n =>
-        val idx = nodeIdxes(n.path)
-        nodes += new D3Node(idx, n.id, n.typ, n.parent, n.path, n.state, n.slots)
+        val idx = nodeIdxes(n.id)
+        nodes += new D3Node(idx, n.address, n.typ, n.parent, n.id, n.state, n.slots)
         if (n.parent != null && nodeIdxes.contains(n.parent)) {
           val pIdx = nodeIdxes(n.parent)
           links += new D3Link(idx, pIdx, "")
@@ -176,6 +196,17 @@ object HDMViewAdapter {
     if (maxRange <= 0) maxRange = System.currentTimeMillis()
 
     new TimeLanes(lanes, items, minRange, maxRange)
+  }
+
+  def mapToTreeVO(rootName:String, data:Seq[(String,Seq[String])]): TreeVO ={
+    val root = new TreeVO(rootName)
+    data.foreach {
+      tup =>
+        val child = new TreeVO(tup._1)
+        root.addChild(child)
+        tup._2.foreach(elem => child.addChild(new TreeVO(elem)))
+    }
+    root
   }
 
   def statusToGroup(state: String): Int = state.toLowerCase match {
