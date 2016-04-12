@@ -43,15 +43,27 @@ class DependencyManagerTest {
   }
 
   @Test
-  def testSubmitDependencyByMsg(): Unit ={
+  def testSubmitAppByMsg(): Unit ={
 
     val start = System.currentTimeMillis()
     val master = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster/ClusterExecutor"
     val file = "/home/tiantian/Dev/lib/hdm/HDM-benchmark-0.0.1.jar"
     SmsSystem.startAsClient(master, 20001)
     Thread.sleep(100)
-    DependencyManager.submitAppByPath(master, "hdm-examples", "0.0.1", file, "dwu")
-    Thread.sleep(5000)
+    DependencyManager.submitAppByPath(master, "hdm-examples", "0.0.3", file, "dwu")
+    Thread.sleep(3000)
+  }
+
+  @Test
+  def testSubmitDependencyByMsg(): Unit ={
+
+    val start = System.currentTimeMillis()
+    val master = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster/ClusterExecutor"
+    val file = "/home/tiantian/Dev/lib/hdm/hdm-core/HDM-core-0.0.1.jar"
+    SmsSystem.startAsClient(master, 20001)
+    Thread.sleep(100)
+    DependencyManager.submitDepByPath(master, "hdm-examples", "0.0.3", file, "dwu")
+    Thread.sleep(3000)
   }
 
   @Test

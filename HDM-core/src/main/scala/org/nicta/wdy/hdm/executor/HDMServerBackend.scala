@@ -33,7 +33,7 @@ class HDMServerBackend(
   }
 
   def jobReceived(jobId:String, version:String, hdm:AbstractHDM[_], parallelism:Int):Future[_] ={
-    val exeId = dependencyManager.addApp(jobId, version, hdm)
+    val exeId = dependencyManager.addInstance(jobId, version, hdm)
     val plans = HDMContext.explain(hdm, parallelism)
     dependencyManager.addPlan(exeId, plans)
     scheduler.submitJob(jobId, version, exeId, plans.physicalPlan)

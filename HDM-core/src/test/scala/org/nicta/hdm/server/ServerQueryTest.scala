@@ -22,6 +22,13 @@ class ServerQueryTest {
   }
 
   @Test
+  def testAppVersionsQuery (): Unit ={
+    val msg = new AllAppVersionsQuery()
+    val resp = SmsSystem.askSync(masterPath, msg)
+    println(resp)
+  }
+
+  @Test
   def testAppInstanceQuery (): Unit ={
     val app = HDMContext.appName
     val version = HDMContext.version

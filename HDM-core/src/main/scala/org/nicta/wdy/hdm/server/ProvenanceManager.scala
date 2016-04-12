@@ -71,7 +71,9 @@ class ProvenanceManagerImpl extends ProvenanceManager {
   override def aggregateAppTrace(trace: ApplicationTrace): Unit = {
     if(containsApp(trace.name, trace.version)){
       val oldTrace = getAppTrace(trace.name, trace.version)
-      val aggregatedDep = (oldTrace.dependencies ++ trace.dependencies).toSet
+      val aggregatedDep = if(oldTrace.dependencies!= null) {
+        (oldTrace.dependencies ++ trace.dependencies).toSet
+      } else trace.dependencies
       addAppTrace(trace.copy(dependencies = aggregatedDep.toSeq))
     } else addAppTrace(trace)
   }
@@ -86,13 +88,13 @@ class ProvenanceManagerImpl extends ProvenanceManager {
 
 
   override def containsApp(appName: String, version: String): Boolean = {
-    if(appTraceMap.contains(appName)){
-      appTraceMap.contains(version)
+    if(appTraceMap.containsKey(appName)){
+      appTraceMap.get(appName).containsKey(version)
     } else false
   }
 
   override def getAppTrace(appName: String, version: String): ApplicationTrace = {
-    if(appTraceMap.contains(appName)){
+    if(appTraceMap.containsKey(appName)){
       appTraceMap.get(appName).getOrElse(version, null)
     } else null
   }
@@ -116,7 +118,7 @@ class ProvenanceManagerImpl extends ProvenanceManager {
 
 
   override def getAllAppIDs(): Seq[String] = {
-    appInstancesMap.keySet().toSeq
+    appTraceMap.keySet().toIndexedSeq
   }
 
   override def getInstanceTraces(instanceId: String) = {

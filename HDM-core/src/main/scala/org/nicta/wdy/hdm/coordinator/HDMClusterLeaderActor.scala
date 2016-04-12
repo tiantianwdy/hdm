@@ -10,6 +10,7 @@ import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.message._
 import org.nicta.wdy.hdm.model.{HDMPoJo, AbstractHDM, HDM}
 
+import scala.collection.mutable
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
@@ -96,14 +97,38 @@ class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int) exte
 
     case AllSlavesQuery(parent) =>
       val cur = System.currentTimeMillis()
-      val master = SmsSystem.rootPath
-      val nodes = hdmBackend.resourceManager.getAllResources().map{ tup =>
-        val id = Path(tup._1).address
-        NodeInfo(id, "Worker", master, tup._1, cur, tup._2.get(), "Running")
+      val masterPath = SmsSystem.physicalRootPath
+      val masterAddress = Path(masterPath).address
+      val nodes = hdmBackend.resourceManager.getAllResources()
+        .map { tup =>
+        val id = tup._1
+        val address = Path(tup._1).address
+        NodeInfo(id, "Worker", masterPath, address, cur, tup._2.get(), "Running")
       }
-      val masterNode = NodeInfo(Path(master).address, "Master", null, SmsSystem.rootPath, cur, 0, "Running")
+      val masterNode = NodeInfo(masterPath, "Master", null, masterAddress, cur, 0, "Running")
       val resp = if(nodes ne null) nodes.toSeq else Seq.empty[NodeInfo]
       sender() ! AllSLavesResp(resp :+ masterNode)
+
+    case AllAppVersionsQuery() =>
+      val apps = hdmBackend.dependencyManager.historyManager.getAllAppIDs()
+      val res = mutable.HashMap.empty[String, Seq[String]]
+      apps.foreach{ id =>
+        val versions = hdmBackend.dependencyManager.historyManager.getAppTraces(id).map(_._1)
+        res += id -> versions
+//        val (app, version) = hdmBackend.dependencyManager.unwrapAppId(id)
+//        res.getOrElseUpdate(app, mutable.Buffer.empty[String]) += version
+      }
+      sender() ! AllAppVersionsResp(res.toSeq)
+
+    case DependencyTraceQuery(app, version) =>
+      val traces = hdmBackend.dependencyManager.historyManager.getAppTraces(app)
+      val res = if(version == null || version.isEmpty) {
+        traces
+      } else { // find the versions equal or larger then version
+        val versionCode = version.replaceAll(".", "").toInt
+        traces.filter(tup => tup._1.replaceAll(".", "").toInt >= versionCode)
+      }
+      sender() ! DependencyTraceResp(app, version, res)
   }
   /**
    * handle dependency related msg
