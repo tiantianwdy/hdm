@@ -1,14 +1,73 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>Dashboard Template for Bootstrap</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/res/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="/res/css/dashboard.css" rel="stylesheet">
+    <link href="/res/css/d3-force.css" rel="stylesheet">
+    <link href="/res/css/d3-tree.css" rel="stylesheet">
+    <link href="/res/css/nav-tree.css" rel="stylesheet">
+    <link href="/res/css/dag.css" rel="stylesheet">
+    <link href="/res/css/d3lanes.css" rel="stylesheet">
+    <link href="/res/css/collapsible.css" rel="stylesheet">
+    <link href="/res/css/collapsibleList.css" rel="stylesheet">
+
+    <!-- side bar css-->
+    <!--<link href="/res/css/sb-admin-2.css" rel="stylesheet">-->
+    <!--<link href="/res/css/metisMenu.css" rel="stylesheet">-->
+    <!--<link href="/res/css/morris.css" rel="stylesheet">-->
+
+    <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+    <!--[if lt IE 9]>
+    <script src="/res/js/libs/ie8-responsive-file-warning.js"></script><![endif]-->
+    <script src="/res/js/libs/ie-emulation-modes-warning.js"></script>
+
+    <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+    <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+    <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+
+    <![endif]-->
+    <!-- libs -->
+    <script src="/res/js/libs/common-utils.js"></script>
+    <script src="/res/js/libs/jquery-1.11.3.min.js"></script>
+    <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>-->
+    <script src="http://d3js.org/d3.v3.js"></script>
+    <!--js for this html-->
+    <script src="/res/js/libs/d3-force.js"></script>
+    <script src="/res/js/libs/dagre-d3.js"></script>
+    <script src="/res/js/libs/CollapsibleLists.js"></script>
+
+    <script src="/res/js/libs/quick-table.js"></script>
+    <script src="/res/js/libs/d3-tree.js"></script>
+    <script src="/res/js/utils.js"></script>
+    <script src="/res/js/d3dag.js"></script>
+    <script src="/res/js/d3swimlanes.js"></script>
+    <!-- testing data-->
+    <script src="/res/js/mockdata/mock-data.js"></script>
+    <script src="/res/js/mockdata/dag-mockdata.js"></script>
+    <script src="/res/js/mockdata/mock-hdm-data.js"></script>
+    <script src="/res/js/mockdata/mock-lanes-data.js"></script>
 
 
-    <link rel="import" href="header.html">
-    <!--    <script type="text/javascript">
-        $(function(){
-          $("#header").load("header.html");
-        });
-       </script>-->
+    <!--<link rel="import" href="header.html">-->
+        <!--<script type="text/javascript">-->
+        <!--$(function(){-->
+          <!--$("#header").load("header.html");-->
+        <!--});-->
+       <!--</script>-->
 </head>
 
 <body>
@@ -163,32 +222,6 @@
 </div>
 
 
-<script type="text/javascript">
-
-    var heading = new Array();
-    heading[0] = "ID"
-    heading[1] = "PipeName"
-    heading[2] = "Version"
-    heading[3] = "parents"
-    heading[4] = "Duration"
-    heading[5] = "Status"
-
-
-
-
-
-//    addTable("task-table", heading, mockExecDAG)
-//    createDAG("dagDiv", graphData)
-//    createInteractiveTree("pipelineTreeDiv", mockPipelineTree, graphDataInfo.nodes, 540, 560, 120)
-//    quickTree("pipelineTrees", pipeListTree)
-
-//    d3dag.displayGraph(hdmMockLogicalPlanOpt, jQuery('#dag-span-optimized'), '#dag-optimized > svg');
-//    d3dag.displayGraph(hdmMockPhysicalPlan, jQuery('#dag-span-physical'), '#dag-physical > svg');
-//    d3swimlane.displayLanes(mockLaneData, '#workerLanes', 1459844091830, 1459844596830);
-
-
-
-</script>
 <!-- web logic of this page -->
 <script src="/res/js/execution-manager.js"></script>
 

@@ -39,7 +39,7 @@ function quickTree(elemId, tree_data, func) {
     if(tree_data){
         var treeRoot = document.createElement('ul');
 //        treeRoot.className += "nav";
-//        treeRoot.className += "nav-list";
+        treeRoot.className += "collapsibleList";
 //        treeRoot.setAttribute('data-toggle', 'collapse');
         tree.appendChild(treeRoot);
         createTree(treeRoot, tree_data, 0)
@@ -54,7 +54,10 @@ function quickTree(elemId, tree_data, func) {
 //            style.className += "tree-toggle";
 //            style.className += "nav-header";
             treeNode.appendChild(style)
-            style.appendChild(document.createTextNode(data.name))
+
+            style.appendChild(document.createTextNode(data.name));
+
+
             $(treeNode).on("click", function(){
 //              alert("clicked");
               nodeOnClick(data.name, depth);
@@ -63,9 +66,21 @@ function quickTree(elemId, tree_data, func) {
 //                treeNode.className += "open";
                 for(var i=0; i<data.children.length; i++){
                     var listedChild = document.createElement('ul')
+                    listedChild.className += "collapsibleList";
                     treeNode.appendChild(listedChild)
 //                    listedChild.setAttribute('data-toggle', 'collapse')
-//                    listedChild.className += "nav";
+                    var navClass =  function(){
+                        if(depth == 0) {
+                          return "";
+                        }
+                        if(depth == 1) {
+                          return "nav nav-second-level";
+                        }
+                        else if(depth == 2) {
+                          return "";
+                        }
+                    };
+//                    listedChild.className += navClass()
 //                    listedChild.className += "nav-list";
 //                    listedChild.className += "tree";
                     child = data.children[i]

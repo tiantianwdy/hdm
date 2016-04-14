@@ -1,0 +1,24 @@
+.collapsibleList li{
+  list-style-image: url('/res/img/settings-mini.png');
+  height:35px;
+ /*  background: url('/res/img/settings-mini.png') 0px -1px no-repeat;
+  display: block;
+  padding-left: 30px;*/
+  cursor:pointer;
+}
+
+li.collapsibleListOpen{
+  list-style-image:url('/res/img/one-task-mini.png');
+  height:35px;
+ /* background: url('/res/img/one-task-mini.png') 0px -1px no-repeat;
+  cursor:auto;
+  display: block;
+  padding-left: 30px;*/
+  cursor:pointer;
+}
+
+li.collapsibleListClosed{
+  list-style-image:url('/res/img/tasks-black-mini.png');
+  height:35px;
+  cursor:pointer;
+}

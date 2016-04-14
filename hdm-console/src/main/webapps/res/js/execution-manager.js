@@ -3,7 +3,10 @@
     curExeId = null;
     ajaxSend("/service/listApplications/", "post", data, "admin", null, function(d){
         quickTree("applicationTrees", d, treeNodeClicked);
+        CollapsibleLists.apply("applicationTrees");
     });
+
+
 
     $('.nav-tabs a').click(function(){
         $(this).tab('show');

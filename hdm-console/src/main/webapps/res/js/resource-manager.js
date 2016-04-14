@@ -1,11 +1,14 @@
 require([ "jquery",
+    "../res/js/mockdata/mock-cluster.js",
+    "../res/js/utils",
+    "../res/js/libs/quick-table",
     "../res/js/libs/ajax",
     "../res/js/libs/autocomplete",
     "../res/js/libs/common",
+    "../res/js/libs/common-utils",
     "../res/js/libs/htable",
     "../res/js/libs/hdialog",
     "../res/js/libs/tojson",
-    "../res/js/mockdata/mock-cluster.js",
     "../res/js/libs/highstock/highstock",
     "../res/js/libs/highstock/mockdata",
     "../res/js/libs/highstock/exporting",
@@ -46,6 +49,7 @@ require([ "jquery",
         //initialize slave list
         ajaxSend("/service/nodeList/", "post", "", "admin", null, function(d){
             quickTree("slaveLists", d, nodeClicked);
+            CollapsibleLists.apply("slaveLists");
         });
 
         utils.collapseNative('slave-cluster-collapse','Show Cluster of Nodes', 'Collapse', function(){

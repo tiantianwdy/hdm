@@ -1,7 +1,8 @@
 
     var data = ""
     ajaxSend("/service/versionList/", "post", data, "admin", null, function(d){
-        quickTree("app-versions-tree", d, clickedTree)
+        quickTree("app-versions-tree", d, clickedTree);
+        CollapsibleLists.apply("app-versions-tree");
     });
 
     function clickedTree(nodeName, depth){
