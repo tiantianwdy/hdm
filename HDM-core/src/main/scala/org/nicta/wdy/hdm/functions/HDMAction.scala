@@ -2,11 +2,9 @@ package org.nicta.wdy.hdm.functions
 
 import org.nicta.wdy.hdm.Arr
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.io.{BufferedBlockIterator, Path}
-import org.nicta.wdy.hdm.model.{HDM, ParHDM$}
-import org.nicta.wdy.hdm.storage.HDMBlockManager
+import org.nicta.wdy.hdm.io.BufferedBlockIterator
+import org.nicta.wdy.hdm.model.HDM
 
-import scala.collection.mutable
 import scala.concurrent.Future
 import scala.reflect.ClassTag
 import scala.util.Random

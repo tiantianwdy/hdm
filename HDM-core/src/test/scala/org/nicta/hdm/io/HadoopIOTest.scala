@@ -4,19 +4,13 @@ package org.nicta.hdm.io
  * Created by Tiantian on 2014/12/22.
  */
 
-import java.io.{InputStreamReader, BufferedReader}
+import java.io.{BufferedReader, InputStreamReader}
 import java.net.URI
-import java.nio.{ByteBuffer,DirectByteBuffer}
+import java.nio.ByteBuffer
 
 import org.apache.hadoop.conf._
-import org.apache.hadoop.fs.{FileSystem}
-import org.apache.hadoop.io.DataInputBuffer
-import org.apache.hadoop.mapred.LineRecordReader
+import org.apache.hadoop.fs.FileSystem
 import org.junit.Test
-import org.nicta.wdy.hdm.executor.HDMContext
-
-import org.nicta.wdy.hdm.io.{DataParser, Path}
-import org.nicta.wdy.hdm.model.ParHDM$
 
 class HadoopIOTest {
   type HPath = org.apache.hadoop.fs.Path

@@ -8,7 +8,7 @@ import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor.{HDMServerBackend, HDMContext}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.message._
-import org.nicta.wdy.hdm.model.{HDMPoJo, HDM, ParHDM$}
+import org.nicta.wdy.hdm.model.{HDMPoJo, HDM}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext

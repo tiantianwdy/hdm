@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.server.provenance
 
-import org.nicta.wdy.hdm.model.{HDMPoJo, HDM, ParHDM$}
+import org.nicta.wdy.hdm.model.HDM
 
 /**
  * Created by tiantian on 3/03/16.

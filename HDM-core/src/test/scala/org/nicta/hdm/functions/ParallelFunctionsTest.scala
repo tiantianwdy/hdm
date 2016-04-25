@@ -1,12 +1,8 @@
 package org.nicta.hdm.functions
 
 import org.junit.Test
-import org.nicta.wdy.hdm.model.ParHDM$
-import org.nicta.wdy.hdm.{Arr, Buf}
+import org.nicta.wdy.hdm.Buf
 import org.nicta.wdy.hdm.functions._
-
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
 
 /**
  * Created by Tiantian on 2014/12/16.

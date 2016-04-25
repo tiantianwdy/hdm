@@ -1,18 +1,15 @@
 package org.nicta.wdy.hdm.io
 
-import java.util.concurrent.{Semaphore, LinkedBlockingDeque}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
-import java.util.concurrent.locks.ReentrantLock
+import java.util.concurrent.{LinkedBlockingDeque, Semaphore}
 
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.message.FetchSuccessResponse
-import org.nicta.wdy.hdm.model.{HDM, ParHDM$}
-import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager, BlockRef}
+import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
 import org.nicta.wdy.hdm.utils.Logging
 
 import scala.collection.JavaConversions._
-import scala.concurrent.Lock
 import scala.reflect.ClassTag
 
 /**

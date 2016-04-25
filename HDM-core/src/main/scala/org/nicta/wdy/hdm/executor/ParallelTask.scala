@@ -4,7 +4,7 @@ import java.util.concurrent.Callable
 
 import org.nicta.wdy.hdm._
 import org.nicta.wdy.hdm.functions.SerializableFunction
-import org.nicta.wdy.hdm.model.{HDM, DDM, ParHDM$, DataDependency}
+import org.nicta.wdy.hdm.model.{HDM, DDM, DataDependency}
 import org.nicta.wdy.hdm.utils.Logging
 
 import scala.reflect.ClassTag

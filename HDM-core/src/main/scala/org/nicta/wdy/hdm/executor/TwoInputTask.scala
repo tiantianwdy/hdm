@@ -4,10 +4,10 @@ import java.util.concurrent.{BlockingQueue, TimeUnit, LinkedBlockingDeque}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import org.nicta.wdy.hdm._
-import org.nicta.wdy.hdm.functions.{Aggregatable, Aggregator, DualInputFunction, ParallelFunction}
+import org.nicta.wdy.hdm.functions.{Aggregatable, Aggregator, DualInputFunction}
 import org.nicta.wdy.hdm.io.{Path, BufferedBlockIterator}
 import org.nicta.wdy.hdm.message.FetchSuccessResponse
-import org.nicta.wdy.hdm.model.{HDM, DDM, DataDependency, ParHDM$}
+import org.nicta.wdy.hdm.model.{HDM, DDM, DataDependency}
 import org.nicta.wdy.hdm.server.DependencyManager
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, Block}
 import org.nicta.wdy.hdm.utils.Utils
