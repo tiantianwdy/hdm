@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.message
 
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.ParHDM
 import org.nicta.wdy.hdm.storage.{BlockState, Block}
 
 import scala.language.existentials
@@ -10,9 +10,9 @@ import scala.language.existentials
  */
 trait HDMBlockMsg extends Serializable
 
-case class AddRefMsg(refs: Seq[HDM[_,_]], broadcast:Boolean = true) extends HDMBlockMsg
+case class AddRefMsg(refs: Seq[ParHDM[_,_]], broadcast:Boolean = true) extends HDMBlockMsg
 
-case class SyncRefMsg(refs: Seq[HDM[_,_]]) extends HDMBlockMsg
+case class SyncRefMsg(refs: Seq[ParHDM[_,_]]) extends HDMBlockMsg
 
 case class RemoveRefMsg(id: String) extends HDMBlockMsg
 

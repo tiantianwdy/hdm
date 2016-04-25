@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.message
 
-import org.nicta.wdy.hdm.model.{HDMPoJo, AbstractHDM}
+import org.nicta.wdy.hdm.model.{HDMPoJo, HDM}
 import org.nicta.wdy.hdm.server.provenance.{ApplicationTrace, ExecutionTrace}
 
 /**

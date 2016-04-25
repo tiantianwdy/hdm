@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.functions
 import org.nicta.wdy.hdm.Arr
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.{BufferedBlockIterator, Path}
-import org.nicta.wdy.hdm.model.{AbstractHDM, HDM}
+import org.nicta.wdy.hdm.model.{HDM, ParHDM$}
 import org.nicta.wdy.hdm.storage.HDMBlockManager
 
 import scala.collection.mutable
@@ -17,13 +17,13 @@ import scala.util.Random
 object HDMAction {
 
 
-  def compute(hdm:AbstractHDM[_], parallelism:Int): Future[AbstractHDM[_]] = {
+  def compute(hdm:HDM[_], parallelism:Int): Future[HDM[_]] = {
     HDMContext.compute(hdm, parallelism)
   }
 
 
 
-  def sample[A:ClassTag](hdm: AbstractHDM[A], proportion:Either[Double, Int]): Iterator[A] = {
+  def sample[A:ClassTag](hdm: HDM[A], proportion:Either[Double, Int]): Iterator[A] = {
     proportion match {
       case Left(percentage) =>
         val sampleFunc: Arr[A] => Arr[A] = (in:Arr[A]) => {
@@ -38,6 +38,6 @@ object HDMAction {
   }
 
 
-  def traverse[A:ClassTag](hdm: AbstractHDM[_]*): Iterator[A] = new BufferedBlockIterator[A](hdm)
+  def traverse[A:ClassTag](hdm: HDM[_]*): Iterator[A] = new BufferedBlockIterator[A](hdm)
 
 }

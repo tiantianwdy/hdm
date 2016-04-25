@@ -6,7 +6,7 @@ import java.util.UUID
 import scala.collection.JavaConversions._
 import scala.language.existentials
 
-import org.nicta.wdy.hdm.model.{DFM, DDM, HDM}
+import org.nicta.wdy.hdm.model.{DFM, DDM, ParHDM}
 /**
  * Created by Tiantian on 2014/12/8.
  */
@@ -60,7 +60,7 @@ class DefaultBlockManagerImpl extends BlockManager{
   override def getBlock(id: String): Block[_] = blockCache.get(id)
 
 
-  override def declare(br: HDM[_, _]): BlockRef = {
+  override def declare(br: ParHDM[_, _]): BlockRef = {
     val (tp, blocks) = br match {
       case d:DDM[_,_] => ("DDM", Some(d))
       case d:DFM[_,_] => ("DFM", None)

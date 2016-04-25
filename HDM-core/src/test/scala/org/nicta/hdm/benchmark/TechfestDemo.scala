@@ -6,7 +6,7 @@ import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.executor.HDMContext._
 import com.baidu.bpit.akka.messages.{AddMsg, Query}
 import org.nicta.wdy.hdm.io.Path
-import org.nicta.wdy.hdm.model.{AbstractHDM, HDM}
+import org.nicta.wdy.hdm.model.{HDM}
 import scala.concurrent._
 import ExecutionContext.Implicits.global
 import scala.util.{Success, Failure}
@@ -102,7 +102,7 @@ class TechfestDemo {
     Thread.sleep(50000000)
   }
 
-  def onEvent(hdm:AbstractHDM[_], action:String)(implicit parallelism:Int) = action match {
+  def onEvent(hdm:HDM[_], action:String)(implicit parallelism:Int) = action match {
     case "compute" =>
       val start = System.currentTimeMillis()
       hdm.compute(parallelism).map { hdm =>

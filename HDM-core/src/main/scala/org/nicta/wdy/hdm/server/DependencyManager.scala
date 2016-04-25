@@ -7,7 +7,7 @@ import java.util.concurrent.{ConcurrentHashMap, Executors}
 import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor.{HDMContext, DynamicDependencyThreadFactory}
 import org.nicta.wdy.hdm.message.{AddDependency, AddApplication}
-import org.nicta.wdy.hdm.model.AbstractHDM
+import org.nicta.wdy.hdm.model.HDM
 import org.nicta.wdy.hdm.planing.HDMPlans
 import org.nicta.wdy.hdm.server.provenance.{ExecutionInstance, ApplicationTrace}
 import org.nicta.wdy.hdm.utils.{DynamicURLClassLoader, Logging}
@@ -59,7 +59,7 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
     s"Ins-${timeStamp.toHexString}"
   }
 
-  def addInstance(appName:String, version:String, hdm:AbstractHDM[_]): String = {
+  def addInstance(appName:String, version:String, hdm:HDM[_]): String = {
     val exeId = nextInstanceId()
     val aId = this.appId(appName, version)
     appInsMapping.getOrElseUpdate(aId, mutable.Buffer.empty[String]) += exeId

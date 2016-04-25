@@ -8,7 +8,7 @@ import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.{HDMIOManager, Path}
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 import org.nicta.wdy.hdm.message._
-import org.nicta.wdy.hdm.model.{HDM, DDM}
+import org.nicta.wdy.hdm.model.{ParHDM, DDM}
 
 import scala.collection.JavaConversions._
 

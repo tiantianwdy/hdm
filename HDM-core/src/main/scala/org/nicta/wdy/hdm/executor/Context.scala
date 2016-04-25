@@ -10,7 +10,7 @@ import org.nicta.wdy.hdm.functions.SerializableFunction
 import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.io.{CompressionCodec, SnappyCompressionCodec}
 import org.nicta.wdy.hdm.message._
-import org.nicta.wdy.hdm.model.{AbstractHDM, GroupedSeqHDM, HDM, PairHDM}
+import org.nicta.wdy.hdm.model.{HDM, GroupedSeqHDM, ParHDM, KvHDM}
 import org.nicta.wdy.hdm.planing.StaticPlaner
 import org.nicta.wdy.hdm.scheduling.{AdvancedScheduler, SchedulingPolicy}
 import org.nicta.wdy.hdm.serializer.{SerializableByteBuffer, JavaSerializer, SerializerInstance}
@@ -27,13 +27,13 @@ import scala.util.Try
  */
 trait Context {
 
-  def findHDM(id:String): HDM[_, _] = ???
+  def findHDM(id:String): ParHDM[_, _] = ???
 
-  def sendFunc[T,R](target:HDM[_,T], func:SerializableFunction[T,R]): Future[HDM[T,R]] = ???
+  def sendFunc[T,R](target:ParHDM[_,T], func:SerializableFunction[T,R]): Future[ParHDM[T,R]] = ???
 
-  def receiveFunc[T,R](target:HDM[_, T], func:SerializableFunction[T,R]): Future[HDM[T,R]] = ???
+  def receiveFunc[T,R](target:ParHDM[_, T], func:SerializableFunction[T,R]): Future[ParHDM[T,R]] = ???
 
-  def runTask[T,R](target:HDM[_, T], func:SerializableFunction[T,R]): Future[HDM[T,R]] = ???
+  def runTask[T,R](target:ParHDM[_, T], func:SerializableFunction[T,R]): Future[ParHDM[T,R]] = ???
 }
 
 object HDMContext extends  Context with Logging{
@@ -192,18 +192,18 @@ object HDMContext extends  Context with Logging{
     else null
   }
 
-  def explain(hdm:AbstractHDM[_],parallelism:Int) = {
+  def explain(hdm:HDM[_],parallelism:Int) = {
 //    val hdmOpt = new FunctionFusion().optimize(hdm)
 //    planer.plan(hdmOpt, parallelism)
     planer.plan(hdm, parallelism)
   }
 
-  def compute(hdm:AbstractHDM[_], parallelism:Int):Future[AbstractHDM[_]] = {
+  def compute(hdm:HDM[_], parallelism:Int):Future[HDM[_]] = {
 //    addJob(hdm.id, explain(hdm, parallelism))
     submitJob(appName, version, hdm, parallelism)
   }
 
-  def declareHdm(hdms:Seq[HDM[_,_]], declare:Boolean = true) = {
+  def declareHdm(hdms:Seq[ParHDM[_,_]], declare:Boolean = true) = {
     SmsSystem.forwardLocalMsg(BLOCK_MANAGER_NAME, AddRefMsg(hdms, declare))
   }
 
@@ -228,11 +228,11 @@ object HDMContext extends  Context with Logging{
   }
 
   @Deprecated
-  def submitTasks(appId:String, hdms:Seq[HDM[_,_]]): Future[HDM[_,_]] = {
+  def submitTasks(appId:String, hdms:Seq[ParHDM[_,_]]): Future[ParHDM[_,_]] = {
     val rootPath =  SmsSystem.rootPath
     HDMContext.declareHdm(hdms)
     val promise = SmsSystem.askLocalMsg(JOB_RESULT_DISPATCHER, AddHDMsMsg(appId, hdms, rootPath + "/"+JOB_RESULT_DISPATCHER)) match {
-      case Some(promise) => promise.asInstanceOf[Promise[HDM[_,_]]]
+      case Some(promise) => promise.asInstanceOf[Promise[ParHDM[_,_]]]
       case none => null
     }
     SmsSystem.askAsync(leaderPath.get()+ "/"+CLUSTER_EXECUTOR_NAME, AddHDMsMsg(appId, hdms, rootPath + "/"+JOB_RESULT_DISPATCHER))
@@ -241,11 +241,11 @@ object HDMContext extends  Context with Logging{
     else throw new Exception("add job dispatcher failed.")
   }
 
-  def submitJob(appName:String, version:String, hdm:AbstractHDM[_], parallel:Int): Future[AbstractHDM[_]] = {
+  def submitJob(appName:String, version:String, hdm:HDM[_], parallel:Int): Future[HDM[_]] = {
     val rootPath =  SmsSystem.rootPath
 //    HDMContext.declareHdm(Seq(hdm))
     val promise = SmsSystem.askLocalMsg(JOB_RESULT_DISPATCHER, RegisterPromiseMsg(appName, version, rootPath + "/"+JOB_RESULT_DISPATCHER)) match {
-      case Some(promise) => promise.asInstanceOf[Promise[AbstractHDM[_]]]
+      case Some(promise) => promise.asInstanceOf[Promise[HDM[_]]]
       case none => null
     }
     //    val jobMsg = SubmitJobMsg(appId, hdm, rootPath + "/"+JOB_RESULT_DISPATCHER, parallel)
@@ -276,11 +276,11 @@ object HDMContext extends  Context with Logging{
    * @tparam V
    * @return
    */
- implicit def hdmToKVHDM[T:ClassTag, K:ClassTag, V: ClassTag](hdm:HDM[T, (K,V)] ): PairHDM[T,K,V] = {
-    new PairHDM(hdm)
+ implicit def hdmToKVHDM[T:ClassTag, K:ClassTag, V: ClassTag](hdm:ParHDM[T, (K,V)] ): KvHDM[T,K,V] = {
+    new KvHDM(hdm)
   }
 
-  implicit def hdmToGroupedSeqHDM[K:ClassTag, V: ClassTag](hdm:HDM[_, (K, Iterable[V])] ): GroupedSeqHDM[K,V] = {
+  implicit def hdmToGroupedSeqHDM[K:ClassTag, V: ClassTag](hdm:ParHDM[_, (K, Iterable[V])] ): GroupedSeqHDM[K,V] = {
     new GroupedSeqHDM[K,V](hdm)
   }
 

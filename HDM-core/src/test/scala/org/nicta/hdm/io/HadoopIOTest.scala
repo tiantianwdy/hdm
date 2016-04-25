@@ -16,7 +16,7 @@ import org.junit.Test
 import org.nicta.wdy.hdm.executor.HDMContext
 
 import org.nicta.wdy.hdm.io.{DataParser, Path}
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.ParHDM$
 
 class HadoopIOTest {
   type HPath = org.apache.hadoop.fs.Path

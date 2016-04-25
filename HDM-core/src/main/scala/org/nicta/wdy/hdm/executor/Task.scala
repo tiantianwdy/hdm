@@ -24,7 +24,7 @@ import scala.reflect.{ClassTag, classTag}
 case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
                                           exeId: String,
                                           taskId: String,
-                                          input: Seq[HDM[_, I]],
+                                          input: Seq[ParHDM[_, I]],
                                           func: ParallelFunction[I, R],
                                           dep: DataDependency,
                                           keepPartition: Boolean = true,

@@ -23,7 +23,7 @@ class HDMPoJo(val id: String,
               val outType: String
                ) extends Serializable {
 
-  def this(hdm:AbstractHDM[_]){
+  def this(hdm:HDM[_]){
     this(hdm.id,
       hdm.func.getClass.getSimpleName,
       hdm.getClass.getSimpleName,
@@ -51,6 +51,6 @@ class HDMPoJo(val id: String,
 
 object HDMPoJo {
 
-  def apply(hdm:AbstractHDM[_]) = new HDMPoJo(hdm)
+  def apply(hdm:HDM[_]) = new HDMPoJo(hdm)
 
 }

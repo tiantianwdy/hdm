@@ -12,8 +12,8 @@ import scala.util.Try
  * Created by tiantian on 28/03/16.
  */
 class DualDFM[T: ClassTag, U: ClassTag, R: ClassTag](val id: String = HDMContext.newClusterId(),
-                                                     val input1:Seq[_ <: AbstractHDM[T]],
-                                                     val input2:Seq[_ <: AbstractHDM[U]],
+                                                     val input1:Seq[_ <: HDM[T]],
+                                                     val input2:Seq[_ <: HDM[U]],
                                                      val dependency: DataDependency = NToOne,
                                                      val func: DualInputFunction[T, U, R] = null, //todo be changed to DualInputFunction
                                                      val blocks: Seq[String] = null,
@@ -25,16 +25,16 @@ class DualDFM[T: ClassTag, U: ClassTag, R: ClassTag](val id: String = HDMContext
                                                      val state: BlockState = Declared,
                                                      var parallelism: Int = -1, // undefined
                                                      val keepPartition:Boolean = true,
-                                                     val partitioner: Partitioner[R] = new KeepPartitioner[R](1)) extends AbstractHDM[R]{
+                                                     val partitioner: Partitioner[R] = new KeepPartitioner[R](1)) extends HDM[R]{
 
   val inType1 = classTag[T]
 
   val inType2 = classTag[U]
 
 
-  override val children: Seq[_ <: AbstractHDM[_]] = input1 ++ input2
+  override val children: Seq[_ <: HDM[_]] = input1 ++ input2
 
-  override def andThen[V: ClassTag](hdm: HDM[R, V]): AbstractHDM[V] = {
+  override def andThen[V: ClassTag](hdm: ParHDM[R, V]): HDM[V] = {
     val dep = if(this.dependency == NToOne && hdm.dependency == OneToN) NToN
     else if (this.dependency == NToOne && hdm.dependency == OneToOne) NToOne
     else if (this.dependency == OneToOne && hdm.dependency == OneToN) OneToN
@@ -48,8 +48,8 @@ class DualDFM[T: ClassTag, U: ClassTag, R: ClassTag](val id: String = HDMContext
   }
 
   def copy(id: String = this.id,
-           input1:Seq[_ <: AbstractHDM[T]] = this.input1,
-           input2:Seq[_ <: AbstractHDM[U]] = this.input2,
+           input1:Seq[_ <: HDM[T]] = this.input1,
+           input2:Seq[_ <: HDM[U]] = this.input2,
            dependency: DataDependency = this.dependency,
            func: DualInputFunction[T, U, R] = this.func,
            blocks: Seq[String] = this.blocks,

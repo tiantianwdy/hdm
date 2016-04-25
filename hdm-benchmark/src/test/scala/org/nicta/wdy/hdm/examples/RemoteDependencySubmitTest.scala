@@ -4,7 +4,7 @@ import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.junit.Test
 import org.nicta.wdy.hdm.message.{AddHDMsMsg, SerializedJobMsg}
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.ParHDM
 import org.nicta.wdy.hdm.serializer.SerializableByteBuffer
 import scala.concurrent.{Promise, ExecutionContext}
 import ExecutionContext.Implicits.global
@@ -40,7 +40,7 @@ class RemoteDependencySubmitTest {
     HDMContext.declareHdm(Seq(hdm))
     val promise = SmsSystem.askLocalMsg(HDMContext.JOB_RESULT_DISPATCHER,
       AddHDMsMsg(HDMContext.appName , Seq(hdm), rootPath + "/"+ HDMContext.JOB_RESULT_DISPATCHER)) match {
-      case Some(promise) => promise.asInstanceOf[Promise[HDM[_,_]]]
+      case Some(promise) => promise.asInstanceOf[Promise[ParHDM[_,_]]]
       case none => null
     }
 
@@ -72,7 +72,7 @@ class RemoteDependencySubmitTest {
     Thread.sleep(50000000)
   }
 
-  def onEvent(hdm:HDM[_,_], action:String)(implicit parallelism:Int) = action match {
+  def onEvent(hdm:ParHDM[_,_], action:String)(implicit parallelism:Int) = action match {
     case "compute" =>
       val start = System.currentTimeMillis()
       hdm.compute(parallelism).map { hdm =>

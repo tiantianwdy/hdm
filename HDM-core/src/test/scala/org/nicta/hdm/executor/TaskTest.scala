@@ -5,7 +5,7 @@ import org.junit.Test
 import org.nicta.wdy.hdm.executor.{ClusterExecutor, ClusterExecutorContext, Task, HDMContext}
 import org.nicta.wdy.hdm.functions.ParallelFunction
 import org.nicta.wdy.hdm.io.Path
-import org.nicta.wdy.hdm.model.{DFM, DDM, HDM}
+import org.nicta.wdy.hdm.model.{DFM, DDM, ParHDM, HDM}
 import org.nicta.wdy.hdm.storage.HDMBlockManager
 
 import scala.util.{Failure, Success}
@@ -34,7 +34,7 @@ class TaskTest extends ClusterTestSuite {
         val dfm = h.asInstanceOf[DFM[_,_]]
         val task = Task(appId = HDMContext.appName, version = HDMContext.version,
           taskId = h.id, exeId = "",
-          input = h.children.asInstanceOf[Seq[HDM[_, dfm.inType.type]]],
+          input = h.children.asInstanceOf[Seq[ParHDM[_, dfm.inType.type]]],
           dep = h.dependency,
           func = h.func.asInstanceOf[ParallelFunction[dfm.inType.type, dfm.outType.type]])
         ClusterExecutor.runTaskConcurrently(task)

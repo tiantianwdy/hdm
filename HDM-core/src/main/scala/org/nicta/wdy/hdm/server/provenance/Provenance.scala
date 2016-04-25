@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.server.provenance
 
-import org.nicta.wdy.hdm.model.{HDMPoJo, AbstractHDM, HDM}
+import org.nicta.wdy.hdm.model.{HDMPoJo, HDM, ParHDM$}
 
 /**
  * Created by tiantian on 3/03/16.
@@ -20,10 +20,10 @@ case class ApplicationTrace (name:String,
 case class ExecutionInstance(exeId: String,
                              appName: String,
                              version: String,
-                             source: AbstractHDM[_],
-                             logicalPlan:Seq[AbstractHDM[_]] = Seq.empty[AbstractHDM[_]],
-                             logicalPlanOpt: Seq[AbstractHDM[_]] = Seq.empty[AbstractHDM[_]],
-                             physicalPlan: Seq[AbstractHDM[_]] = Seq.empty[AbstractHDM[_]],
+                             source: HDM[_],
+                             logicalPlan:Seq[HDM[_]] = Seq.empty[HDM[_]],
+                             logicalPlanOpt: Seq[HDM[_]] = Seq.empty[HDM[_]],
+                             physicalPlan: Seq[HDM[_]] = Seq.empty[HDM[_]],
                              state: String = "REGISTERED") extends Provenance
 
 case class ExecutionTrace(taskId:String,

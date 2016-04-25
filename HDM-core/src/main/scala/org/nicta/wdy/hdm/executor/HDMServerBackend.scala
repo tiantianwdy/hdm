@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.executor
 
-import org.nicta.wdy.hdm.model.{AbstractHDM, HDM}
+import org.nicta.wdy.hdm.model.{HDM, ParHDM}
 import org.nicta.wdy.hdm.planing.HDMPlaner
 import org.nicta.wdy.hdm.scheduling.Scheduler
 import org.nicta.wdy.hdm.server.provenance.ApplicationTrace
@@ -32,7 +32,7 @@ class HDMServerBackend(
     }.start()
   }
 
-  def jobReceived(jobId:String, version:String, hdm:AbstractHDM[_], parallelism:Int):Future[_] ={
+  def jobReceived(jobId:String, version:String, hdm:HDM[_], parallelism:Int):Future[_] ={
     val exeId = dependencyManager.addInstance(jobId, version, hdm)
     val plans = HDMContext.explain(hdm, parallelism)
     dependencyManager.addPlan(exeId, plans)
@@ -41,7 +41,7 @@ class HDMServerBackend(
 
 
   def taskReceived[R](task:ParallelTask[R]):Future[_] = {
-    val promise = Promise[HDM[_, R]]()
+    val promise = Promise[ParHDM[_, R]]()
     eventManager.addPromise(task.taskId, promise)
     scheduler.addTask(task)
     promise.future
@@ -57,7 +57,7 @@ class HDMServerBackend(
 
 
 
-  def taskSucceeded(appId:String, taskId:String, func:String, results:Seq[HDM[_,_]]): Unit ={
+  def taskSucceeded(appId:String, taskId:String, func:String, results:Seq[ParHDM[_,_]]): Unit ={
     scheduler.taskSucceeded(appId, taskId, func, results)
   }
 

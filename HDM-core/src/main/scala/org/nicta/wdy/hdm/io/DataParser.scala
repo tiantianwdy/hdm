@@ -8,7 +8,7 @@ import org.apache.hadoop.fs.{Path, FileSystem}
 import org.nicta.wdy.hdm.{Buf, Arr}
 import org.nicta.wdy.hdm.functions.NullFunc
 import org.nicta.wdy.hdm.io.hdfs.HDFSUtils
-import org.nicta.wdy.hdm.model.{HDM, DDM}
+import org.nicta.wdy.hdm.model.{ParHDM, DDM}
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, Block}
 import akka.serialization.Serializer
 import java.io.IOException
@@ -208,7 +208,7 @@ object DataParser extends Logging{
     case _ => throw new IOException("Unsupported data protocol:" + path.protocol)
   }
   
-  def readBlock(in:HDM[_,_], removeFromCache:Boolean):Block[_] = {
+  def readBlock(in:ParHDM[_,_], removeFromCache:Boolean):Block[_] = {
     if (!HDMBlockManager().isCached(in.id)) {
       in.location.protocol match {
         case Path.AKKA =>
@@ -241,7 +241,7 @@ object DataParser extends Logging{
     }
   }
 
-  def readBlock[R:ClassTag](in:HDM[_,_],
+  def readBlock[R:ClassTag](in:ParHDM[_,_],
                             removeFromCache:Boolean,
                             func:Arr[Any] => Arr[R],
                             classLoader: ClassLoader):Buf[R] = {

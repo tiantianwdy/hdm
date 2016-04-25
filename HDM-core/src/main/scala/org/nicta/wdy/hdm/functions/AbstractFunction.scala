@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.functions
 
 import org.nicta.wdy.hdm.ParallelSkeletons.DnCSkeleton
-import org.nicta.wdy.hdm.model.{DDM, DFM, HDM}
+import org.nicta.wdy.hdm.model.{DDM, DFM, ParHDM}
 
 import scala.reflect.ClassTag
 
@@ -23,7 +23,7 @@ abstract class DDMFunction_1[I,R :ClassTag]extends SerializableFunction[Seq[DDM[
  * @tparam T input type
  * @tparam R return type
  */
-abstract class HDMFunction_2[T,R]extends SerializableFunction[Seq[HDM[_,T]], HDM[T, R]]
+abstract class HDMFunction_2[T,R]extends SerializableFunction[Seq[ParHDM[_,T]], ParHDM[T, R]]
 
 abstract class IterableFunction_2[T,R] extends SerializableFunction[Iterator[T], Iterator[R]]   {
 
@@ -37,12 +37,12 @@ abstract class IterableFunction_2[T,R] extends SerializableFunction[Iterator[T],
 class Union[T:ClassTag] extends HDMFunction_2[T,T]{
 
 
-  override def apply(params: Seq[HDM[_,T]]): HDM[T,T] = {
+  override def apply(params: Seq[ParHDM[_,T]]): ParHDM[T,T] = {
     new DFM[T,T](params)
   }
 }
 
-abstract class DnCFunc[T,M,R:ClassTag] extends DDMFunction_1[T,R] with DnCSkeleton[HDM[_,T],HDM[T,M],HDM[M,R]] {
+abstract class DnCFunc[T,M,R:ClassTag] extends DDMFunction_1[T,R] with DnCSkeleton[ParHDM[_,T],ParHDM[T,M],ParHDM[M,R]] {
 
 
 // {

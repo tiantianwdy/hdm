@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.benchmark
 
 import org.nicta.wdy.hdm.executor.HDMContext
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.ParHDM
 
 import scala.concurrent.ExecutionContext.Implicits.global
 
@@ -100,7 +100,7 @@ object HDMBenchmark {
     }
 
     res match {
-      case hdm:HDM[_,_] =>
+      case hdm:ParHDM[_,_] =>
         onEvent(hdm, "compute", start, endInit)(parallelism)
       case other:Any => //do nothing
     }
@@ -109,7 +109,7 @@ object HDMBenchmark {
   }
 
 
-  def onEvent(hdm:HDM[_,_], action:String, start:Long, endInit:Long)(implicit parallelism:Int) = action match {
+  def onEvent(hdm:ParHDM[_,_], action:String, start:Long, endInit:Long)(implicit parallelism:Int) = action match {
     case "compute" =>
       hdm.compute(parallelism).map { hdm =>
         val end = System.currentTimeMillis()

@@ -1,7 +1,7 @@
 package org.nicta.hdm.functions
 
 import org.junit.Test
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.ParHDM$
 import org.nicta.wdy.hdm.{Arr, Buf}
 import org.nicta.wdy.hdm.functions._
 

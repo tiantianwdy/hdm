@@ -8,7 +8,7 @@ import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.netty.{NettyBlockServer, NettyConnectionManager, NettyBlockFetcher}
 import org.nicta.wdy.hdm.io.{DataParser, Path}
 import org.nicta.wdy.hdm.message.{FetchSuccessResponse, QueryBlockMsg}
-import org.nicta.wdy.hdm.model.{AbstractHDM, DFM, HDM, DDM}
+import org.nicta.wdy.hdm.model.{HDM, DFM, ParHDM, DDM}
 import java.util.concurrent.{BlockingQueue, ConcurrentHashMap}
 
 import org.nicta.wdy.hdm.utils.{Utils, Logging}
@@ -21,11 +21,11 @@ import scala.reflect.ClassTag
  */
 trait HDMBlockManager {
 
-  def getRefs(ids:Seq[String]): Seq[AbstractHDM[_]]
+  def getRefs(ids:Seq[String]): Seq[HDM[_]]
 
-  def findRefs(idPattern: String => Boolean): Seq[AbstractHDM[_]]
+  def findRefs(idPattern: String => Boolean): Seq[HDM[_]]
 
-  def declare(br:HDM[_,_]): HDM[_,_]
+  def declare(br:ParHDM[_,_]): ParHDM[_,_]
 
   def cache(id:String, bl: Block[_])
 
@@ -33,11 +33,11 @@ trait HDMBlockManager {
 
   def getBlock(id:String):Block[_]
 
-  def getRef (id:String): AbstractHDM[_]
+  def getRef (id:String): HDM[_]
 
-  def addRef(br:AbstractHDM[_])
+  def addRef(br:HDM[_])
 
-  def addAllRef(brs: Seq[HDM[_,_]])
+  def addAllRef(brs: Seq[ParHDM[_,_]])
 
   def add(id:String, block:Block[_])
 
@@ -89,7 +89,7 @@ class DefaultHDMBlockManager extends HDMBlockManager with Logging{
 
   val blockCache = new ConcurrentHashMap[String, Block[_]]()
 
-  val blockRefMap = new ConcurrentHashMap[String, AbstractHDM[_]]()
+  val blockRefMap = new ConcurrentHashMap[String, HDM[_]]()
 
   val releasedBlockSize = new AtomicInteger(0)
 
@@ -140,15 +140,15 @@ class DefaultHDMBlockManager extends HDMBlockManager with Logging{
     log.trace(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
   }
 
-  override def addAllRef(brs: Seq[HDM[_, _]]): Unit = {
+  override def addAllRef(brs: Seq[ParHDM[_, _]]): Unit = {
     brs.foreach(addRef(_))
   }
 
-  override def addRef(br: AbstractHDM[_]): Unit = {
+  override def addRef(br: HDM[_]): Unit = {
     blockRefMap.put(br.id, br)
   }
 
-  override def getRef(id: String): AbstractHDM[_] = {
+  override def getRef(id: String): HDM[_] = {
     blockRefMap.get(id)
   }
 
@@ -160,16 +160,16 @@ class DefaultHDMBlockManager extends HDMBlockManager with Logging{
 
   override def cache(id: String, bl: Block[_]): Unit = add(id, bl)
 
-  override def declare(br: HDM[_, _]): HDM[_, _] = {
+  override def declare(br: ParHDM[_, _]): ParHDM[_, _] = {
     addRef(br)
     br
   }
 
-  override def findRefs(idPattern: (String) => Boolean): Seq[AbstractHDM[_]] = {
+  override def findRefs(idPattern: (String) => Boolean): Seq[HDM[_]] = {
     getRefs(blockRefMap.keySet().filter(idPattern).toSeq)
   }
 
-  override def getRefs(ids: Seq[String]): Seq[AbstractHDM[_]] = {
+  override def getRefs(ids: Seq[String]): Seq[HDM[_]] = {
     ids.map(blockRefMap.get(_))
   }
 
@@ -251,7 +251,7 @@ object HDMBlockManager extends Logging{
    * @param queue
    * @param completeWatcher
    */
-  def loadBlocksIntoQueue(hdms:Seq[_<: AbstractHDM[_]], queue: BlockingQueue[AnyRef], completeWatcher:AtomicBoolean): Unit ={
+  def loadBlocksIntoQueue(hdms:Seq[_<: HDM[_]], queue: BlockingQueue[AnyRef], completeWatcher:AtomicBoolean): Unit ={
     val blockCounter = new AtomicInteger(0)
 
     val blockHandler = (blk: Block[_]) => {

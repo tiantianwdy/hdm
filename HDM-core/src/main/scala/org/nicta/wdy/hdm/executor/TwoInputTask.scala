@@ -7,7 +7,7 @@ import org.nicta.wdy.hdm._
 import org.nicta.wdy.hdm.functions.{Aggregatable, Aggregator, DualInputFunction, ParallelFunction}
 import org.nicta.wdy.hdm.io.{Path, BufferedBlockIterator}
 import org.nicta.wdy.hdm.message.FetchSuccessResponse
-import org.nicta.wdy.hdm.model.{AbstractHDM, DDM, DataDependency, HDM}
+import org.nicta.wdy.hdm.model.{HDM, DDM, DataDependency, ParHDM$}
 import org.nicta.wdy.hdm.server.DependencyManager
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, Block}
 import org.nicta.wdy.hdm.utils.Utils
@@ -21,8 +21,8 @@ import scala.reflect._
 case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, version:String,
                                                                exeId:String,
                                                                taskId: String,
-                                                               input1: Seq[AbstractHDM[T]],
-                                                               input2: Seq[AbstractHDM[U]],
+                                                               input1: Seq[HDM[T]],
+                                                               input2: Seq[HDM[U]],
                                                                func: DualInputFunction[T, U, R],
                                                                dep: DataDependency,
                                                                keepPartition: Boolean = true,

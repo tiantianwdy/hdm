@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.storage
 
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.ParHDM
 
 import scala.reflect.ClassTag
 
@@ -14,7 +14,7 @@ trait BlockManager {
 
   def findBlockRefs(idPattern: String => Boolean): Seq[BlockRef]
 
-  def declare(br:HDM[_,_]): BlockRef
+  def declare(br:ParHDM[_,_]): BlockRef
 
   def cache(id:String, bl: Block[_])
 

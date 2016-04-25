@@ -3,7 +3,7 @@ package org.nicta.hdm.executor
 import org.nicta.wdy.hdm.Arr
 import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions.{ParMapAllFunc, CoGroupFunc, ParallelFunction}
-import org.nicta.wdy.hdm.model.{NToOne, HDM, DDM}
+import org.nicta.wdy.hdm.model.{NToOne, ParHDM, DDM}
 import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
 
 import scala.collection.mutable.ArrayBuffer
@@ -49,8 +49,8 @@ class DualInputTaskTest {
 
     val data1Prefix = "Blk1"
     val data2Prefix = "Blk2"
-    val input1 = ArrayBuffer.empty[HDM[_,Double]]
-    val input2 = ArrayBuffer.empty[HDM[_,Double]]
+    val input1 = ArrayBuffer.empty[ParHDM[_,Double]]
+    val input2 = ArrayBuffer.empty[ParHDM[_,Double]]
 //    HDMBlockManager.initBlockServer()
     for(i <- 0 until blkSize){
       val id = s"$data1Prefix-$i"

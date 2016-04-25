@@ -7,7 +7,7 @@ import org.nicta.wdy.hdm.model._
  * Created by tiantian on 7/01/15.
  */
 trait LogicalPlaner extends Serializable{
-  def plan(hdm:AbstractHDM[_], parallelism:Int):Seq[AbstractHDM[_]]
+  def plan(hdm:HDM[_], parallelism:Int):Seq[HDM[_]]
 }
 
 
@@ -18,12 +18,12 @@ class DefaultLocalPlaner(val cpuParallelFactor :Int = HDMContext.PLANER_PARALLEL
                          val networkParallelFactor :Int = HDMContext.PLANER_PARALLEL_NETWORK_FACTOR ) extends LogicalPlaner{
 
 
-  override def plan(hdm:AbstractHDM[_], parallelism:Int = 4):Seq[AbstractHDM[_]] = {
+  override def plan(hdm:HDM[_], parallelism:Int = 4):Seq[HDM[_]] = {
     dftAccess(hdm, parallelism, 1)
   }
 
 
-  private def dftAccess(hdm:AbstractHDM[_], defParallel:Int, followingParallel:Int):Seq[AbstractHDM[_]]=  {
+  private def dftAccess(hdm:HDM[_], defParallel:Int, followingParallel:Int):Seq[HDM[_]]=  {
     val newHead = {
       if(hdm.parallelism < 1) {
         val parallelism = if (hdm.dependency == NToOne || hdm.dependency == NToN)
@@ -34,7 +34,7 @@ class DefaultLocalPlaner(val cpuParallelFactor :Int = HDMContext.PLANER_PARALLEL
       else hdm
     }.withPartitionNum(followingParallel)
     hdm match {
-      case h:HDM[_,_] =>
+      case h:ParHDM[_,_] =>
         if(hdm.children == null || hdm.children.isEmpty){
           Seq{newHead}
         } else {

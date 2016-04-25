@@ -19,9 +19,9 @@ import scala.reflect.ClassTag
  */
 trait PhysicalPlanner extends Serializable{
 
-  def plan[I: ClassTag, R: ClassTag](input: Seq[HDM[_,I]], target: HDM[I, R], parallelism:Int):Seq[HDM[_, _]]
+  def plan[I: ClassTag, R: ClassTag](input: Seq[ParHDM[_,I]], target: ParHDM[I, R], parallelism:Int):Seq[ParHDM[_, _]]
 
-  def planMultiDFM(inputs:Seq[Seq[AbstractHDM[_]]], target: AbstractHDM[_], defParallel:Int): Seq[AbstractHDM[_]]
+  def planMultiDFM(inputs:Seq[Seq[HDM[_]]], target: HDM[_], defParallel:Int): Seq[HDM[_]]
 }
 
 
@@ -37,21 +37,21 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
 
   def resourceManager = HDMContext.getServerBackend().resourceManager
 
-  def getStaticBlockUrls(hdm: AbstractHDM[_]):Seq[String] = hdm match {
-    case dfm: HDM[_,_] =>
+  def getStaticBlockUrls(hdm: HDM[_]):Seq[String] = hdm match {
+    case dfm: ParHDM[_,_] =>
       val bn = hdm.parallelism
       for (i <- 0 until bn) yield hdm.id + "_b" + i
 //    case ddm:DDM[_,_] => ddm.blocks
     case x => Seq.empty[String]
   }
 
-  def getDynamicBlockUrls(hdm: AbstractHDM[_]):Seq[String] = {
+  def getDynamicBlockUrls(hdm: HDM[_]):Seq[String] = {
     val h = if(hdm.blocks ne null) hdm
     else blockManager.getRef(hdm.id)
     h.blocks.map(url => Path(url).name)
   }
 
-  override def plan[I: ClassTag, R: ClassTag](input: Seq[HDM[_, I]], target: HDM[I, R], defParallel:Int): Seq[HDM[_,_]] = target match {
+  override def plan[I: ClassTag, R: ClassTag](input: Seq[ParHDM[_, I]], target: ParHDM[I, R], defParallel:Int): Seq[ParHDM[_,_]] = target match {
     case ddm: DDM[_,R] =>
       Seq(ddm)
     case leafHdm:DFM[_,String] if(input == null || input.isEmpty) =>
@@ -113,7 +113,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
         for(index <- 0 until groupedIds.size) inputArray(index % defParallel) ++= groupedIds(index)
       }
       val newInput = inputArray.map(seq => seq.map(pid => new DDM(id = pid, location = null, func = new NullFunc[I])))
-      val pHdms = newInput.map(seq => dfm.copy(id = dfm.id + "_b" + newInput.indexOf(seq), children = seq.asInstanceOf[Seq[HDM[_, I]]], parallelism = 1))
+      val pHdms = newInput.map(seq => dfm.copy(id = dfm.id + "_b" + newInput.indexOf(seq), children = seq.asInstanceOf[Seq[ParHDM[_, I]]], parallelism = 1))
       val newParent = new DFM(id = dfm.id, children = pHdms.toIndexedSeq, func = new ParUnionFunc[R], dependency = dfm.dependency, partitioner = dfm.partitioner, parallelism = defParallel)
       pHdms :+ newParent
 
@@ -121,7 +121,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
 
   }
 
-  override def planMultiDFM(inputs:Seq[Seq[AbstractHDM[_]]], target: AbstractHDM[_], defParallel:Int): Seq[AbstractHDM[_]] = target match {
+  override def planMultiDFM(inputs:Seq[Seq[HDM[_]]], target: HDM[_], defParallel:Int): Seq[HDM[_]] = target match {
     case dualDFM:DualDFM[_, _, _] =>
       val typedDFM = dualDFM.asInstanceOf[DualDFM[dualDFM.inType1.type, dualDFM.inType2.type, dualDFM.outType.type]]
       val inputArray = Array.fill(defParallel){new ListBuffer[ListBuffer[String]]}
@@ -154,12 +154,12 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
       val newInputs = newInput1.zip(newInput2)
       val pHdms = newInputs.map{ tup =>
         typedDFM.copy(id =  dualDFM.id + "_b" + newInputs.indexOf(tup),
-            input1 = tup._1.asInstanceOf[Seq[AbstractHDM[dualDFM.inType1.type]]],
-            input2 = tup._2.asInstanceOf[Seq[AbstractHDM[dualDFM.inType2.type]]],
+            input1 = tup._1.asInstanceOf[Seq[HDM[dualDFM.inType1.type]]],
+            input2 = tup._2.asInstanceOf[Seq[HDM[dualDFM.inType2.type]]],
             parallelism = 1)
       }
       val newParent = new DFM(id = typedDFM.id,
-        children = pHdms.toIndexedSeq.asInstanceOf[Seq[AbstractHDM[dualDFM.outType.type]]],
+        children = pHdms.toIndexedSeq.asInstanceOf[Seq[HDM[dualDFM.outType.type]]],
         func = new ParUnionFunc[dualDFM.outType.type],
         dependency = typedDFM.dependency,
         partitioner = typedDFM.partitioner,

@@ -27,7 +27,7 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
                            val state: BlockState = Computed,
                            var parallelism:Int = 1,
                            val keepPartition:Boolean = true,
-                           val partitioner: Partitioner[R] = new KeepPartitioner[R](1)) extends HDM[T, R] {
+                           val partitioner: Partitioner[R] = new KeepPartitioner[R](1)) extends ParHDM[T, R] {
 
 
 
@@ -36,7 +36,7 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
   }
 
 
-  override def andThen[U: ClassTag](hdm: HDM[R, U]): HDM[T, U] = {
+  override def andThen[U: ClassTag](hdm: ParHDM[R, U]): ParHDM[T, U] = {
     new DDM(hdm.id,
       null,
       hdm.dependency,
@@ -48,7 +48,7 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
   }
 
   def copy(id: String = this.id,
-           children:Seq[AbstractHDM[T]] = null,
+           children:Seq[HDM[T]] = null,
            dependency: DataDependency = this.dependency,
            func: ParallelFunction[T, R] = this.func,
            blocks: Seq[String] = null,
@@ -60,7 +60,7 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
            state: BlockState = this.state,
            parallelism: Int = this.parallelism,
            keepPartition: Boolean = this.keepPartition,
-           partitioner: Partitioner[R] = this.partitioner):HDM[T, R] = {
+           partitioner: Partitioner[R] = this.partitioner):ParHDM[T, R] = {
 
     val ddm = new DDM(id, null, dependency, func, distribution, location, preferLocation, blockSize, isCache, state, parallelism, keepPartition, partitioner)
     ddm.blocks.clear()
@@ -71,7 +71,7 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
   val blocks: Buffer[String] = Buffer(Path(HDMContext.localBlockPath) + "/" +id)
 
 
-  val children: Seq[HDM[_,T]] = null
+  val children: Seq[ParHDM[_,T]] = null
 
 
 //  override def sample(size:Int = 10): Seq[String]={

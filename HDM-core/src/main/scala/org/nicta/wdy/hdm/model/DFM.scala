@@ -11,7 +11,7 @@ import org.nicta.wdy.hdm.storage.{Declared, BlockState, BlockRef}
 /**
  * Created by Tiantian on 2014/5/25.
  */
-case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: AbstractHDM[T]],
+case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[T]],
                                        val id: String = HDMContext.newClusterId(),
                                        val dependency: DataDependency = OneToOne,
                                        val func: ParallelFunction[T, R] = null,
@@ -24,17 +24,17 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: AbstractHDM[T]],
                                        val state: BlockState = Declared,
                                        var parallelism: Int = -1, // undefined
                                        val keepPartition:Boolean = true,
-                                       val partitioner: Partitioner[R] = new KeepPartitioner[R](1)) extends HDM[T, R]{
+                                       val partitioner: Partitioner[R] = new KeepPartitioner[R](1)) extends ParHDM[T, R]{
 
 
 
 
-  def this(elem: Array[_<:HDM[_,T]]){
+  def this(elem: Array[_<:ParHDM[_,T]]){
     this(elem.toSeq)
   }
 
 
-  override def andThen[U: ClassTag](hdm: HDM[R, U]): HDM[T, U] = {
+  override def andThen[U: ClassTag](hdm: ParHDM[R, U]): ParHDM[T, U] = {
     val dep = if(this.dependency == NToOne && hdm.dependency == OneToN) NToN
               else if (this.dependency == NToOne && hdm.dependency == OneToOne) NToOne
               else if (this.dependency == OneToOne && hdm.dependency == OneToN) OneToN
@@ -51,7 +51,7 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: AbstractHDM[T]],
 
 
   override def copy(id: String = this.id,
-           children: Seq[AbstractHDM[T]] = this.children,
+           children: Seq[HDM[T]] = this.children,
            dependency: DataDependency = this.dependency,
            func: ParallelFunction[T, R] = this.func,
            blocks: Seq[String] = this.blocks,
@@ -63,7 +63,7 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: AbstractHDM[T]],
            state: BlockState = this.state,
            parallelism: Int = this.parallelism,
            keepPartition: Boolean = this.keepPartition,
-           partitioner: Partitioner[R] = this.partitioner):HDM[T,R] = {
+           partitioner: Partitioner[R] = this.partitioner):ParHDM[T,R] = {
 
     new DFM(children, id, dependency, func, blocks, distribution, location, preferLocation, blockSize, isCache, state, parallelism, keepPartition, partitioner )
   }
