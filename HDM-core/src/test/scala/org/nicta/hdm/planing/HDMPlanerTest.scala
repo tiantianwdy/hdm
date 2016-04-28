@@ -1,7 +1,7 @@
 package org.nicta.hdm.planing
 
 import org.junit.Test
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.Arr
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
@@ -13,6 +13,10 @@ import scala.collection.mutable
  * Created by Tiantian on 2014/12/10.
  */
 class HDMPlanerTest {
+
+  val hDMContext = HDMContext.defaultHDMContext
+
+  val appContext = new AppContext()
 
   @Test
   def testWordCountPlan(){
@@ -33,20 +37,20 @@ class HDMPlanerTest {
       """.split("\\s+")
     println(text.length)
 //    text.foreach(println(_))
-    HDMContext.init()
-    val hdm = HDM.horizontal(text, text2)
+    hDMContext.init()
+    val hdm = HDM.horizontal(appContext, hDMContext, text, text2)
     val wordCount = hdm.map(d=> (d,1))
       .groupBy(_._1).map(t => (t._1, t._2.map(_._2))).reduce((t1,t2) => (t1._1, t1._2))
     val wordCountOpti = new FunctionFusion().optimize(wordCount)
-    val hdms = StaticPlaner.plan(wordCountOpti ,2).physicalPlan
+    val hdms = new StaticPlaner(hDMContext).plan(wordCountOpti ,2).physicalPlan
     hdms.foreach(println(_))
   }
 
   @Test
   def testClusterPlanner(): Unit ={
-    HDMContext.init()
+    hDMContext.init()
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings")
-    val hdm = HDM(path, false)
+    val hdm = HDM(path)
     val wordCount = hdm.map{ w =>
       val as = w.split(",")
       (as(0).substring(0,3), as(1).toInt)
@@ -57,7 +61,7 @@ class HDMPlanerTest {
       //hdm.map(d=> (d,1)).groupBy(_._1)
       //.map(t => (t._1, t._2.map(_._2))).reduce(("", Seq(0)))((t1,t2) => (t1._1, t1._2))
 
-    HDMContext.explain(wordCount, 1).physicalPlan.foreach(println(_))
+    hDMContext.explain(wordCount, 1).physicalPlan.foreach(println(_))
 
 /*    val wordCountOpti = new FunctionFusion().optimize(wordCount)
 
@@ -67,7 +71,7 @@ class HDMPlanerTest {
 
   @Test
   def testSortPlanner(): Unit ={
-    HDMContext.init()
+    hDMContext.init()
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
     val hdm = HDM(path)
     val topk = hdm.map{ w =>
@@ -75,13 +79,13 @@ class HDMPlanerTest {
       as(1).toInt
     }.top(10)
     //.count()
-    StaticPlaner.plan(topk, 4).physicalPlan.foreach(println(_))
+    new StaticPlaner(hDMContext).plan(topk, 4).physicalPlan.foreach(println(_))
 
   }
 
   @Test
   def testCachePlaner(): Unit ={
-    HDMContext.init()
+    hDMContext.init()
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
     val hdm = HDM(path)
     val cache = hdm.map{ w =>
@@ -90,13 +94,13 @@ class HDMPlanerTest {
     }.cache()
 
     val res = cache.reduce(_ + _)
-    HDMContext.explain(res, 1).physicalPlan.foreach(println(_))
+    hDMContext.explain(res, 1).physicalPlan.foreach(println(_))
 
   }
 
   @Test
   def testCogroupPlanning(): Unit ={
-    HDMContext.init()
+    hDMContext.init()
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
     val hdm = HDM(path)
     val data1 = hdm.map{ w =>

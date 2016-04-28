@@ -2,7 +2,7 @@ package org.nicta.hdm.executor
 
 import com.baidu.bpit.akka.server.SmsSystem
 import org.junit.{After, Test, Before}
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.functions.ParUnionFunc
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.{HDM, DFM, DDM}
@@ -33,17 +33,20 @@ class HDMClusterTest extends ClusterTestSuite{
         this is line 7
     """.split("\\s+")
 
+  val hDMContext = HDMContext.defaultHDMContext
+
+  val appContext = new AppContext()
 
   @Before
   def beforeTest(): Unit ={
-    HDMContext.init(slots = 0) // start master
+    hDMContext.init(slots = 0) // start master
   }
 
   @Test
   def testStartFollower(): Unit ={
     new Thread {
       override def run {
-        HDMContext.init(leader ="akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
+        hDMContext.init(leader ="akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
       }
     }.start
     Thread.sleep(60000)
@@ -53,10 +56,10 @@ class HDMClusterTest extends ClusterTestSuite{
   def testSendSerializableMsg(): Unit ={
     new Thread {
       override def run {
-        HDMContext.init(leader ="akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
-        val hdm = new DFM[String,String](children = null, func = new ParUnionFunc[String])
+        hDMContext.init(leader ="akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
+        val hdm = new DFM[String,String](children = null, func = new ParUnionFunc[String], location = Path(hDMContext.clusterBlockPath), appContext = appContext)
         val data = new ReflectTest(text)
-        val path = HDMContext.leaderPath.get()+ "/"+ HDMContext.BLOCK_MANAGER_NAME
+        val path = hDMContext.leaderPath.get()+ "/"+ HDMContext.BLOCK_MANAGER_NAME
         val msg = (hdm.id, hdm.partitioner, hdm.func, hdm.blocks)
         SmsSystem.askSync(path, hdm)
       }
@@ -69,10 +72,10 @@ class HDMClusterTest extends ClusterTestSuite{
 
     new Thread {
       override def run {
-        HDMContext.init(leader ="akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
-        val hdm = new DFM[String,String](children = null, func = new ParUnionFunc[String])
-        HDMContext.declareHdm(Seq(hdm))
-        val ddm = HDM.horizontal(text, text2) // register through hdm constrcutor
+        hDMContext.init(leader ="akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
+        val hdm = new DFM[String,String](children = null, func = new ParUnionFunc[String], location = Path(hDMContext.clusterBlockPath), appContext = appContext)
+        hDMContext.declareHdm(Seq(hdm))
+        val ddm = HDM.horizontal(appContext, hDMContext, text, text2) // register through hdm constrcutor
       }
     }.start
     Thread.sleep(60000)
@@ -83,7 +86,7 @@ class HDMClusterTest extends ClusterTestSuite{
 
     new Thread {
       override def run {
-        HDMContext.init(leader ="akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
+        hDMContext.init(leader ="akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
         Thread.sleep(1000)
 //        val hdm = HDM.horizontal(text, text2)
         val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
@@ -122,7 +125,7 @@ class HDMClusterTest extends ClusterTestSuite{
 
   @After
   def afterTest(): Unit ={
-    HDMContext.shutdown()
+    hDMContext.shutdown()
   }
 
 }

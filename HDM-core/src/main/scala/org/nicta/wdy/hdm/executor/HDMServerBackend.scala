@@ -12,13 +12,13 @@ import scala.concurrent.{Future, Promise}
 /**
  * Created by tiantian on 24/08/15.
  */
-class HDMServerBackend(
-                       val blockManager: HDMBlockManager,
+class HDMServerBackend(val blockManager: HDMBlockManager,
                        val scheduler: Scheduler,
                        val planner: HDMPlaner,
                        val resourceManager: ResourceManager,
                        val eventManager: PromiseManager,
-                       val dependencyManager:DependencyManager) {
+                       val dependencyManager:DependencyManager,
+                       val hDMContext: HDMContext) {
 
 
 
@@ -34,7 +34,7 @@ class HDMServerBackend(
 
   def jobReceived(jobId:String, version:String, hdm:HDM[_], parallelism:Int):Future[_] ={
     val exeId = dependencyManager.addInstance(jobId, version, hdm)
-    val plans = HDMContext.explain(hdm, parallelism)
+    val plans = hDMContext.explain(hdm, parallelism)
     dependencyManager.addPlan(exeId, plans)
     scheduler.submitJob(jobId, version, exeId, plans.physicalPlan)
   }

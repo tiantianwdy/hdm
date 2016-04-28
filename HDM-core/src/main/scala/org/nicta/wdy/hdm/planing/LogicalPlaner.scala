@@ -14,8 +14,8 @@ trait LogicalPlaner extends Serializable{
 /**
  *
  */
-class DefaultLocalPlaner(val cpuParallelFactor :Int = HDMContext.PLANER_PARALLEL_CPU_FACTOR,
-                         val networkParallelFactor :Int = HDMContext.PLANER_PARALLEL_NETWORK_FACTOR ) extends LogicalPlaner{
+class DefaultLocalPlaner(val cpuParallelFactor: Int,
+                         val networkParallelFactor: Int ) extends LogicalPlaner{
 
 
   override def plan(hdm:HDM[_], parallelism:Int = 4):Seq[HDM[_]] = {

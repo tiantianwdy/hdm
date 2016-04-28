@@ -9,7 +9,7 @@ object MainStart  {
 
   def main(args: Array[String]): Unit ={
 
-    HDMContext.init(slots = 0) // start master
+    HDMContext.defaultHDMContext.init(slots = 0) // start master
   }
 
 }

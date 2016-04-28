@@ -38,7 +38,7 @@ class Union[T:ClassTag] extends HDMFunction_2[T,T]{
 
 
   override def apply(params: Seq[ParHDM[_,T]]): ParHDM[T,T] = {
-    new DFM[T,T](params)
+    new DFM[T,T](children = params, location = params.head.location, appContext = params.head.appContext)
   }
 }
 

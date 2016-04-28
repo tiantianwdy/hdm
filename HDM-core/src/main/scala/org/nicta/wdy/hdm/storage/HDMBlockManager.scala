@@ -83,7 +83,7 @@ trait HDMBlockManager {
 }
 
 
-class DefaultHDMBlockManager extends HDMBlockManager with Logging{
+class DefaultHDMBlockManager(hDMContext: HDMContext) extends HDMBlockManager with Logging{
 
   import scala.collection.JavaConversions._
 
@@ -119,7 +119,7 @@ class DefaultHDMBlockManager extends HDMBlockManager with Logging{
     val dataSize = Block.byteSize(blk)
     HDMBlockManager.cleanup(blk)
     val memReleased = releasedBlockSize.addAndGet(dataSize.toInt)
-    if(memReleased > HDMContext.MAX_MEM_GC_SIZE){
+    if(memReleased > hDMContext.MAX_MEM_GC_SIZE){
       releasedBlockSize.set(0)
       HDMBlockManager.forceGC()
     }
@@ -180,19 +180,26 @@ class DefaultHDMBlockManager extends HDMBlockManager with Logging{
 
 object HDMBlockManager extends Logging{
 
-  lazy val defaultManager = new DefaultHDMBlockManager // todo change to loading according to the config
+  var defaultManager = new DefaultHDMBlockManager(HDMContext.defaultHDMContext) // todo change to loading according to the config
 
-  lazy val defaultBlockServer =  new NettyBlockServer(HDMContext.NETTY_BLOCK_SERVER_PORT,
-    HDMContext.NETTY_BLOCK_SERVER_THREADS,
+  var defaultBlockServer =  new NettyBlockServer(HDMContext.defaultHDMContext.NETTY_BLOCK_SERVER_PORT,
+    HDMContext.defaultHDMContext.NETTY_BLOCK_SERVER_THREADS,
     defaultManager,
-    HDMContext.defaultSerializer)
+    HDMContext.defaultHDMContext.defaultSerializer,
+    HDMContext.defaultHDMContext.compressor)
 
   def localBlockServerAddress:String = {
-    val localAddr = new InetSocketAddress(NettyConnectionManager.localHost, HDMContext.NETTY_BLOCK_SERVER_PORT)
+    val localAddr = new InetSocketAddress(NettyConnectionManager.localHost, HDMContext.defaultHDMContext.NETTY_BLOCK_SERVER_PORT)
     localAddr.getHostString  + ":" + localAddr.getPort
   }
 
-  def initBlockServer() = {
+  def initBlockServer(hDMContext: HDMContext) = {
+    defaultManager = new DefaultHDMBlockManager(hDMContext)
+    defaultBlockServer =  new NettyBlockServer(hDMContext.NETTY_BLOCK_SERVER_PORT,
+      hDMContext.NETTY_BLOCK_SERVER_THREADS,
+      defaultManager,
+      hDMContext.defaultSerializer,
+      hDMContext.compressor)
     defaultBlockServer.init()
     defaultBlockServer.start()
   }

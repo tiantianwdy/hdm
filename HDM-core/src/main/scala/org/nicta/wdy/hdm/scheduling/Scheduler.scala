@@ -54,10 +54,11 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
 
   import scala.collection.JavaConversions._
 
+  val hdmContext = HDMContext.defaultHDMContext
 
   val blockManager = HDMBlockManager() //todo get from HDMContext
 
-  val ioManager = new AkkaIOManager //todo get from HDMContext
+  val ioManager = new AkkaIOManager(hdmContext) //todo get from HDMContext
 
   val appManager = new AppManager //todo get from HDMContext
 
@@ -180,7 +181,7 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
 
   def jobReceived(appId:String, version:String, hdm:ParHDM[_,_], parallelism:Int): Future[HDM[_]] = {
     appManager.addApp(appId, hdm)
-    val plan = HDMContext.explain(hdm, parallelism)
+    val plan = hdmContext.explain(hdm, parallelism)
     appManager.addPlan(appId, plan.physicalPlan)
     submitJob(appId, version, "", plan.physicalPlan)
   }
@@ -197,7 +198,9 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
           input = h.children.asInstanceOf[Seq[ParHDM[_, hdm.inType.type]]],
           func = h.func.asInstanceOf[ParallelFunction[hdm.inType.type, h.outType.type]],
           dep = h.dependency,
-          partitioner = h.partitioner.asInstanceOf[Partitioner[h.outType.type]])
+          partitioner = h.partitioner.asInstanceOf[Partitioner[h.outType.type]],
+          appContext = hdm.appContext,
+          blockContext = HDMContext.defaultHDMContext.blockContext())
         addTask(task)
      }
     }.last.future
@@ -213,7 +216,7 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
       case ddm: DDM[_ , _] => ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
-    HDMContext.declareHdm(Seq(ref))
+    hdmContext.declareHdm(Seq(ref))
     log.info(s"A task is succeeded : [${taskId + "_" + func}}] ")
     val promise = promiseMap.remove(taskId).asInstanceOf[Promise[ParHDM[_, _]]]
     if (promise != null && !promise.isCompleted){

@@ -71,7 +71,7 @@ object Block {
     else sizeOf(elems.head) * elems.size
   }
 
-  def encodeToBuf(blk:Block[_])(implicit serializer:SerializerInstance = HDMContext.defaultSerializer):ByteBuf = {
+  def encodeToBuf(blk:Block[_])(implicit serializer:SerializerInstance = HDMContext.DEFAULT_SERIALIZER):ByteBuf = {
     val idBuf = serializer.serialize(blk.id).array()
     val dataBuf = serializer.serialize(blk).array()
     println(s"id length: ${idBuf.length}; default id length: ${HDMContext.DEFAULT_BLOCK_ID_LENGTH}")
@@ -84,16 +84,16 @@ object Block {
     byteBuf
   }
 
-  def decodeBlock(buf:ByteBuf)(implicit serializer:SerializerInstance = HDMContext.defaultSerializer):Block[_] = {
+  def decodeBlock(buf:ByteBuf)(implicit serializer:SerializerInstance = HDMContext.DEFAULT_SERIALIZER):Block[_] = {
     val length = buf.readInt() - 4 - HDMContext.DEFAULT_BLOCK_ID_LENGTH
     val idBuf = buf.nioBuffer(4, HDMContext.DEFAULT_BLOCK_ID_LENGTH)
-    val dataBuf = buf.nioBuffer(4+HDMContext.DEFAULT_BLOCK_ID_LENGTH, length)
+    val dataBuf = buf.nioBuffer(4 + HDMContext.DEFAULT_BLOCK_ID_LENGTH, length)
     val id = serializer.deserialize[String](idBuf)
     val data = serializer.deserialize[Blk[_]](dataBuf)
     new UnserializedBlock(id, data)
   }
 
-  def decodeResponse(buf:ByteBuf, compressor:CompressionCodec)(implicit serializer:SerializerInstance = HDMContext.defaultSerializer):FetchSuccessResponse = {
+  def decodeResponse(buf:ByteBuf, compressor:CompressionCodec)(implicit serializer:SerializerInstance = HDMContext.DEFAULT_SERIALIZER):FetchSuccessResponse = {
     val length = buf.readableBytes()
     val idLen = buf.readInt()
     val (data, dataLen) = if(compressor ne null) {

@@ -1,12 +1,14 @@
 package org.nicta.hdm.io
 
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.functions.NullFunc
 import org.nicta.wdy.hdm.io.{BufferedBlockIterator, Path}
 import org.nicta.wdy.hdm.model.DDM
 
 import org.junit.{Before, Test}
 import org.nicta.wdy.hdm.storage.{Computed, Block}
+
+import scala.collection.mutable
 
 /**
  * Created by tiantian on 7/10/15.
@@ -21,7 +23,9 @@ class BufferIteratorTest {
        func = new NullFunc[(String, List[Double])],
        blockSize = 0,
        state = Computed,
-       location = Path("hdm://tiantian-HP-EliteBook-Folio-9470m:9091/" + id))
+       location = Path("hdm://tiantian-HP-EliteBook-Folio-9470m:9091/" + id),
+       blocks = mutable.Buffer(HDMContext.defaultHDMContext.localBlockPath + "/" + id),
+       appContext = AppContext())
    }
    val start = System.currentTimeMillis()
    val iterator = new BufferedBlockIterator[(String, List[Double])](ddms)

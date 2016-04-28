@@ -1,6 +1,6 @@
 package org.nicta.hdm.server
 
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
 import org.nicta.wdy.hdm.server.HDMServer
@@ -43,8 +43,12 @@ object JobRunningTest{
 
   import ExecutionContext.Implicits.global
 
+  val hDMContext = HDMContext.defaultHDMContext
+
+  val appContext = new AppContext()
+
   def main(args:Array[String]): Unit ={
-    HDMContext.init(leader ="akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster", slots =0)
+    hDMContext.init(leader ="akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster", slots =0)
     Thread.sleep(1000)
     //        val hdm = HDM.horizontal(text, text2)
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")

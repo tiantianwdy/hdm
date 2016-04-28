@@ -17,9 +17,11 @@ import scala.util.{Failure, Success}
  */
 class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vIndex:Int = 1) extends  Serializable{
 
-   def init(context:String, localCores:Int = 0): Unit ={
-     HDMContext.init(leader = context, slots = localCores)
+   def init(context:String, localCores:Int = 0): HDMContext ={
+     val hDMContext = HDMContext.defaultHDMContext
+     hDMContext.init(leader = context, slots = localCores)
      Thread.sleep(100)
+     hDMContext
    }
 
 

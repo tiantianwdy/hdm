@@ -15,8 +15,10 @@ import scala.util.Random
 class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serializable{
 
   def init(context:String, localCores:Int = 0): Unit ={
-    HDMContext.init(leader = context, slots = localCores)
+    val hDMContext = HDMContext.defaultHDMContext
+    hDMContext.init(leader = context, slots = localCores)
     Thread.sleep(100)
+    hDMContext
   }
 
 
@@ -166,6 +168,47 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
       val w = weights
       val gradient = training.map{ p =>
         p.x * (1 / (1 + exp(-p.y * (w.dot(p.x)))) - 1) * p.y
+      }.reduce(_ + _).collect().next()
+      weights -= gradient
+      val end = System.currentTimeMillis()
+      println(s"Time consumed for iteration $i : ${end - start} ms. weights: $weights")
+      start = System.currentTimeMillis()
+    }
+    weights
+  }
+
+  def testNormWeatherLR(dataPath: String, vectorLen: Int, iteration:Int, p:Int = 4, cached:Boolean = false) = {
+    implicit  val parallelism = p
+    val path = Path(dataPath)
+    val rand = new Random(42)
+    val vecLen = vectorLen
+    var weights = DenseVector.fill(vecLen){2 * rand.nextDouble() - 1}
+    var start = System.currentTimeMillis()
+
+    val dataset = HDM(path).map(line => line.split("\\s+"))
+      //      .filter(arr => arr.length > vecLen)
+      .map{ seq => seq.drop(3).dropRight(6)}
+      .filter(seq => seq.forall(s => s.matches("\\d+(.\\d+)?")))
+      .map{ seq => seq.take(vecLen).map(_.toDouble).toArray }
+      .map{ arr =>
+      Vector(arr)
+    }.cache()
+
+    val sqrtV = dataset.map(v => v :* (v) ).reduce(_ + _).collect().next().map(1/Math.sqrt(_))
+    val sum = dataset.count().collect().next()
+    val meanV = dataset.reduce(_ + _).collect().next().map(d => d/sum)
+
+    val data = dataset.map{ v =>
+      val vec = (v - meanV) :* sqrtV
+      DataPoint(vec, vec(0))
+    }
+
+    val training = if(cached) data.cached else data.cache()
+
+    for(i <- 1 to iteration) {
+      val w = weights
+      val gradient = training.map{ p =>
+        p.x * ( 1 / (1 + exp(- p.y * (w.dot(p.x)))) - 1) * p.y
       }.reduce(_ + _).collect().next()
       weights -= gradient
       val end = System.currentTimeMillis()

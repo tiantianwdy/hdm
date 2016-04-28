@@ -14,6 +14,7 @@ import io.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
 import io.netty.handler.codec.string.StringEncoder
 import io.netty.util.ReferenceCountUtil
 import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.io.CompressionCodec
 import org.nicta.wdy.hdm.message.{FetchSuccessResponse, NettyFetchRequest, QueryBlockMsg}
 import org.nicta.wdy.hdm.serializer.SerializerInstance
 import org.nicta.wdy.hdm.storage.Block
@@ -24,12 +25,12 @@ import scala.collection.mutable.ArrayBuffer
 /**
  * Created by tiantian on 27/05/15.
  */
-class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Logging{
+class NettyBlockFetcher(val nThreads:Int, val serializerInstance: SerializerInstance, compressor:CompressionCodec) extends Logging{
 
   private var channel: Channel = _
   private var bt:Bootstrap = _
   private var workerGroup:EventLoopGroup = _
-  private val allocator = NettyConnectionManager.createPooledByteBufAllocator(false, HDMContext.NETTY_BLOCK_CLIENT_THREADS)
+  private val allocator = NettyConnectionManager.createPooledByteBufAllocator(false, nThreads)
   private val workingSize = new Semaphore(1)
   private val outGoingMsg = new AtomicInteger(0)
 //  private val handler = new AtomicReference[Block[_] => Unit]()
@@ -69,7 +70,7 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
   }
 
   def init(): Unit ={
-    workerGroup = new NioEventLoopGroup(HDMContext.NETTY_BLOCK_CLIENT_THREADS)
+    workerGroup = new NioEventLoopGroup(nThreads)
     try{
       bt = new Bootstrap()
       bt.group(workerGroup)
@@ -80,7 +81,7 @@ class NettyBlockFetcher( val serializerInstance: SerializerInstance) extends Log
 //            .addLast(new StringEncoder)
             .addLast("encoder", new NettyQueryFrameEncoder4x(serializerInstance))
             .addLast("frameDecoder", NettyConnectionManager.getFrameDecoder())
-            .addLast("decoder", new NettyBlockByteDecoder4x(serializerInstance, HDMContext.getCompressor()))
+            .addLast("decoder", new NettyBlockByteDecoder4x(serializerInstance, compressor))
             .addLast("handler", new NettyBlockFetcherHandler(outGoingMsg, workingSize, callbackMap))
         }
       })

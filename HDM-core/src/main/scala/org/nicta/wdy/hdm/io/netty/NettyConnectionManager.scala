@@ -8,6 +8,8 @@ import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.handler.codec.{LengthFieldPrepender, MessageToByteEncoder, ByteToMessageDecoder, LengthFieldBasedFrameDecoder}
 import io.netty.util.internal.PlatformDependent
 import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.io.CompressionCodec
+import org.nicta.wdy.hdm.serializer.SerializerInstance
 import org.nicta.wdy.hdm.utils.Logging
 import scala.collection.JavaConversions._
 import org.nicta.wdy.hdm.io.netty.NettyBlockFetcher
@@ -16,9 +18,12 @@ import org.nicta.wdy.hdm.storage.Block
 /**
  * Created by tiantian on 31/05/15.
  */
-class NettyConnectionManager {
+class NettyConnectionManager(val connectionNumPerPeer:Int,
+                             val threadsPerCon:Int,
+                             val serializerInstance: SerializerInstance,
+                             val compressor:CompressionCodec) {
 
-  val connectionNumPerPeer = HDMContext.NETTY_CLIENT_CONNECTIONS_PER_PEER
+//  val connectionNumPerPeer = HDMContext.NETTY_CLIENT_CONNECTIONS_PER_PEER
 
   private val connectionCacheMap = new ConcurrentHashMap[String, ConnectionPool]()
 
@@ -44,7 +49,7 @@ class NettyConnectionManager {
   def getConnection(host:String, port:Int):NettyBlockFetcher ={
     val cId = host + ":" + port
     if(!connectionCacheMap.containsKey(cId)) {
-      connectionCacheMap.put(cId, new ConnectionPool(connectionNumPerPeer, host, port))
+      connectionCacheMap.put(cId, new ConnectionPool(connectionNumPerPeer, host, port, threadsPerCon, serializerInstance, compressor))
     }
     val activeCon = connectionCacheMap.get(cId).getNext()
     if(!activeCon.isRunning) activeCon.schedule()
@@ -54,7 +59,7 @@ class NettyConnectionManager {
   def recycleConnection(host:String, port:Int, con: NettyBlockFetcher) = {
     val cId = host + ":" + port
     if(!connectionCacheMap.contains(cId)){
-      connectionCacheMap.put(cId, new ConnectionPool(connectionNumPerPeer,host, port))
+      connectionCacheMap.put(cId, new ConnectionPool(connectionNumPerPeer,host, port, threadsPerCon, serializerInstance, compressor))
     }
     connectionCacheMap.get(cId).recycle(con)
   }
@@ -68,7 +73,10 @@ class NettyConnectionManager {
 
 object NettyConnectionManager extends Logging{
 
-  lazy val defaultManager = new NettyConnectionManager
+  lazy val defaultManager = new NettyConnectionManager(HDMContext.defaultHDMContext.NETTY_CLIENT_CONNECTIONS_PER_PEER,
+    HDMContext.defaultHDMContext.NETTY_BLOCK_CLIENT_THREADS,
+    HDMContext.defaultHDMContext.defaultSerializer,
+    HDMContext.defaultHDMContext.compressor)
 
   val localHost = InetAddress.getLocalHost.getHostName
 
@@ -105,9 +113,13 @@ object NettyConnectionManager extends Logging{
 
   def getInstance = defaultManager
 
-  def createConnection(host:String, port:Int) = {
+  def createConnection(host:String,
+                       port:Int,
+                       nThreads:Int,
+                       serializerInstance: SerializerInstance,
+                       compressor:CompressionCodec) = {
     log.info(s"creating a new connection for $host:$port")
-    val blockFetcher = new NettyBlockFetcher(HDMContext.defaultSerializer)
+    val blockFetcher = new NettyBlockFetcher(nThreads, serializerInstance, compressor)
     blockFetcher.init()
     blockFetcher.connect(host, port)
     blockFetcher

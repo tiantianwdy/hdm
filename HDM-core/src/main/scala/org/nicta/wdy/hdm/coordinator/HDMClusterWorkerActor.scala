@@ -4,11 +4,12 @@ import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicInteger
 
 import com.baidu.bpit.akka.actors.worker.WorkActor
-import org.nicta.wdy.hdm.executor.{ParallelTask, ClusterExecutor, HDMContext}
+import org.nicta.wdy.hdm.executor.{BlockContext, ParallelTask, ClusterExecutor, HDMContext}
 import org.nicta.wdy.hdm.message._
 import org.nicta.wdy.hdm.server.DependencyManager
 import org.nicta.wdy.hdm.storage.HDMBlockManager
 
+import scala.beans.BeanProperty
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}
 
@@ -19,10 +20,13 @@ import scala.util.{Failure, Success}
  *
  * @param leaderPath
  */
-class HDMClusterWorkerActor(leaderPath: String) extends WorkActor {
+class HDMClusterWorkerActor(leaderPath: String, slots:Int, blockContext: BlockContext) extends WorkActor {
 
+  def this(params:HDMWorkerParams) {
+    this(params.master, params.slots, params.blockContext)
+  }
 
-  implicit val executorService: ExecutionContext = HDMContext.executionContext
+  implicit val executorService: ExecutionContext = HDMContext.defaultHDMContext.executionContext
 
   val dependencyManager = DependencyManager()
 
@@ -30,7 +34,7 @@ class HDMClusterWorkerActor(leaderPath: String) extends WorkActor {
 
   override def initParams(params: Any): Int = {
     super.initParams(params)
-    context.actorSelection(leaderPath) ! JoinMsg(self.path.toString, HDMContext.slot.get())
+    context.actorSelection(leaderPath) ! JoinMsg(self.path.toString, slots)
     1
   }
 
@@ -56,7 +60,7 @@ class HDMClusterWorkerActor(leaderPath: String) extends WorkActor {
     log.info(s"received a task: ${task.taskId + "_" + task.func}")
     runningTasks.incrementAndGet()
     val startTime = System.currentTimeMillis()
-    ClusterExecutor.runTask(task) onComplete {
+    ClusterExecutor.runTask(task.setBlockContext(this.blockContext)) onComplete {
       case Success(results) =>
         context.actorSelection(leaderPath) ! TaskCompleteMsg(task.appId, task.taskId, task.func.toString, results)
         log.info(s"A task [${task.taskId + "_" + task.func}] has been completed in ${System.currentTimeMillis() - startTime} ms.")
@@ -81,7 +85,7 @@ class HDMClusterWorkerActor(leaderPath: String) extends WorkActor {
       processTask(task)
     case SerializedTaskMsg(appName, version, taskId, serTask) =>
       val loader = dependencyManager.getClassLoader(appName, version)
-      val task = HDMContext.defaultSerializer.deserialize[ParallelTask[_]](ByteBuffer.wrap(serTask), loader)
+      val task = HDMContext.DEFAULT_SERIALIZER.deserialize[ParallelTask[_]](ByteBuffer.wrap(serTask), loader)
       processTask(task)
   }
 
@@ -97,3 +101,8 @@ class HDMClusterWorkerActor(leaderPath: String) extends WorkActor {
   }
 
 }
+
+
+case class HDMWorkerParams(@BeanProperty master:String,
+                           @BeanProperty slots:Int,
+                           @BeanProperty blockContext: BlockContext) extends ActorParams

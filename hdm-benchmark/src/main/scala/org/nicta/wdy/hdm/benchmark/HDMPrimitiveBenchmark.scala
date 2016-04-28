@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.benchmark
 
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.model.ParHDM
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -21,8 +21,12 @@ object HDMBenchmark {
     val parallelism = args(3).toInt
     val dataTag = if(args.length >= 5) args(4) else "ranking"
     val len = if(args.length >= 6) args(5).toInt else 3
-    HDMContext.appName = "hdm-examples"
-    HDMContext.version = "0.0.1"
+
+    AppContext.defaultAppContext.appName = "hdm-examples"
+    AppContext.defaultAppContext.version = "0.0.1"
+    val hDMContext = HDMContext.defaultHDMContext
+    hDMContext.init(leader = context, slots = 0)
+    Thread.sleep(64)
 
     val start = System.currentTimeMillis()
 
@@ -35,8 +39,7 @@ object HDMBenchmark {
     val iterativeBenchmark = new IterationBenchmark()
     val sqlBenchmark = new RankingSQLBenchmark()
     val uservisitsSQL = new UservisitsSQLBenchmark()
-    HDMContext.init(leader = context, slots = 0)//not allow local running
-    Thread.sleep(64)
+
     val endInit = System.currentTimeMillis()
 
     val res = testTag match {
@@ -70,6 +73,8 @@ object HDMBenchmark {
         regressionBenchmark.testLinearRegression(data, 3, parallelism)
       case "weatherLR" =>
         iterativeBenchmark.testWeatherLR(data, 12, 3, parallelism, false)
+      case "weatherLRNorm" =>
+        iterativeBenchmark.testNormWeatherLR(data, 12, 3, parallelism, false)
       case "weatherLRCached" =>
         iterativeBenchmark.testWeatherLR(data, 12, 3, parallelism, true)
       case "weatherKMeans" =>

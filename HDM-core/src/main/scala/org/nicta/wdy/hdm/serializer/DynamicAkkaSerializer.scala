@@ -9,7 +9,7 @@ import org.nicta.wdy.hdm.executor.HDMContext
  */
 class DynamicAkkaSerializer extends akka.serialization.Serializer{
 
-  val serializer = HDMContext.defaultSerializer
+  val serializer = HDMContext.DEFAULT_SERIALIZER
   
   override def identifier: Int = 1
 

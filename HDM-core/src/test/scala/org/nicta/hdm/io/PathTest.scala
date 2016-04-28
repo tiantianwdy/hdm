@@ -2,12 +2,13 @@ package org.nicta.hdm.io
 
 import org.junit.Test
 import org.nicta.hdm.scheduling.SchedulingTestData
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.functions.NullFunc
 import org.nicta.wdy.hdm.io.{DataParser, Path}
 import org.nicta.wdy.hdm.model.DDM
 import org.nicta.wdy.hdm.planing.PlanningUtils
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.util.Random
 
@@ -41,6 +42,11 @@ class PathTest extends SchedulingTestData{
     Path("akka.tcp://slaveSys@10.10.10.1:10020/user/smsMaster"),
     Path("akka.tcp://slaveSys@10.10.10.2:10020/user/smsMaster")
   )
+
+
+  val hDMContext = HDMContext.defaultHDMContext
+
+  val appContext = new AppContext()
 
   def generatePath(group:Int = 2, groupSize:Int = 57) = {
 
@@ -100,7 +106,7 @@ class PathTest extends SchedulingTestData{
 
   @Test
   def testIsLocalPath(): Unit ={
-    HDMContext.init()
+    hDMContext.init()
     val p = Path("akka.tcp://masterSys/user/smsMaster")
     println(Path.isLocal(p))
 
@@ -149,7 +155,7 @@ class PathTest extends SchedulingTestData{
 
   @Test
   def testDDMGroupByLocation() = {
-    HDMContext.init()
+    hDMContext.init()
 //    val path = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/"
 //    val ddms = DataParser.explainBlocks(Path(path))
     val numOfWorker = 20
@@ -157,11 +163,19 @@ class PathTest extends SchedulingTestData{
     val pathPool = initAddressPool(numOfWorker)
     val candidates = generateWorkers(pathPool).map(Path(_))
     val paths = generateInputPath(pathPool, 1067).map(Path(_))
-    val ddms = paths.map(path => new DDM(location = path, preferLocation = path, func = new NullFunc[String], blockSize = 128*1000 + 1L))
+    val ddms = paths.map{path =>
+      val id = HDMContext.newLocalId()
+      new DDM(location = path,
+      preferLocation = path,
+      func = new NullFunc[String],
+      blockSize = 128*1000 + 1L,
+      blocks = mutable.Buffer(HDMContext.defaultHDMContext.localBlockPath + "/" + id),
+      appContext = AppContext())
+    }
 //    val grouped = PlanningUtils.groupDDMByBoundary(ddms, 160)
 ////    val grouped = Path.groupDDMByLocation(ddms, 4)
 //    candidates.foreach(println(_))
-    val grouped = PlanningUtils.groupDDMByMinminScheduling(ddms, candidates)
+    val grouped = PlanningUtils.groupDDMByMinminScheduling(ddms, candidates, hDMContext)
         println(s"total group:${grouped.size}")
         grouped foreach{ddm =>
           println(s"group tasks:${ddm.size}, groupTotalSize = ${ddm.map(_.blockSize).reduce(_ + _)}" )

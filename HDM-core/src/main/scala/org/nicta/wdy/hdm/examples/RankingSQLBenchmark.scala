@@ -10,9 +10,11 @@ import org.nicta.wdy.hdm.model.HDM
  */
 class RankingSQLBenchmark extends Serializable {
 
-  def init(context:String, localCores:Int = 0): Unit ={
-    HDMContext.init(leader = context, slots = localCores)
+  def init(context:String, localCores:Int = 0): HDMContext ={
+    val hDMContext = HDMContext.defaultHDMContext
+    hDMContext.init(leader = context, slots = localCores)
     Thread.sleep(100)
+    hDMContext
   }
 
   case class Ranking(url:String, rank:Float, duration:Float) extends Serializable

@@ -12,13 +12,13 @@ class KvHDM[T:ClassTag, K:ClassTag,V:ClassTag](self:ParHDM[T,(K,V)]) extends Ser
 
   def mapValues[R:ClassTag](f: V => R):ParHDM[(K,V), (K,R)] = {
 //    self.map(t => (t._1, f(t._2)))
-    new DFM[(K, V),(K, R)](children = Seq(self), dependency = OneToOne, func = new MapValues[V,K,R](f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, R)](1))
+    new DFM[(K, V),(K, R)](children = Seq(self), dependency = OneToOne, func = new MapValues[V,K,R](f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, R)](1), appContext = self.appContext)
 
   }
 
   def mapKey[NK:ClassTag] (f: K => NK):ParHDM[(K,V), (NK,V)] = {
 //    self.map(t => (f(t._1), t._2))
-    new DFM[(K, V),(NK, V)](children = Seq(self), dependency = OneToOne, func = new MapKeys[V,K,NK](f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(NK, V)](1))
+    new DFM[(K, V),(NK, V)](children = Seq(self), dependency = OneToOne, func = new MapKeys[V,K,NK](f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(NK, V)](1), appContext = self.appContext)
 
   }
 
@@ -27,9 +27,9 @@ class KvHDM[T:ClassTag, K:ClassTag,V:ClassTag](self:ParHDM[T,(K,V)]) extends Ser
     val mapAll = (elems:Seq[(K,V)]) => {
       elems.groupBy(_._1).mapValues(_.map(_._2).reduce(f)).toSeq
     }
-    val parallel = new DFM[(K,V), (K,V)](children = Seq(self), dependency = OneToN, func = new ReduceByKey(f), distribution = self.distribution, location = self.location, keepPartition = false, partitioner = new HashPartitioner(4, pFunc))
+    val parallel = new DFM[(K,V), (K,V)](children = Seq(self), dependency = OneToN, func = new ReduceByKey(f), distribution = self.distribution, location = self.location, keepPartition = false, partitioner = new HashPartitioner(4, pFunc), appContext = self.appContext)
 //    val aggregate = (elems:Seq[(K,V)]) => elems.groupBy(e => e._1).mapValues(_.map(_._2).reduce(f)).toSeq
-    new DFM[(K, V),(K, V)](children = Seq(parallel), dependency = NToOne, func = new ReduceByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
+    new DFM[(K, V),(K, V)](children = Seq(parallel), dependency = NToOne, func = new ReduceByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1), appContext = self.appContext)
 
   }
 
@@ -46,12 +46,12 @@ class KvHDM[T:ClassTag, K:ClassTag,V:ClassTag](self:ParHDM[T,(K,V)]) extends Ser
       }
       self.asInstanceOf[ParHDM[T, (K,V)]].copy(children = filtered).asInstanceOf[ParHDM[_, (K,V)]]
     } else
-      new DFM[(K, V),(K, V)](children = Seq(self), dependency = OneToOne, func = new FindByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
+      new DFM[(K, V),(K, V)](children = Seq(self), dependency = OneToOne, func = new FindByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1), appContext = self.appContext)
   }
 
 
   def findByValue(f: V=> Boolean): ParHDM[_, (K,V)] = {
-    new DFM[(K, V),(K, V)](children = Seq(self), dependency = OneToOne, func = new FindByValue(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1))
+    new DFM[(K, V),(K, V)](children = Seq(self), dependency = OneToOne, func = new FindByValue(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, V)](1), appContext = self.appContext)
 
   }
 
@@ -72,12 +72,12 @@ class GroupedSeqHDM[K:ClassTag,V:ClassTag](self:ParHDM[_,(K, Iterable[V])]) exte
   
   def mapValuesByKey[R:ClassTag](f: V => R):ParHDM[(K, Iterable[V]), (K, Iterable[R])] = {
     val func = (v: Iterable[V]) => v.map(f)
-    new DFM[(K, Iterable[V]),(K, Iterable[R])](children = Seq(self), dependency = OneToOne, func = new MapValues[Iterable[V],K,Iterable[R]](func), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, Iterable[R])](1))
+    new DFM[(K, Iterable[V]),(K, Iterable[R])](children = Seq(self), dependency = OneToOne, func = new MapValues[Iterable[V],K,Iterable[R]](func), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, Iterable[R])](1), appContext = self.appContext)
 
   }
 
   def findValuesByKey(f: V => Boolean):ParHDM[(K, Iterable[V]), (K, Iterable[V])] = {
-    new DFM[(K, Iterable[V]),(K, Iterable[V])](children = Seq(self), dependency = OneToOne, func = new FindValuesByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, Iterable[V])](1))
+    new DFM[(K, Iterable[V]),(K, Iterable[V])](children = Seq(self), dependency = OneToOne, func = new FindValuesByKey(f), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, Iterable[V])](1), appContext = self.appContext)
   }
 
   def reduceValues(f :(V,V) => V): ParHDM[(K,Iterable[V]), (K,V)] = {
@@ -87,7 +87,8 @@ class GroupedSeqHDM[K:ClassTag,V:ClassTag](self:ParHDM[_,(K, Iterable[V])]) exte
       distribution = self.distribution,
       location = self.location,
       keepPartition = true,
-      partitioner = new KeepPartitioner[(K, V)](1))
+      partitioner = new KeepPartitioner[(K, V)](1),
+      appContext = self.appContext)
   }
 
 }

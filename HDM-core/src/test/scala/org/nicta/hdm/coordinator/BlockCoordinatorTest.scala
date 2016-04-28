@@ -1,11 +1,9 @@
 package org.nicta.hdm.coordinator
 
-import com.baidu.bpit.akka.server.SmsSystem
-import org.junit.{After, Before}
-import org.nicta.hdm.executor.ClusterTestSuite
-import org.nicta.wdy.hdm.executor.HDMContext
 import org.junit.Test
-import org.nicta.wdy.hdm.model.{HDM, DFM}
+import org.nicta.hdm.executor.ClusterTestSuite
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
+import org.nicta.wdy.hdm.model.HDM
 
 /**
  * Created by tiantian on 9/03/15.
@@ -28,25 +26,29 @@ class BlockCoordinatorTest extends ClusterTestSuite {
         this is line 7
     """.split("\\s+")
 
+  val hDMContext = HDMContext.defaultHDMContext
+
+  val appContext = new AppContext()
+
 
   def beforeTest(): Unit = {
-    HDMContext.init(slots = 0) // start master
+    hDMContext.init(slots = 0) // start master
   }
 
   @Test
   def testAddRemoveBlock(): Unit = {
-    HDMContext.startAsSlave(masterPath = "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
-    val ddm = HDM.horizontal(text, text2) // register through hdm constrcutor
+    hDMContext.startAsSlave(masterPath = "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster")
+    val ddm = HDM.horizontal(appContext = appContext, hdmContext = hDMContext, text, text2) // register through hdm constrcutor
     Thread.sleep(1000)
 
-    HDMContext.removeBlock(ddm.children.head.id)
+    hDMContext.removeBlock(ddm.children.head.id)
     Thread.sleep(1000)
   }
 
 
 
   def afterTest(): Unit = {
-    HDMContext.shutdown()
+    hDMContext.shutdown()
   }
 
 }

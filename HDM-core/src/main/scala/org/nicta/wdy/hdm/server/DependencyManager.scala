@@ -271,7 +271,7 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
 
 object DependencyManager {
 
-  lazy val defaultDepManager = new DependencyManager(HDMContext.DEFAULT_DEPENDENCY_BASE_PATH, ProvenanceManager()).init()
+  lazy val defaultDepManager = new DependencyManager(HDMContext.defaultHDMContext.DEFAULT_DEPENDENCY_BASE_PATH, ProvenanceManager()).init()
 
   def apply() = {
     defaultDepManager

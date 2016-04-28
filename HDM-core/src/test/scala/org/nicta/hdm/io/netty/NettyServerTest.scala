@@ -13,10 +13,12 @@ import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
 class NettyServerTest {
 
   val serializer = new JavaSerializer(HDMContext.defaultConf).newInstance()
+  val compressor = HDMContext.defaultHDMContext.getCompressor()
   val blockServer = new NettyBlockServer(9091,
     4,
     HDMBlockManager(),
-    serializer)
+    serializer,
+    compressor)
 
   @Before
   def beforeTest: Unit ={

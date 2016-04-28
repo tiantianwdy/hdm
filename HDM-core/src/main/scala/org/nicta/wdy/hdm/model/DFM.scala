@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.model
 
-import org.nicta.wdy.hdm.executor.{KeepPartitioner, HDMContext, ClusterExecutorContext, Partitioner}
+import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions._
 import org.nicta.wdy.hdm.io.Path
 
@@ -17,21 +17,22 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[T]],
                                        val func: ParallelFunction[T, R] = null,
                                        val blocks: Seq[String] = null,
                                        val distribution: Distribution = Horizontal,
-                                       val location: Path = Path(HDMContext.clusterBlockPath),
+                                       val location: Path,
                                        val preferLocation:Path = null,
                                        var blockSize:Long = -1,
                                        var isCache:Boolean = false,
                                        val state: BlockState = Declared,
                                        var parallelism: Int = -1, // undefined
                                        val keepPartition:Boolean = true,
-                                       val partitioner: Partitioner[R] = new KeepPartitioner[R](1)) extends ParHDM[T, R]{
+                                       val partitioner: Partitioner[R] = new KeepPartitioner[R](1),
+                                       val appContext:AppContext) extends ParHDM[T, R]{
 
 
 
 
-  def this(elem: Array[_<:ParHDM[_,T]]){
-    this(elem.toSeq)
-  }
+//  def this(elem: Array[_<:ParHDM[_,T]]){
+//    this(elem.toSeq)
+//  }
 
 
   override def andThen[U: ClassTag](hdm: ParHDM[R, U]): ParHDM[T, U] = {
@@ -46,7 +47,7 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[T]],
       blocks, distribution, location, null, blockSize, isCache,
       state, parallelism,
       this.keepPartition && hdm.keepPartition,
-      hdm.partitioner )
+      hdm.partitioner, appContext )
   }
 
 
@@ -65,7 +66,7 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[T]],
            keepPartition: Boolean = this.keepPartition,
            partitioner: Partitioner[R] = this.partitioner):ParHDM[T,R] = {
 
-    new DFM(children, id, dependency, func, blocks, distribution, location, preferLocation, blockSize, isCache, state, parallelism, keepPartition, partitioner )
+    new DFM(children, id, dependency, func, blocks, distribution, location, preferLocation, blockSize, isCache, state, parallelism, keepPartition, partitioner, this.appContext)
   }
 
 

@@ -14,6 +14,7 @@ import io.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
 import io.netty.handler.codec.string.StringDecoder
 import io.netty.util.ReferenceCountUtil
 import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.io.CompressionCodec
 import org.nicta.wdy.hdm.message.QueryBlockMsg
 import org.nicta.wdy.hdm.serializer.SerializerInstance
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, BlockManager, Block}
@@ -25,7 +26,8 @@ import org.nicta.wdy.hdm.utils.Logging
 class NettyBlockServer(val port:Int,
                        val nThreads:Int,
                        val blockManager: HDMBlockManager,
-                       serializerInstance: SerializerInstance) extends Logging{
+                       serializerInstance: SerializerInstance,
+                       compressor:CompressionCodec) extends Logging{
 
   private var f:ChannelFuture = _
   private var bt:ServerBootstrap = _
@@ -44,7 +46,7 @@ class NettyBlockServer(val port:Int,
       .childHandler(new ChannelInitializer[SocketChannel] {
         override def initChannel(c: SocketChannel): Unit = {
           c.pipeline()
-          .addLast("encoder", new NettyBlockResponseEncoder4x(serializerInstance, HDMContext.getCompressor()))
+          .addLast("encoder", new NettyBlockResponseEncoder4x(serializerInstance, compressor))
             .addLast("frameDecoder", NettyConnectionManager.getFrameDecoder())
             .addLast("decoder", new NettyQueryDecoder4x(serializerInstance))
             .addLast("handler", new NettyBlockServerHandler(blockManager))

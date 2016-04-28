@@ -65,9 +65,9 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       }.toSeq
 
       val plans = schedulingPolicy.plan(tasks, candidates,
-        HDMContext.SCHEDULING_FACTOR_CPU,
-        HDMContext.SCHEDULING_FACTOR_IO ,
-        HDMContext.SCHEDULING_FACTOR_NETWORK)
+        HDMContext.defaultHDMContext.SCHEDULING_FACTOR_CPU,
+        HDMContext.defaultHDMContext.SCHEDULING_FACTOR_IO ,
+        HDMContext.defaultHDMContext.SCHEDULING_FACTOR_NETWORK)
 
       val scheduledTasks = taskQueue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
       val now = System.currentTimeMillis()
@@ -134,7 +134,9 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           input = h.children.asInstanceOf[Seq[ParHDM[_, hdm.inType.type]]],
           func = h.func.asInstanceOf[ParallelFunction[hdm.inType.type, hdm.outType.type]],
           dep = h.dependency,
-          partitioner = h.partitioner.asInstanceOf[Partitioner[hdm.outType.type]])
+          partitioner = h.partitioner.asInstanceOf[Partitioner[hdm.outType.type]],
+          appContext = hdm.appContext,
+          blockContext = HDMContext.defaultHDMContext.blockContext())
         addTask(task)
 
       case dualDFM: DualDFM[_, _ ,_] =>
@@ -147,7 +149,9 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           input2 = dualDFM.input2.asInstanceOf[Seq[HDM[dualDFM.inType2.type]]],
           func = dualDFM.func.asInstanceOf[DualInputFunction[dualDFM.inType1.type, dualDFM.inType2.type, dualDFM.outType.type]],
           dep = h.dependency,
-          partitioner = h.partitioner.asInstanceOf[Partitioner[dualDFM.outType.type]])
+          partitioner = h.partitioner.asInstanceOf[Partitioner[dualDFM.outType.type]],
+          appContext = dualDFM.appContext,
+          blockContext = HDMContext.defaultHDMContext.blockContext())
         addTask(task)
       }
     }.last.future
@@ -170,7 +174,9 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           dfm.location,
           dfm.preferLocation,
           dfm.blockSize, dfm.isCache, Computed,
-          dfm.parallelism, dfm.keepPartition, dfm.partitioner.asInstanceOf[Partitioner[dfm.outType.type]])
+          dfm.parallelism, dfm.keepPartition,
+          dfm.partitioner.asInstanceOf[Partitioner[dfm.outType.type]],
+          dfm.appContext)
       case ddm: DDM[_, _] => ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
@@ -232,7 +238,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
 
   private def runRemoteTask[ R: ClassTag](workerPath: String, task: ParallelTask[R]): Future[Seq[String]] = {
-    val taskBytes = HDMContext.defaultSerializer.serialize(task).array
+    val taskBytes = HDMContext.DEFAULT_SERIALIZER.serialize(task).array
     val msg = SerializedTaskMsg(task.appId, task.version, task.taskId, taskBytes)
 //    val msg = AddTaskMsg(task)
     val future = (actorSys.actorSelection(workerPath) ? msg).mapTo[Seq[String]]

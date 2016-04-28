@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.examples
 
 import com.baidu.bpit.akka.server.SmsSystem
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.junit.Test
 import org.nicta.wdy.hdm.message.{AddHDMsMsg, SerializedJobMsg}
 import org.nicta.wdy.hdm.model.ParHDM
@@ -15,6 +15,8 @@ import ExecutionContext.Implicits.global
 class RemoteDependencySubmitTest {
 
   type Benchmark = org.nicta.wdy.hdm.benchmark.KVBasedPrimitiveBenchmark
+  val hDMContext = HDMContext.defaultHDMContext
+  val appContext = AppContext.defaultAppContext
 
   @Test
   def testSendSerializedJob(): Unit ={
@@ -24,28 +26,28 @@ class RemoteDependencySubmitTest {
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
     val parallelism = 2
-    HDMContext.NETTY_BLOCK_SERVER_PORT = 9093
-    HDMContext.appName = "hdm-examples"
-    HDMContext.version = "0.0.1"
-    HDMContext.startAsClient(context, 20011, 9093)
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9093
+    appContext.appName = "hdm-examples"
+    appContext.version = "0.0.1"
+    hDMContext.startAsClient(context, 20011, 9093)
     Thread.sleep(1500)
 
     val benchmark = new Benchmark(context)
     val hdm = benchmark.testMap(data)
 
-    val jobBytes = HDMContext.defaultSerializer.serialize(hdm).array
+    val jobBytes = hDMContext.defaultSerializer.serialize(hdm).array
     val encodedJob = jobBytes ++ Array(jobBytes.length.toByte)
 
     val rootPath =  SmsSystem.rootPath
-    HDMContext.declareHdm(Seq(hdm))
+    hDMContext.declareHdm(Seq(hdm))
     val promise = SmsSystem.askLocalMsg(HDMContext.JOB_RESULT_DISPATCHER,
-      AddHDMsMsg(HDMContext.appName , Seq(hdm), rootPath + "/"+ HDMContext.JOB_RESULT_DISPATCHER)) match {
+      AddHDMsMsg(appContext.appName , Seq(hdm), rootPath + "/"+ HDMContext.JOB_RESULT_DISPATCHER)) match {
       case Some(promise) => promise.asInstanceOf[Promise[ParHDM[_,_]]]
       case none => null
     }
 
-    val jobMsg = SerializedJobMsg(HDMContext.appName, HDMContext.version, jobBytes,
-      HDMContext.leaderPath.get() + "/"+ HDMContext.JOB_RESULT_DISPATCHER, parallelism)
+    val jobMsg = SerializedJobMsg(appContext.appName, appContext.version, jobBytes,
+      hDMContext.leaderPath.get() + "/"+ HDMContext.JOB_RESULT_DISPATCHER, parallelism)
     Thread.sleep(100)
     SmsSystem.askAsync(context, jobMsg)
     Thread.sleep(50000)
@@ -57,10 +59,10 @@ class RemoteDependencySubmitTest {
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
     val parallelism = 2
-    HDMContext.NETTY_BLOCK_SERVER_PORT = 9093
-    HDMContext.appName = "hdm-examples"
-    HDMContext.version = "0.0.1"
-    HDMContext.startAsClient(context, 20011, 9093)
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9093
+    appContext.appName = "hdm-examples"
+    appContext.version = "0.0.1"
+    hDMContext.startAsClient(context, 20011, 9093)
     Thread.sleep(1500)
 
     val benchmark = new Benchmark(context)

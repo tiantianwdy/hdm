@@ -8,6 +8,7 @@ import org.nicta.wdy.hdm.scheduling.Scheduler
 import org.nicta.wdy.hdm.storage.HDMBlockManager
 import org.nicta.wdy.hdm.utils.Logging
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.reflect.ClassTag
 
@@ -33,9 +34,9 @@ trait PhysicalPlanner extends Serializable{
  * {id of the ith block of a dfm } := dfm.id + "_b" + i
  *
  */
-class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) extends PhysicalPlanner with Logging{
+class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hDMContext: HDMContext) extends PhysicalPlanner with Logging{
 
-  def resourceManager = HDMContext.getServerBackend().resourceManager
+  def resourceManager = hDMContext.getServerBackend().resourceManager
 
   def getStaticBlockUrls(hdm: HDM[_]):Seq[String] = hdm match {
     case dfm: ParHDM[_,_] =>
@@ -55,11 +56,11 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
     case ddm: DDM[_,R] =>
       Seq(ddm)
     case leafHdm:DFM[_,String] if(input == null || input.isEmpty) =>
-      val children = DataParser.explainBlocks(leafHdm.location)
+      val children = DataParser.explainBlocks(leafHdm.location, hDMContext, leafHdm.appContext)
       if(leafHdm.keepPartition) {
         val func = target.func.asInstanceOf[ParallelFunction[String,R]]
-        val mediator = children.map(ddm => new DFM(id = leafHdm.id + "_b" +children.indexOf(ddm), children = Seq(ddm), dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner))
-        val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), parallelism = mediator.size)
+        val mediator = children.map(ddm => new DFM(id = leafHdm.id + "_b" +children.indexOf(ddm), children = Seq(ddm), dependency = target.dependency, func = func, parallelism = 1, location = Path(hDMContext.clusterBlockPath), partitioner = target.partitioner, appContext = leafHdm.appContext))
+        val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), parallelism = mediator.size, location = Path(hDMContext.clusterBlockPath), appContext = leafHdm.appContext)
         children ++ mediator :+ newParent
       } else {
 //        val blockLocations = children.map(hdm => Path(hdm.blocks.head))
@@ -75,15 +76,17 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
         log.warn(s"candidate size: ${candidates.size}. Default parallel: $defParallel .")
         val inputs = if (candidates.size == defParallel) {
           log.warn("group input data by MinminScheduling.")
-          PlanningUtils.groupDDMByMinminScheduling(children, candidates)
+          PlanningUtils.groupDDMByMinminScheduling(children, candidates, hDMContext)
         } else {
           log.warn("group input data by DDM boundary.")
           PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[String, String]]]]
         }
         val func = target.func.asInstanceOf[ParallelFunction[String,R]]
 
-        val mediator = inputs.map(seq => new DFM(id = leafHdm.id + "_b" + inputs.indexOf(seq), children = seq, dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner))
-        val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), dependency = target.dependency, parallelism = defParallel, partitioner = target.partitioner)
+        val mediator = inputs.map{seq =>
+          new DFM(id = leafHdm.id + "_b" + inputs.indexOf(seq), children = seq, dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner, location = Path(hDMContext.clusterBlockPath), appContext = leafHdm.appContext)
+        }
+        val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), dependency = target.dependency, parallelism = defParallel, partitioner = target.partitioner, location = Path(hDMContext.clusterBlockPath), appContext = leafHdm.appContext)
         children ++ mediator :+ newParent
       }
 
@@ -91,8 +94,8 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
       val children = dfm.children.map(_.asInstanceOf[DDM[_, I]])
       val inputs = PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[_,I]]]]
       val func = target.func
-      val mediator = inputs.map(seq => new DFM(id = dfm.id + "_b" + inputs.indexOf(seq), children = seq, dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner))
-      val newParent = new DFM(id = dfm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), dependency = target.dependency, parallelism = defParallel, partitioner = target.partitioner)
+      val mediator = inputs.map(seq => new DFM(id = dfm.id + "_b" + inputs.indexOf(seq), children = seq, dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner, location = Path(hDMContext.clusterBlockPath), appContext = dfm.appContext))
+      val newParent = new DFM(id = dfm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), dependency = target.dependency, parallelism = defParallel, partitioner = target.partitioner, location = Path(hDMContext.clusterBlockPath), appContext = dfm.appContext)
       children ++ mediator :+ newParent
 
     case dfm:DFM[I,R] =>
@@ -112,9 +115,9 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
         }
         for(index <- 0 until groupedIds.size) inputArray(index % defParallel) ++= groupedIds(index)
       }
-      val newInput = inputArray.map(seq => seq.map(pid => new DDM(id = pid, location = null, func = new NullFunc[I])))
+      val newInput = inputArray.map(seq => seq.map(pid => new DDM(id = pid, location = null, func = new NullFunc[I], appContext = dfm.appContext, blocks = mutable.Buffer(hDMContext.localBlockPath + "/" + pid))))
       val pHdms = newInput.map(seq => dfm.copy(id = dfm.id + "_b" + newInput.indexOf(seq), children = seq.asInstanceOf[Seq[ParHDM[_, I]]], parallelism = 1))
-      val newParent = new DFM(id = dfm.id, children = pHdms.toIndexedSeq, func = new ParUnionFunc[R], dependency = dfm.dependency, partitioner = dfm.partitioner, parallelism = defParallel)
+      val newParent = new DFM(id = dfm.id, children = pHdms.toIndexedSeq, func = new ParUnionFunc[R], dependency = dfm.dependency, partitioner = dfm.partitioner, parallelism = defParallel, location = Path(hDMContext.clusterBlockPath), appContext = dfm.appContext)
       pHdms :+ newParent
 
 
@@ -149,8 +152,8 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
           }
         }
       }
-      val newInput1 = inputArray.map(seq => seq(0).map(pid => new DDM(id = pid, location = null, func = new NullFunc[dualDFM.inType1.type])))
-      val newInput2 = inputArray.map(seq => seq(1).map(pid => new DDM(id = pid, location = null, func = new NullFunc[dualDFM.inType2.type])))
+      val newInput1 = inputArray.map(seq => seq(0).map(pid => new DDM(id = pid, location = null, func = new NullFunc[dualDFM.inType1.type], appContext = dualDFM.appContext, blocks = mutable.Buffer(hDMContext.localBlockPath + "/" + pid))))
+      val newInput2 = inputArray.map(seq => seq(1).map(pid => new DDM(id = pid, location = null, func = new NullFunc[dualDFM.inType2.type], appContext = dualDFM.appContext, blocks = mutable.Buffer(hDMContext.localBlockPath + "/" + pid))))
       val newInputs = newInput1.zip(newInput2)
       val pHdms = newInputs.map{ tup =>
         typedDFM.copy(id =  dualDFM.id + "_b" + newInputs.indexOf(tup),
@@ -163,7 +166,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean) ex
         func = new ParUnionFunc[dualDFM.outType.type],
         dependency = typedDFM.dependency,
         partitioner = typedDFM.partitioner,
-        parallelism = defParallel)
+        parallelism = defParallel, location = Path(hDMContext.clusterBlockPath), appContext = dualDFM.appContext)
       pHdms :+ newParent
   }
 }

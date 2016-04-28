@@ -15,6 +15,7 @@ import scala.reflect.ClassTag
  */
 object ClusterExecutor extends Logging{
 
+  val CORES = Runtime.getRuntime.availableProcessors
 
   val blockManager = HDMBlockManager()
 

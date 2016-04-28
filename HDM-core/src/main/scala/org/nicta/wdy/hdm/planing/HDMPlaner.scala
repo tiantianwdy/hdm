@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.planing
 
+import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.functions.{FlattenFunc, ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.{DataParser, Path}
 import org.nicta.wdy.hdm.model._
@@ -38,11 +39,11 @@ trait DynamicPlaner {
  *
  */
 
-object StaticPlaner extends HDMPlaner {
+class StaticPlaner(hDMContext: HDMContext) extends HDMPlaner {
 
-  val physicalPlaner = new DefaultPhysicalPlanner(HDMBlockManager(), isStatic = true)
+  val physicalPlaner = new DefaultPhysicalPlanner(HDMBlockManager(), isStatic = true, hDMContext)
 
-  val logicalPlanner = new DefaultLocalPlaner
+  val logicalPlanner = new DefaultLocalPlaner(hDMContext.PLANER_PARALLEL_CPU_FACTOR, hDMContext.PLANER_PARALLEL_NETWORK_FACTOR)
 
   /**
    * ordered optimizers

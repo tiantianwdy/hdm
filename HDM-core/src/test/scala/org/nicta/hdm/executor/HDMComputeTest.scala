@@ -2,7 +2,7 @@ package org.nicta.hdm.executor
 
 import org.junit.Test
 import org.nicta.wdy.hdm.model.HDM
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 
 /**
  * Created by Tiantian on 2014/12/16.
@@ -25,6 +25,9 @@ class HDMComputeTest {
         this is line 7
     """.split("\\s+")
 
+  val hDMContext = HDMContext.defaultHDMContext
+
+  val appContext = new AppContext()
 
   @Test
   def HDMComputeTest(){
@@ -33,8 +36,8 @@ class HDMComputeTest {
     import ExecutionContext.Implicits.global
     import scala.util.{Success, Failure}
 
-    HDMContext.init()
-    val hdm = HDM.horizontal(text, text2)
+    hDMContext.init()
+    val hdm = HDM.horizontal(appContext, hDMContext, text, text2)
     val wordCount = hdm.map(w => (w,1)).groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
     wordCount.compute(4) onComplete  {

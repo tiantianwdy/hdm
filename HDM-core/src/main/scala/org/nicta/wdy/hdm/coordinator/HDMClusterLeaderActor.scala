@@ -17,13 +17,13 @@ import scala.util.{Failure, Success}
 /**
  * Created by tiantian on 7/09/15.
  */
-class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int) extends WorkActor {
+class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int , val hDMContext:HDMContext) extends WorkActor {
 
   def this(cores:Int) {
-    this(HDMContext.getServerBackend(), cores)
+    this(HDMContext.defaultHDMContext.getServerBackend(), cores, HDMContext.defaultHDMContext)
   }
 
-  implicit val executorService: ExecutionContext = HDMContext.executionContext
+  implicit val executorService: ExecutionContext = hDMContext.executionContext
 
   def selfPath = self.path.toStringWithAddress(SmsSystem.localAddress).toString
 
@@ -206,7 +206,7 @@ class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int) exte
      */
     case SerializedJobMsg(appName, version, serHDM, resultHandler, parallel) =>
       val appLoader = hdmBackend.dependencyManager.getClassLoader(appName, version)
-      val serializer = HDMContext.defaultSerializer
+      val serializer = hDMContext.defaultSerializer
       val hdm = serializer.deserialize[HDM[_]](ByteBuffer.wrap(serHDM), appLoader)
       val appId = hdmBackend.dependencyManager.appId(appName, version)
       val senderPath = sender.path

@@ -4,7 +4,7 @@ import akka.actor.ActorPath
 import akka.pattern._
 
 import com.baidu.bpit.akka.actors.worker.WorkActor
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.io.{HDMIOManager, Path}
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 import org.nicta.wdy.hdm.message._
@@ -15,6 +15,8 @@ import scala.collection.JavaConversions._
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.ConcurrentHashMap
 
+import scala.collection.mutable
+
 /**
  * Created by Tiantian on 2014/12/18.
  */
@@ -24,6 +26,8 @@ class BlockManagerLeader extends WorkActor {
   val blockManager = HDMBlockManager()
 
   val ioManager = HDMIOManager()
+
+  val hDMContext = HDMContext.defaultHDMContext
 
   val followerMap: java.util.Map[String, AtomicInteger] = new ConcurrentHashMap[String, AtomicInteger]
 
@@ -71,7 +75,7 @@ class BlockManagerLeader extends WorkActor {
         for (location <- locations.toSeq) {
           val path = Path(location)
           if (path.parent != senderPath.toString
-            && path.parent != HDMContext.localBlockPath) {
+            && path.parent != hDMContext.localBlockPath) {
             log.info(s"send remove msg to: [${path.parent}] ")
             context.actorSelection(path.parent) ! RemoveBlockMsg(path.name)
           }
@@ -116,6 +120,7 @@ class BlockManagerLeader extends WorkActor {
 
 class BlockManagerFollower(val leaderPath: String) extends WorkActor {
 
+  val hDMContext = HDMContext.defaultHDMContext
 
   val blockManager = HDMBlockManager()
 
@@ -160,7 +165,9 @@ class BlockManagerFollower(val leaderPath: String) extends WorkActor {
         val id = HDMContext.newLocalId()
         val ddm = new DDM(id = id,
           state = Computed,
-          location = Path(HDMContext.localBlockPath + "/" + id))
+          location = Path(hDMContext.localBlockPath + "/" + id),
+          blocks = mutable.Buffer(hDMContext.localBlockPath + "/" + id),
+          appContext = AppContext())
         context.actorSelection(leaderPath).tell(AddRefMsg(Seq(ddm)), self)
       }
       log.debug(s"A Block data has has been added: [${bl.id}] ")

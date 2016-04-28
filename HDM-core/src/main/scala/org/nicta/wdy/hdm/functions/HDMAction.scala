@@ -16,7 +16,7 @@ object HDMAction {
 
 
   def compute(hdm:HDM[_], parallelism:Int): Future[HDM[_]] = {
-    HDMContext.compute(hdm, parallelism)
+    hdm.hdmContext.compute(hdm, parallelism)
   }
 
 

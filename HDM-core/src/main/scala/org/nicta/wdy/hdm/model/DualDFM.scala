@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.model
 
-import org.nicta.wdy.hdm.executor.{KeepPartitioner, Partitioner, HDMContext}
+import org.nicta.wdy.hdm.executor.{AppContext, KeepPartitioner, Partitioner, HDMContext}
 import org.nicta.wdy.hdm.functions.{DualInputFunction, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.storage.{Declared, BlockState}
@@ -18,14 +18,15 @@ class DualDFM[T: ClassTag, U: ClassTag, R: ClassTag](val id: String = HDMContext
                                                      val func: DualInputFunction[T, U, R] = null, //todo be changed to DualInputFunction
                                                      val blocks: Seq[String] = null,
                                                      val distribution: Distribution = Horizontal,
-                                                     val location: Path = Path(HDMContext.clusterBlockPath),
+                                                     val location: Path,
                                                      val preferLocation:Path = null,
                                                      var blockSize:Long = -1,
                                                      var isCache:Boolean = false,
                                                      val state: BlockState = Declared,
                                                      var parallelism: Int = -1, // undefined
                                                      val keepPartition:Boolean = true,
-                                                     val partitioner: Partitioner[R] = new KeepPartitioner[R](1)) extends HDM[R]{
+                                                     val partitioner: Partitioner[R] = new KeepPartitioner[R](1),
+                                                     val appContext: AppContext) extends HDM[R]{
 
   val inType1 = classTag[T]
 
@@ -44,7 +45,7 @@ class DualDFM[T: ClassTag, U: ClassTag, R: ClassTag](val id: String = HDMContext
       blocks, distribution, location, null, blockSize, isCache,
       state, parallelism,
       this.keepPartition && hdm.keepPartition,
-      hdm.partitioner)
+      hdm.partitioner, this.appContext)
   }
 
   def copy(id: String = this.id,
@@ -77,7 +78,8 @@ class DualDFM[T: ClassTag, U: ClassTag, R: ClassTag](val id: String = HDMContext
       state,
       parallelism,
       keepPartition,
-      partitioner)
+      partitioner,
+      this.appContext)
   }
 
   override def toString: String = {

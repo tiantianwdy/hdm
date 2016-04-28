@@ -34,4 +34,19 @@ abstract class ParallelTask [R : ClassTag] extends Serializable with Callable[Se
 
   val createTime: Long = System.currentTimeMillis()
 
+  var blockContext:BlockContext
+
+  @transient
+  protected var hdmContext: HDMContext = HDMContext.defaultHDMContext
+
+  def setHDMContext(hdmContext: HDMContext): ParallelTask[R] ={
+    this.hdmContext = hdmContext
+    this
+  }
+
+  def setBlockContext(blockContext: BlockContext): ParallelTask[R] ={
+    this.blockContext = blockContext
+    this
+  }
+
 }

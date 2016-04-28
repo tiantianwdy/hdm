@@ -111,7 +111,7 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path],
 
   def deserializeBlock(received: Any):Seq[A] = {
     val block = received match {
-      case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[A]](resp.data, classLoader)
+      case resp:FetchSuccessResponse => HDMContext.defaultHDMContext.defaultSerializer.deserialize[Block[A]](resp.data, classLoader)
       case blk: Block[_] => blk.asInstanceOf[Block[A]]
       case x:Any => Block(Seq.empty[A])
     }

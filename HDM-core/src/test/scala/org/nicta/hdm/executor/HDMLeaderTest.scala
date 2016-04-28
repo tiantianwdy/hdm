@@ -1,7 +1,7 @@
 package org.nicta.hdm.executor
 
 import org.junit.{After, Test}
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import com.baidu.bpit.akka.server.SmsSystem
 import com.baidu.bpit.akka.messages.{AddMsg, Query}
 import org.nicta.wdy.hdm.io.Path
@@ -35,9 +35,12 @@ class HDMLeaderTest extends ClusterTestSuite {
         this is line 7
     """.split("\\s+")
 
+  val hDMContext = HDMContext.defaultHDMContext
+
+  val appContext = new AppContext()
 
   def testForDebugging {
-    HDMContext.startAsMaster(8999, testMasterConf)
+    hDMContext.startAsMaster(8999, testMasterConf)
     val rootPath = SmsSystem.rootPath
     println(rootPath)
     //    val addmsg1 = AddMsg(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.BlockManagerLeader", null)
@@ -58,7 +61,7 @@ class HDMLeaderTest extends ClusterTestSuite {
    */
   @Test
   def testLeaderStart() {
-    HDMContext.startAsMaster(8999, testMasterConf)
+    hDMContext.startAsMaster(8999, testMasterConf)
     val rootPath = SmsSystem.rootPath
     println(rootPath)
 
@@ -67,9 +70,9 @@ class HDMLeaderTest extends ClusterTestSuite {
 
   @Test
   def testLocalExecution() {
-    HDMContext.init(leader = "localhost", slots = 4)
+    hDMContext.init(leader = "localhost", slots = 4)
     Thread.sleep(1000)
-    val hdm = HDM.horizontal(text, text2)
+    val hdm = HDM.horizontal(appContext, hDMContext, text, text2)
     val wordCount = hdm.map(w => (w, 1))
       //.groupReduce(_._1, (t1, t2) => (t1._1, t1._2 + t2._2))
 
@@ -87,7 +90,7 @@ class HDMLeaderTest extends ClusterTestSuite {
 
   @Test
   def testHDFSExecution(): Unit = {
-    HDMContext.init(leader = "localhost", slots = 4)
+    hDMContext.init(leader = "localhost", slots = 4)
 
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
     val hdm = HDM(path)
@@ -116,7 +119,7 @@ class HDMLeaderTest extends ClusterTestSuite {
 
   @After
   def after() {
-    HDMContext.shutdown()
+    hDMContext.shutdown()
   }
 }
 

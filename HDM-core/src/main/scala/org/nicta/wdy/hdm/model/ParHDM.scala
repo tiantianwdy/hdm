@@ -11,7 +11,7 @@ import scala.util.Try
 /**
  * Created by tiantian on 25/04/16.
  */
-abstract class ParHDM[T:ClassTag, R:ClassTag] extends  HDM[R] {
+abstract class ParHDM[T:ClassTag, R:ClassTag]() extends  HDM[R] {
 
   val inType = classTag[T]
 

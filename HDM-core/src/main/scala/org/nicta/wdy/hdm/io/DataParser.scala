@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{Path, FileSystem}
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.{Buf, Arr}
 import org.nicta.wdy.hdm.functions.NullFunc
 import org.nicta.wdy.hdm.io.hdfs.HDFSUtils
@@ -15,6 +16,7 @@ import java.io.IOException
 
 import org.nicta.wdy.hdm.utils.Logging
 
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -173,14 +175,24 @@ object DataParser extends Logging{
 
   implicit val maxWaitResponseTime = Duration(600, TimeUnit.SECONDS)
 
-  def explainBlocks(path:Path): Seq[DDM[String,String]] = {
+  def explainBlocks(path:Path, hDMContext: HDMContext, appContext:AppContext = AppContext()): Seq[DDM[String,String]] = {
     path.protocol match {
       case "hdm://" =>
-        Seq(new DDM(id = path.name, location = path, func = new NullFunc[String]))
+        Seq(new DDM(id = path.name, location = path, func = new NullFunc[String], appContext = appContext, blocks = mutable.Buffer(hDMContext.localBlockPath + "/" + path.name)))
       case "hdfs://" =>
-        HDFSUtils.getBlockLocations(path).map(p => new DDM(location = p.path, preferLocation = p.location, blockSize = p.size, func = new NullFunc[String]))
+        HDFSUtils.getBlockLocations(path).map { p =>
+          val id = hDMContext.newLocalId()
+          new DDM(id,
+            location = p.path,
+            preferLocation = p.location,
+            blockSize = p.size,
+            func = new NullFunc[String],
+            blocks = mutable.Buffer(hDMContext.localBlockPath + "/" + id),
+            appContext = appContext)
+        }
       case "file://" =>
-        Seq(new DDM(id = path.name, location = path, func = new NullFunc[String]))
+        val id = path.name
+        Seq(new DDM(id = id, location = path, func = new NullFunc[String], appContext = appContext, blocks = mutable.Buffer(hDMContext.localBlockPath + "/" + id)))
 //      case "mysql://" =>
       case x => throw new IOException("Unsupported protocol:" + path.protocol)
     }

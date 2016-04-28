@@ -100,7 +100,7 @@ class FilterLifting extends  LogicalOptimizer with Logging{
               }
             }.flatten
             log.info(s"Lift filter ${cur.func} in front of ${child.func} .")
-            new DFM(children = newChildren.map(optimize(_)), func = mapFunc, dependency = cur.dependency, partitioner = cur.partitioner.asInstanceOf[Partitioner[R]]).asInstanceOf[ParHDM[_, R]]
+            new DFM(children = newChildren.map(optimize(_)), func = mapFunc, dependency = cur.dependency, partitioner = cur.partitioner, location = cur.location, appContext = cur.appContext).asInstanceOf[ParHDM[_, R]]
           } else {
             val seq = cur.children.map(c => optimize(c.asInstanceOf[HDM[curHDM.inType.type]]))
             curHDM.asInstanceOf[ParHDM[curHDM.inType.type, R]].copy(children = seq)
@@ -148,7 +148,7 @@ object Optimizer {
 
  def combine[I:ClassTag, M:ClassTag, R:ClassTag](first:ParHDM[I,M], second:ParHDM[M, R] ):ParHDM[I,R] = {
     val cFunc = first.func.andThen(second.func)
-    DFM(id = second.id, children = first.children, func = cFunc, partitioner = second.partitioner, parallelism = first.parallelism)
+    DFM(id = second.id, children = first.children, func = cFunc, partitioner = second.partitioner, parallelism = first.parallelism, location = first.location, appContext = first.appContext)
  }
 
 }

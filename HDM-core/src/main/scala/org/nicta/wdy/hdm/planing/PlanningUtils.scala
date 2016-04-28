@@ -119,7 +119,7 @@ object PlanningUtils {
     }
   }
 
-  def groupDDMByMinminScheduling[R](ddms: Seq[DDM[_, R]], candidates: Seq[Path]) = {
+  def groupDDMByMinminScheduling[R](ddms: Seq[DDM[_, R]], candidates: Seq[Path], hDMContext: HDMContext) = {
     val ddmMap = ddms.map(d => (d.id -> d)).toMap[String, DDM[_, R]]
     val tasks = ddms.map { ddm =>
       val id = ddm.id
@@ -127,10 +127,10 @@ object PlanningUtils {
       val inputSize = Seq(ddm.blockSize / 1024)
       SchedulingTask(id, inputLocations, inputSize, ddm.dependency)
     }
-    val plans = HDMContext.schedulingPolicy.plan(tasks, candidates,
-      HDMContext.SCHEDULING_FACTOR_CPU,
-      HDMContext.SCHEDULING_FACTOR_IO,
-      HDMContext.SCHEDULING_FACTOR_NETWORK)
+    val plans = hDMContext.schedulingPolicy.plan(tasks, candidates,
+      hDMContext.SCHEDULING_FACTOR_CPU,
+      hDMContext.SCHEDULING_FACTOR_IO,
+      hDMContext.SCHEDULING_FACTOR_NETWORK)
     val grouped = plans.toSeq.groupBy(_._2).map(group => group._2.map(kv => ddmMap(kv._1))).toSeq
     grouped
   }

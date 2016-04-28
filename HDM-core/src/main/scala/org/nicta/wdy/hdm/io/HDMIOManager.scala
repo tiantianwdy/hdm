@@ -27,7 +27,7 @@ trait HDMIOManager {
 
 object HDMIOManager {
 
-  lazy val defaultIOManager = new AkkaIOManager // todo change to load config
+  lazy val defaultIOManager = new AkkaIOManager(HDMContext.defaultHDMContext) // todo change to load config
 
   def apply():HDMIOManager = {
     defaultIOManager
@@ -38,7 +38,7 @@ object HDMIOManager {
 /**
  *
  */
-class AkkaIOManager extends HDMIOManager {
+class AkkaIOManager(hDMContext: HDMContext) extends HDMIOManager {
 
   val promiseMap = new ConcurrentHashMap[String, Promise[_]]()
 
@@ -53,7 +53,7 @@ class AkkaIOManager extends HDMIOManager {
   override def askBlock(id: String, path: String): Future[Block[_]] = {
     val promise = Promise[Block[_]]
     promiseMap.put(id, promise)
-    HDMContext.queryBlock(id, path)
+    hDMContext.queryBlock(id, path)
     promise.future
   }
 

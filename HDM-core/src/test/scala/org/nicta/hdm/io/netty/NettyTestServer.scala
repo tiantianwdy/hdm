@@ -15,10 +15,12 @@ object NettyTestServer {
   val blkSize = 160*8
 
   val serializer = new JavaSerializer(HDMContext.defaultConf).newInstance()
+  val compressor = HDMContext.defaultHDMContext.getCompressor()
   val blockServer = new NettyBlockServer(9091,
     4,
     HDMBlockManager(),
-    serializer)
+    serializer,
+    compressor)
 
 
   val text =
@@ -38,7 +40,7 @@ object NettyTestServer {
 
 
   def main(args:Array[String]): Unit ={
-    HDMBlockManager.initBlockServer()
+    HDMBlockManager.initBlockServer(HDMContext.defaultHDMContext)
     for(i <- 0 until blkSize){
       val id = s"blk-00$i"
       HDMBlockManager().add(id, Block(id, data2))

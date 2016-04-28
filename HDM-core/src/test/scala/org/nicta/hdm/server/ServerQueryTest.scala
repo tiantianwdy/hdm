@@ -4,7 +4,7 @@ import com.baidu.bpit.akka.configuration.ActorConfig
 import com.baidu.bpit.akka.messages.{Reply, Query}
 import com.baidu.bpit.akka.server.SmsSystem
 import org.junit.Test
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.message._
 
@@ -13,7 +13,12 @@ import org.nicta.wdy.hdm.message._
  */
 class ServerQueryTest {
 
+  val hDMContext = HDMContext.defaultHDMContext
+
+  val appContext = new AppContext()
+
   val masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster/ClusterExecutor"
+
   @Test
   def testAppListQuery (): Unit ={
     val msg = ApplicationsQuery
@@ -30,8 +35,8 @@ class ServerQueryTest {
 
   @Test
   def testAppInstanceQuery (): Unit ={
-    val app = HDMContext.appName
-    val version = HDMContext.version
+    val app = appContext.appName
+    val version = appContext.version
     val msg = ApplicationInsQuery(app, version)
     val resp = SmsSystem.askSync(masterPath, msg)
     println(resp)
@@ -39,8 +44,8 @@ class ServerQueryTest {
 
   @Test
   def testLogicalFLow (): Unit ={
-    val app = HDMContext.appName
-    val version = HDMContext.version
+    val app = appContext.appName
+    val version = appContext.version
     val msg1 = ApplicationInsQuery(app, version)
     val resp1 = SmsSystem.askSync(masterPath, msg1).get.asInstanceOf[ApplicationInsResp]
     println(resp1)
@@ -52,8 +57,8 @@ class ServerQueryTest {
 
   @Test
   def testGetExecutionDAG(): Unit ={
-    val app = HDMContext.appName
-    val version = HDMContext.version
+    val app = appContext.appName
+    val version = appContext.version
     val msg1 = ApplicationInsQuery(app, version)
     val resp1 = SmsSystem.askSync(masterPath, msg1).get.asInstanceOf[ApplicationInsResp]
     println(resp1)

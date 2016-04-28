@@ -15,10 +15,12 @@ import scala.collection.mutable.ArrayBuffer
 class Netty4Test {
 
   val serializer = new JavaSerializer(HDMContext.defaultConf).newInstance()
+  val compressor = HDMContext.defaultHDMContext.getCompressor()
   val blockServer = new NettyBlockServer(9091,
     4,
     HDMBlockManager(),
-    serializer)
+    serializer,
+    compressor)
 
 
   val text =
@@ -59,7 +61,7 @@ class Netty4Test {
       blk.data.map(_.toString) foreach(println(_))
       HDMBlockManager().add(blk.id, blk)
     }
-    val blockFetcher = new NettyBlockFetcher(serializer)
+    val blockFetcher = new NettyBlockFetcher(4, serializer, compressor)
     blockFetcher.init()
     blockFetcher.connect("127.0.0.1", 9091)
     blockFetcher.sendRequest(QueryBlockMsg(Seq("blk-002"), null), blkHandler.asInstanceOf[Any => Unit])

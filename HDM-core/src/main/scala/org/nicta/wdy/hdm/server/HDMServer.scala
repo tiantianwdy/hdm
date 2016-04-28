@@ -64,11 +64,19 @@ object HDMServer {
       }
     })
 
+    val hDMContext = new HDMContext(defaultConf)
+
     if (isMaster)
-      HDMContext.startAsMaster(port, defaultConf)//port, defaultConf
+      hDMContext.startAsMaster(port, defaultConf)//port, defaultConf
     else
-      HDMContext.startAsSlave(parentPath, port, blockServerPort, defaultConf, slots)//parentPath, port, defaultConf
+      hDMContext.startAsSlave(parentPath, port, blockServerPort, defaultConf, slots)//parentPath, port, defaultConf
     println(s"[HDM Node Startted] as ${if (isMaster) "master" else "slave"} at port: $port .")
+
+    Runtime.getRuntime.addShutdownHook(new Thread {
+      override def run(): Unit = {
+        hDMContext.shutdown()
+      }
+    })
   }
 
 

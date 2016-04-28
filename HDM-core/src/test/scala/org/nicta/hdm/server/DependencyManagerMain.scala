@@ -12,7 +12,7 @@ object DependencyManagerMain {
 
   def main(args: Array[String]): Unit ={
 
-    HDMContext.init(slots = 0) // start master
+    HDMContext.defaultHDMContext.init(slots = 0) // start master
     val start = System.currentTimeMillis()
     val file = "/home/tiantian/Dev/lib/hdm/HDM-benchmark-0.0.1.jar"
     val url = new File(file).toURI.toURL

@@ -28,8 +28,9 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
                                           func: ParallelFunction[I, R],
                                           dep: DataDependency,
                                           keepPartition: Boolean = true,
-                                          partitioner: Partitioner[R] = null) extends ParallelTask[R] {
-
+                                          partitioner: Partitioner[R] = null,
+                                          appContext: AppContext,
+                                          var blockContext:BlockContext) extends ParallelTask[R] {
 
   final val inType = classTag[I]
 
@@ -56,9 +57,9 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
       val ouputData = func.apply(inputData)
       log.debug(s"non-iterative shuffle results: ${ouputData.take(10)}")
       val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
-        Seq(DDM[R](taskId, ouputData.toBuffer))
+        Seq(DDM[R](taskId, ouputData.toBuffer, appContext, blockContext, hdmContext))
       } else {
-        partitioner.split(ouputData).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
+        partitioner.split(ouputData).map(seq => DDM(taskId + "_p" + seq._1, seq._2, appContext, blockContext, hdmContext)).toSeq
       }
       ddms
 
@@ -71,9 +72,9 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
     val iterator = new BufferedBlockIterator[I](remoteBlocks)
     val res = func.apply(iterator)
     val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
-      Seq(DDM[R](taskId, res.toBuffer))
+      Seq(DDM[R](taskId, res.toBuffer, appContext, blockContext, hdmContext))
     } else {
-      partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
+      partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2, appContext, blockContext, hdmContext)).toSeq
     }
     ddms
   }
@@ -107,7 +108,7 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
       val received = inputQueue.poll(60, TimeUnit.SECONDS)
       log.debug(s"start processing FetchResponse: ${received}.")
       val block = received match {
-        case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data, classLoader)
+        case resp:FetchSuccessResponse => HDMContext.DEFAULT_SERIALIZER.deserialize[Block[_]](resp.data, classLoader)
         case blk: Block[_] => blk.asInstanceOf[Block[_]]
       }
       aggregator.aggregate(block.asInstanceOf[Block[T]].data.toIterator)
@@ -148,7 +149,7 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
         val received = inputQueue.poll(60, TimeUnit.SECONDS)
         log.debug(s"start processing FetchResponse: ${received}.")
         val block = received match {
-          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data, classLoader)
+          case resp:FetchSuccessResponse => HDMContext.DEFAULT_SERIALIZER.deserialize[Block[_]](resp.data, classLoader)
           case blk: Block[_] => blk.asInstanceOf[Block[_]]
         }
         partialRes = concreteFunc.partialAggregate(block.asInstanceOf[Block[I]].data.toIterator, partialRes)
@@ -161,7 +162,7 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
         val received = inputQueue.poll(60, TimeUnit.SECONDS)
         log.debug(s"start processing FetchResponse: ${received}.")
         val block = received match {
-          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data, classLoader)
+          case resp:FetchSuccessResponse => HDMContext.DEFAULT_SERIALIZER.deserialize[Block[_]](resp.data, classLoader)
           case blk: Block[_] => blk.asInstanceOf[Block[_]]
         }
         partialRes = concreteFunc.partialAggregate(block.asInstanceOf[Block[I]].data.toIterator, partialRes)
@@ -178,7 +179,7 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
         val received = inputQueue.poll(60, TimeUnit.SECONDS)
         log.debug(s"start processing FetchResponse: ${received}.")
         val block = received match {
-          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data, classLoader)
+          case resp:FetchSuccessResponse => HDMContext.DEFAULT_SERIALIZER.deserialize[Block[_]](resp.data, classLoader)
           case blk: Block[_] => blk.asInstanceOf[Block[_]]
         }
         res = func.aggregate(block.asInstanceOf[Block[I]].data.toIterator, res)
@@ -190,7 +191,7 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
         val received = inputQueue.poll(60, TimeUnit.SECONDS)
         log.debug(s"start processing FetchResponse: ${received}.")
         val block = received match {
-          case resp:FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data, classLoader)
+          case resp:FetchSuccessResponse => HDMContext.DEFAULT_SERIALIZER.deserialize[Block[_]](resp.data, classLoader)
           case blk: Block[_] => blk.asInstanceOf[Block[_]]
         }
         res = func.aggregate(block.asInstanceOf[Block[I]].data.toIterator, res)
@@ -201,9 +202,9 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
     }
 
     val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
-      Seq(DDM[R](taskId, res))
+      Seq(DDM[R](taskId, res, appContext, blockContext, hdmContext))
     } else {
-      partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
+      partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2, appContext, blockContext, hdmContext)).toSeq
     }
     ddms
   }
@@ -234,10 +235,10 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
 //    log.trace(s"sequence results: ${data.take(10)}")
     //partition as seq of data
     val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
-      Seq(DDM[R](taskId, data))
+      Seq(DDM[R](taskId, data, appContext, blockContext, hdmContext))
     } else {
       log.trace(s"Partitioning results with ${data.size} with partitioner: [${partitioner}] and partition number ${partitioner.partitionNum} .")
-      partitioner.split(data).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
+      partitioner.split(data).map(seq => DDM(taskId + "_p" + seq._1, seq._2, appContext, blockContext, hdmContext)).toSeq
     }
     log.trace(s"Obtain results of blocks: ${ddms.length} .")
     ddms
@@ -292,9 +293,9 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
 //      println(s"shuffle results: ${res.take(10)}")
     }
     val ddms = if(partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
-      Seq(DDM[R](taskId, res))
+      Seq(DDM[R](taskId, res, appContext, blockContext, hdmContext))
     } else {
-      partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
+      partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2, appContext, blockContext, hdmContext)).toSeq
     }
     ddms
 
@@ -311,10 +312,10 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
     println(s"sequence results: ${data.take(10)}")
     //partition as seq of data
     val ddms = if(partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
-      Seq(DDM[R](taskId, data.toBuffer))
+      Seq(DDM[R](taskId, data.toBuffer, appContext, blockContext, hdmContext))
     } else {
       partitioner.split(data).map(seq =>
-        DDM(taskId + "_p" + seq._1, seq._2, false)
+        DDM(taskId + "_p" + seq._1, seq._2, appContext, blockContext, hdmContext, false)
       ).toSeq
     }
     ddms

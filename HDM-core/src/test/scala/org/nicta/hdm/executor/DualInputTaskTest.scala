@@ -35,6 +35,10 @@ class DualInputTaskTest {
 
   val blkSize = 10
 
+  val hDMContext = HDMContext.defaultHDMContext
+
+  val appContext = new AppContext()
+
   def getNettyBlockLocations(prefix:String, blkSize:Int): Seq[String] ={
     val url = "netty://tiantian-HP-EliteBook-Folio-9470m:9091"
     for (i <- 0 until blkSize) yield {
@@ -45,7 +49,7 @@ class DualInputTaskTest {
   @Test
   def localDualInputTaskTest(): Unit ={
     implicit val executorContext = ClusterExecutorContext()
-    HDMContext.init()
+    hDMContext.init()
 
     val data1Prefix = "Blk1"
     val data2Prefix = "Blk2"
@@ -57,8 +61,8 @@ class DualInputTaskTest {
       val id2 = s"$data2Prefix-$i"
       HDMBlockManager().add(id, Block(id, data3))
       HDMBlockManager().add(id2, Block(id2, data4))
-      val ddm1 = DDM(id, data3)
-      val ddm2 = DDM(id2, data4)
+      val ddm1 = DDM(id, data3, appContext, hDMContext.blockContext(), hDMContext)
+      val ddm2 = DDM(id2, data4, appContext, hDMContext.blockContext(), hDMContext)
       HDMBlockManager().addRef(ddm1)
       HDMBlockManager().addRef(ddm2)
       input1 += ddm1
@@ -73,12 +77,14 @@ class DualInputTaskTest {
 
     val composedFunc = func.andThen(nextFunc)
 
-    val task = new TwoInputTask(appId = HDMContext.appName, version = HDMContext.version,
+    val task = new TwoInputTask(appId = appContext.appName, version = appContext.version,
       taskId = HDMContext.newLocalId(), exeId = "ins-1",
       input1 = input1,
       input2 = input2,
       dep = NToOne,
-      func = composedFunc)
+      func = composedFunc,
+      appContext = appContext,
+      blockContext = hDMContext.blockContext())
     val start = System.currentTimeMillis()
     val res = task.call()
     val end = System.currentTimeMillis()

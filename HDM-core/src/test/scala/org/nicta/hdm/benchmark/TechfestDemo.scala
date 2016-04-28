@@ -2,7 +2,7 @@ package org.nicta.hdm.benchmark
 
 import org.junit.{After, Test}
 import org.nicta.wdy.hdm.examples.{UservisitsSQLBenchmark, IterationBenchmark, KVBasedPrimitiveBenchmark}
-import org.nicta.wdy.hdm.executor.HDMContext
+import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.executor.HDMContext._
 import com.baidu.bpit.akka.messages.{AddMsg, Query}
 import org.nicta.wdy.hdm.io.Path
@@ -31,21 +31,25 @@ class TechfestDemo {
         this is line 7
     """.split("\\s+")
 
+  val hDMContext = HDMContext.defaultHDMContext
+
+  val appContext = new AppContext
+
 
   @Test
   def testStartSlave(): Unit = {
-    HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
+    hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(50000000)
   }
 
 
   @Test
   def testHDFSExecution(): Unit = {
-    HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
+    hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1000)
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
 //    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits")
-    val hdm = HDM(path, false)
+    val hdm = HDM(path, appContext)
 
     val wordCount = hdm.map{ w =>
       val as = w.split(",");
@@ -69,8 +73,8 @@ class TechfestDemo {
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
     val parallelism = 2
-    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    HDMContext.init(leader = context)
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    hDMContext.init(leader = context)
     Thread.sleep(1500)
 
     val benchmark = new IterationBenchmark
@@ -81,21 +85,21 @@ class TechfestDemo {
   @Test
   def testPrimitiveBenchMark(): Unit ={
     val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
-    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings"
+    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
 //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
     val parallelism = 1
     val len = 3
 //    val benchmark = new KVBasedPrimitiveBenchmark(context)
     val benchmark = new KVBasedPrimitiveBenchmark(context = context, kIndex = 0, vIndex = 1)
-    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    HDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1500)
     val hdm =
 //    benchmark.testGroupBy(data,len, parallelism)
 //    benchmark.testMultipleMap(data,len, parallelism)
 //    benchmark.testMultiMapFilter(data,len, parallelism, "a")
-    benchmark.testFindByKey(data,len, parallelism, "a")
-//    benchmark.testReduceByKey(data,len, parallelism)
+//    benchmark.testFindByKey(data,len, parallelism, "a")
+    benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)
 
     onEvent(hdm, "compute")(parallelism)
@@ -127,8 +131,8 @@ class TechfestDemo {
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
     val parallelism = 1
-    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    HDMContext.init(leader = context)
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    hDMContext.init(leader = context)
     Thread.sleep(1500)
 
     val benchmark = new IterationBenchmark
@@ -142,8 +146,8 @@ class TechfestDemo {
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
     implicit val parallelism = 1
-    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    HDMContext.init(leader = context)
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    hDMContext.init(leader = context)
     Thread.sleep(1500)
     var start = System.currentTimeMillis()
     var aggregation = 0F
@@ -181,12 +185,12 @@ class TechfestDemo {
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
 //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/weather"
     val parallelism = 1
-    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    HDMContext.init(leader = context)
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    hDMContext.init(leader = context)
     Thread.sleep(1500)
 
     val benchmark = new IterationBenchmark(1, 1)
-    benchmark.testLinearRegression(data, 1, parallelism)
+    benchmark.testLinearRegression(data, 3, parallelism)
   }
 
   @Test
@@ -196,8 +200,8 @@ class TechfestDemo {
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/weather"
     val parallelism = 1
-    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    HDMContext.init(leader = context)
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    hDMContext.init(leader = context)
     Thread.sleep(1500)
 
     val benchmark = new IterationBenchmark(1, 1)
@@ -210,8 +214,8 @@ class TechfestDemo {
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
     implicit val parallelism = 1
-    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    HDMContext.init(leader = context)
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    hDMContext.init(leader = context)
     Thread.sleep(1500)
 
     val benchmark = new KVBasedPrimitiveBenchmark(context)
@@ -228,8 +232,8 @@ class TechfestDemo {
         val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
 //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/weather"
     implicit val parallelism = 1
-    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    HDMContext.init(leader = context)
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    hDMContext.init(leader = context)
     Thread.sleep(1500)
 
     val benchmark = new UservisitsSQLBenchmark
@@ -247,8 +251,8 @@ class TechfestDemo {
     val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
     implicit val parallelism = 1
-    HDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    HDMContext.init(leader = context)
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    hDMContext.init(leader = context)
     Thread.sleep(1500)
 
     val hdm = HDM(path)
@@ -269,7 +273,7 @@ class TechfestDemo {
 
   @After
   def after() {
-    HDMContext.shutdown()
+    hDMContext.shutdown()
   }
 
 }

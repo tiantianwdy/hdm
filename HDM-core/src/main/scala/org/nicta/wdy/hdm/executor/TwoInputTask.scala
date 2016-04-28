@@ -26,7 +26,9 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
                                                                func: DualInputFunction[T, U, R],
                                                                dep: DataDependency,
                                                                keepPartition: Boolean = true,
-                                                               partitioner: Partitioner[R] = null) extends ParallelTask[R] {
+                                                               partitioner: Partitioner[R] = null,
+                                                               appContext: AppContext,
+                                                               var blockContext: BlockContext) extends ParallelTask[R] {
 
 
   final val inTypeOne = classTag[T]
@@ -47,9 +49,9 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
     val input2Iter = new BufferedBlockIterator[U](input2)
     val res = func.aggregate((input1Iter, input2Iter), mutable.Buffer.empty[R])
     val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
-      Seq(DDM[R](taskId, res))
+      Seq(DDM[R](taskId, res, appContext, blockContext, hdmContext))
     } else {
-      partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
+      partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2, appContext, blockContext, hdmContext)).toSeq
     }
     ddms
   }
@@ -77,7 +79,7 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
       val emptyInput2 = Seq.empty[U].toIterator
       log.info(s"start processing FetchResponse: ${received}.")
       val block = received match {
-        case resp: FetchSuccessResponse => HDMContext.defaultSerializer.deserialize[Block[_]](resp.data, classLoader)
+        case resp: FetchSuccessResponse => HDMContext.DEFAULT_SERIALIZER.deserialize[Block[_]](resp.data, classLoader)
         case blk: Block[_] => blk.asInstanceOf[Block[_]]
       }
       inputIdxMap.get(block.id) match {
@@ -111,9 +113,9 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
     }
 
     val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
-      Seq(DDM[R](taskId, res))
+      Seq(DDM[R](taskId, res, appContext, blockContext, hdmContext))
     } else {
-      partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2)).toSeq
+      partitioner.split(res).map(seq => DDM(taskId + "_p" + seq._1, seq._2, appContext, blockContext, hdmContext)).toSeq
     }
     ddms
   }

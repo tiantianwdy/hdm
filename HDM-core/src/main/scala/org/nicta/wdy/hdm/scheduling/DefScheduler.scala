@@ -118,7 +118,9 @@ class DefScheduler(val blockManager:HDMBlockManager,
           input = h.children.asInstanceOf[Seq[ParHDM[_, hdm.inType.type]]],
           func = h.func.asInstanceOf[ParallelFunction[hdm.inType.type, h.outType.type]],
           dep = h.dependency,
-          partitioner = h.partitioner.asInstanceOf[Partitioner[h.outType.type]])
+          partitioner = h.partitioner.asInstanceOf[Partitioner[h.outType.type]],
+          appContext = hdm.appContext,
+          blockContext = HDMContext.defaultHDMContext.blockContext())
         addTask(task)
       }
     }.last.future
@@ -134,7 +136,7 @@ class DefScheduler(val blockManager:HDMBlockManager,
         ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
-    HDMContext.declareHdm(Seq(ref))
+    HDMContext.defaultHDMContext.declareHdm(Seq(ref))
     log.info(s"A task is succeeded : [${taskId + "_" + func}}] ")
     val promise = promiseManager.removePromise(taskId).asInstanceOf[Promise[ParHDM[_, _]]]
     if (promise != null && !promise.isCompleted ){

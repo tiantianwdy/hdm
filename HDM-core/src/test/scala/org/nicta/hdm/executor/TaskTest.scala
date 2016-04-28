@@ -2,7 +2,7 @@ package org.nicta.hdm.executor
 
 import com.baidu.bpit.akka.server.SmsSystem
 import org.junit.Test
-import org.nicta.wdy.hdm.executor.{ClusterExecutor, ClusterExecutorContext, Task, HDMContext}
+import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions.ParallelFunction
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.{DFM, DDM, ParHDM, HDM}
@@ -15,28 +15,33 @@ import scala.util.{Failure, Success}
  */
 class TaskTest extends ClusterTestSuite {
 
+  val hDMContext = HDMContext.defaultHDMContext
+
+  val appContext = new AppContext()
 
   @Test
   def testHDFSLoadTask(): Unit = {
     implicit val executorContext = ClusterExecutorContext()
-    HDMContext.init()
+    hDMContext.init()
     val maxTaskNum = 2
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/")
     val rootPath = SmsSystem.rootPath
     println(rootPath)
     val hdm = HDM(path)
-    val hdms = HDMContext.explain(hdm, 4).physicalPlan
+    val hdms = hDMContext.explain(hdm, 4).physicalPlan
     hdms foreach (println(_))
     var curNum = 0
     hdms foreach { h =>
       HDMBlockManager().addRef(h)
       if (h.isInstanceOf[DFM[_,_]] && curNum < maxTaskNum){
         val dfm = h.asInstanceOf[DFM[_,_]]
-        val task = Task(appId = HDMContext.appName, version = HDMContext.version,
+        val task = Task(appId = appContext.appName, version = appContext.version,
           taskId = h.id, exeId = "",
           input = h.children.asInstanceOf[Seq[ParHDM[_, dfm.inType.type]]],
           dep = h.dependency,
-          func = h.func.asInstanceOf[ParallelFunction[dfm.inType.type, dfm.outType.type]])
+          func = h.func.asInstanceOf[ParallelFunction[dfm.inType.type, dfm.outType.type]],
+          appContext = appContext,
+          blockContext = hDMContext.blockContext())
         ClusterExecutor.runTaskConcurrently(task)
         curNum += 1
       }
@@ -49,7 +54,7 @@ class TaskTest extends ClusterTestSuite {
     implicit val executorContext = ClusterExecutorContext()
 
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/part-00001")
-    HDMContext.init()
+    hDMContext.init()
     val hdm = HDM(path)
     hdm.compute(4) onComplete {
       case Success(hdm) =>

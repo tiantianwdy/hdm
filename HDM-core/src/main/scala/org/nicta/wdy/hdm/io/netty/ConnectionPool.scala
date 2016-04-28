@@ -2,6 +2,8 @@ package org.nicta.wdy.hdm.io.netty
 
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.{CopyOnWriteArrayList, LinkedBlockingQueue, ArrayBlockingQueue}
+import org.nicta.wdy.hdm.io.CompressionCodec
+import org.nicta.wdy.hdm.serializer.SerializerInstance
 import org.nicta.wdy.hdm.utils.Logging
 
 import scala.collection.JavaConversions._
@@ -9,7 +11,7 @@ import scala.collection.JavaConversions._
 /**
  * Created by tiantian on 8/06/15.
  */
-class ConnectionPool(val poolSize:Int, val host:String, val port:Int) extends Logging {
+class ConnectionPool(val poolSize:Int, val host:String, val port:Int, threadsPerCon:Int, serializerInstance:SerializerInstance, compressor:CompressionCodec) extends Logging {
 
   val pool = new CopyOnWriteArrayList[NettyBlockFetcher]()
   val index = new AtomicInteger(0)
@@ -20,7 +22,7 @@ class ConnectionPool(val poolSize:Int, val host:String, val port:Int) extends Lo
     val nextIdx = index.getAndIncrement % poolSize
     if(pool.length - 1 < nextIdx){
       //fill the pool on new index
-      val con = NettyConnectionManager.createConnection(host, port)
+      val con = NettyConnectionManager.createConnection(host, port, threadsPerCon, serializerInstance, compressor)
       pool.add(con)
       con
     } else {
@@ -29,7 +31,7 @@ class ConnectionPool(val poolSize:Int, val host:String, val port:Int) extends Lo
       else {
         con.shutdown()
         pool.remove(con)
-        val nCon = NettyConnectionManager.createConnection(host, port)
+        val nCon = NettyConnectionManager.createConnection(host, port, threadsPerCon, serializerInstance, compressor)
         pool.update(nextIdx, nCon)
         nCon
       }

@@ -16,7 +16,7 @@ import scala.collection.mutable.ArrayBuffer
 class CompressorTest {
 
   val serializer = new JavaSerializer(HDMContext.defaultConf).newInstance()
-  val compressor = HDMContext.getCompressor()
+  val compressor = HDMContext.defaultHDMContext.getCompressor()
 
 
   val text =

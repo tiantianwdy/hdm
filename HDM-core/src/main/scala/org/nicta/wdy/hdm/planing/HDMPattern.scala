@@ -105,7 +105,7 @@ object FilterPushingOverMap extends HDMRule with Logging{
               }
             }.flatten
             log.info(s"Lift filter ${cur.func} in front of ${child.func} .")
-            new DFM(children = newChildren, func = mapFunc, dependency = cur.dependency, partitioner = cur.partitioner).asInstanceOf[ParHDM[_, R]]
+            new DFM(children = newChildren, func = mapFunc, dependency = cur.dependency, partitioner = cur.partitioner, location = cur.location, appContext = cur.appContext).asInstanceOf[ParHDM[_, R]]
           } else {
             val seq = cur.children.map(c => c.asInstanceOf[HDM[curHDM.inType.type]])
             curHDM.asInstanceOf[ParHDM[curHDM.inType.type, R]].copy(children = seq)
