@@ -2,6 +2,7 @@ var color = d3.scale.category20();
 
 var colorArray = ["lightsteelblue", "LimeGreen", "gold", "steelblue", "green", "blue", "red", "purple",  "black"];
 
+
 var  d3dag = {
         displayGraph: function (graphData, dagNameElem, svgElem, dir) {
             dagNameElem.text(graphData.name);
@@ -10,9 +11,13 @@ var  d3dag = {
         },
 
         renderGraph: function(graphData, svgParent, dir) {
+            var divId = svgParent + "tooltip"
             var div = d3.select("body").append("div")
-              .attr("class", "tooltip")
-              .style("opacity", 0);
+              .attr("class", "tabletooltip")
+              .style("opacity", 0)
+//              .append("table")
+//              .attr("class", "table table-striped")
+              .attr("id", divId);
 
             var nodes = graphData.nodes;
             var links = graphData.links;
@@ -129,21 +134,43 @@ var  d3dag = {
                     var input = this.renderArray(d.input);
                     var output = this.renderArray(d.output);
 
-                    div.html("Id: " + d.id
-                        + "<br/>" + "Name : " + d.name
-                        + "<br/>" + "Type : " + d.type
-                        + "<br/>" + "Func : " + d.func
-                        + "<br/>" + "Location : " + d.location
-                        + "<br/>" + "Dependency : " + d.dependency
-                        + "<br/>" + "Parallelism : " + d.parallelism
-                        + "<br/>" + "Partitioner : " + d.partitioner
-                        + "<br/>" + "StartTime : " + d.startTime
-                        + "<br/>" + "EndTime : " + d.endTime
-                        + "<br/>" + "State : " + d.status
-                        + "<br/>" + "Input : "  + input
-                        + "<br/>" + "Output : "  + output)
-                        .style("left", (d3.event.pageX) + "px")
-                        .style("top", (d3.event.pageY + 10) + "px");
+
+                    var headings = new Array("Property", "Value")
+                    var tableData = new Array()
+                    tableData.push(new Array("Id", d.id))
+                    tableData.push(new Array("Name", d.name))
+                    tableData.push(new Array("Type", d.type))
+                    tableData.push(new Array("Func", d.func))
+                    tableData.push(new Array("Location", d.location))
+                    tableData.push(new Array("Dependency", d.dependency))
+                    tableData.push(new Array("Parallelism", d.parallelism))
+                    tableData.push(new Array("Partitioner", d.partitioner))
+                    tableData.push(new Array("StartTime", d.startTime))
+                    tableData.push(new Array("EndTime", d.endTime))
+                    tableData.push(new Array("State", d.status))
+                    tableData.push(new Array("Input", d.input))
+                    tableData.push(new Array("Output", d.output))
+                    clear(div.attr('id'))
+                    addTable(div.attr('id'), headings, tableData)
+
+                    div.style("left", (d3.event.pageX) + "px")
+                       .style("top", (d3.event.pageY + 10) + "px");
+
+//                    div.html("Id: " + d.id
+//                        + "<br/>" + "Name : " + d.name
+//                        + "<br/>" + "Type : " + d.type
+//                        + "<br/>" + "Func : " + d.func
+//                        + "<br/>" + "Location : " + d.location
+//                        + "<br/>" + "Dependency : " + d.dependency
+//                        + "<br/>" + "Parallelism : " + d.parallelism
+//                        + "<br/>" + "Partitioner : " + d.partitioner
+//                        + "<br/>" + "StartTime : " + d.startTime
+//                        + "<br/>" + "EndTime : " + d.endTime
+//                        + "<br/>" + "State : " + d.status
+//                        + "<br/>" + "Input : "  + input
+//                        + "<br/>" + "Output : "  + output)
+//                        .style("left", (d3.event.pageX) + "px")
+//                        .style("top", (d3.event.pageY + 10) + "px");
                 }
            },
 

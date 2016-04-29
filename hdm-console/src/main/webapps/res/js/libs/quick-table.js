@@ -12,7 +12,7 @@ function addTable(tableId, headings, table_data) {
     for (i = 0; i < headings.length; i++) {
         var th = document.createElement('TH')
 //      th.width = '75';
-        th.appendChild(document.createTextNode(heading[i]));
+        th.appendChild(document.createTextNode(headings[i]));
         tr.appendChild(th);
 
     }
@@ -32,6 +32,40 @@ function addTable(tableId, headings, table_data) {
     }
 
 }
+
+function quickTable(tableDiv, headings, table_data) {
+
+    var table = tableDiv
+
+    //Create TABLE headings
+    var tableHead = document.createElement('thead')
+    table.appendChild(tableHead);
+    var tr = document.createElement('TR');
+    tableHead.appendChild(tr);
+    for (i = 0; i < headings.length; i++) {
+        var th = document.createElement('TH')
+//      th.width = '75';
+        th.appendChild(document.createTextNode(headings[i]));
+        tr.appendChild(th);
+
+    }
+
+    //TABLE Body
+    var tableBody = document.createElement('tbody')
+    table.appendChild(tableBody);
+
+    for (i = 0; i < table_data.length; i++) {
+        var tr = document.createElement('tr');
+        tableBody.appendChild(tr);
+        for (j = 0; j < table_data[i].length; j++) {
+            var td = document.createElement('td')
+            td.appendChild(document.createTextNode(table_data[i][j]));
+            tr.appendChild(td)
+        }
+    }
+
+}
+
 
 function quickTree(elemId, tree_data, func) {
 
@@ -99,7 +133,8 @@ function quickTree(elemId, tree_data, func) {
 }
 
 function clear(elementId){
-    document.getElementById(elementId).innerHTML = ""
+    var elem = document.getElementById(elementId);
+    if (elem) elem.innerHTML = "";
 }
 
 
