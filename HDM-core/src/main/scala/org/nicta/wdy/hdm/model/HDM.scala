@@ -59,7 +59,14 @@ abstract class HDM[R: ClassTag] extends Serializable {
 
   var isCache: Boolean
 
-  var depth: Int = 0
+  var depth:Int = 0
+
+  // index of this hdm when partitioned
+  var index:Int = 0
+
+  def withIdx(idx:Int) = {
+    index = idx
+  }
 
   var isCompress: Boolean = false
 
@@ -90,8 +97,16 @@ abstract class HDM[R: ClassTag] extends Serializable {
                                                dep:DataDependency = OneToOne,
                                                keepPartition:Boolean = true,
                                                partitioner:Partitioner[U] = new KeepPartitioner[U](1)): ParHDM[R, U] = {
-
+    ClosureCleaner(mapAll)
     new DFM[R, U](children = Seq(this), dependency = dep, func = new ParMapAllFunc(mapAll), distribution = distribution, location = location, keepPartition = keepPartition, partitioner = partitioner, appContext = this.appContext)
+
+  }
+
+  protected[hdm] def mapPartitionsWithIdx[U:ClassTag](mapAll:(Long, Arr[R]) => Arr[U],
+                                               keepPartition:Boolean = true,
+                                               partitioner:Partitioner[U] = new KeepPartitioner[U](1)): ParHDM[R, U] = {
+    ClosureCleaner(mapAll)
+    new DFM[R, U](children = Seq(this), dependency = OneToOne, func = new ParMapWithIndexFunc(mapAll), distribution = distribution, location = location, keepPartition = keepPartition, partitioner = partitioner, appContext = this.appContext)
 
   }
 
@@ -221,6 +236,30 @@ abstract class HDM[R: ClassTag] extends Serializable {
       arr.flatMap{ tup =>
         for{r <- tup._2._1; u <- tup._2._2} yield {(tup._1, r, u)}
       }
+    }
+  }
+
+
+  def zipWithIndex(implicit parallelism:Int): HDM[(Long, R)] = {
+    import scala.collection.mutable
+
+    // get the start indices of each partition
+    val lengthOfPartitions = this.mapPartitionsWithIdx{ (idx, arr) =>
+      Arr((idx, arr.size))}.collect().toMap
+    val indices = mutable.HashMap.empty[Long, Long]
+    indices += 0L -> 0L // start index of partition 0 set to 0
+    if(lengthOfPartitions.size > 1){
+      for(idx <- 0L until lengthOfPartitions.size -1){
+        indices += (idx + 1) -> (indices(idx) +lengthOfPartitions(idx))
+      }
+    }
+
+    indices.foreach(println(_))
+
+    // zip elements with global indices
+    this.mapPartitionsWithIdx{ (idx, arr) =>
+      val localIdx = indices
+      arr.zipWithIndex.map(_.swap).map(t => (t._1 + localIdx(idx), t._2) )
     }
   }
 

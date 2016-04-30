@@ -1,7 +1,10 @@
 package org.nicta.wdy.hdm.functions
 
 
+import java.util.concurrent.atomic.AtomicReference
+
 import org.nicta.wdy.hdm.collections.BufUtils
+import org.nicta.wdy.hdm.executor.TaskContext
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.utils.SortingUtils
 import org.nicta.wdy.hdm.{Arr, Buf}
@@ -29,9 +32,25 @@ abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFu
 
   val dependency:FuncDependency
 
+  @transient
+  protected var runTimeContext:AtomicReference[TaskContext] = new  AtomicReference[TaskContext]()
+
+  def setTaskContext(context:TaskContext) = {
+    if(runTimeContext == null) runTimeContext = new  AtomicReference[TaskContext]()
+    runTimeContext.set(context)
+  }
+
+  def removeTaskContext() = runTimeContext.set(null)
+
+  def getTaskContext() = runTimeContext.get()
+
   def has(feature:FunctionFeature):Boolean = ParallelFunction.hasFeature(this, feature)
 
   def none(feature:FunctionFeature):Boolean = !has(feature)
+
+//  def andThen[U:ClassTag](func: ParallelFunction[R, U]): ParallelFunction[T, U] = {
+//    new ParChainedFunc(this, func)
+//  }
 
   def andThen[U:ClassTag](func: ParallelFunction[R, U]): ParallelFunction[T, U] = {
     val f = (seq:Arr[T]) => func(this.apply(seq))
@@ -41,13 +60,13 @@ abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFu
         func.aggregate(this.apply(seq), res)
       }
       val post = (b:Arr[U]) => b
-      new ParCombinedFunc[T,U,U](dependency= combinedDep, parallel = f, preF = f, aggregation = a, postF = post)
+      new ParCombinedFunc[T,U,U](dependency= combinedDep, parallel = f, preF = f, aggregation = a, postF = post, parentFunc = this, curFUnc = func)
     } else {//if(this.dependency == FullDep)
       val a = (seq: Arr[T], res: Buf[R]) => {
         this.aggregate(seq, res)
       }
       val post = (b:Arr[R]) => func.apply(b)
-      new ParCombinedFunc[T,R,U](dependency= combinedDep, parallel = f, preF = this.apply(_), aggregation = a, postF = post)
+      new ParCombinedFunc[T,R,U](dependency= combinedDep, parallel = f, preF = this.apply(_), aggregation = a, postF = post, parentFunc = this, curFUnc = func)
     }
   }
 
@@ -59,13 +78,13 @@ abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFu
         this.aggregate(func.apply(seq), res)
       }
       val post = (b:Arr[R]) => b
-      new ParCombinedFunc[I,R,R](dependency= combinedDep, parallel = f, preF = f, aggregation = a, postF = post)
+      new ParCombinedFunc[I,R,R](dependency= combinedDep, parallel = f, preF = f, aggregation = a, postF = post, parentFunc = func, curFUnc = this)
     } else {//if(func.dependency == FullDep)
     val a = (seq: Arr[I], res: Buf[T]) => {
         func.aggregate(seq, res)
       }
       val post = (b:Arr[T]) => this.apply(b)
-      new ParCombinedFunc[I,T,R](dependency= combinedDep, parallel = f, preF = func.apply(_), aggregation = a, postF = post)
+      new ParCombinedFunc[I,T,R](dependency= combinedDep, parallel = f, preF = func.apply(_), aggregation = a, postF = post, parentFunc = func, curFUnc = this)
     }
   }
 
@@ -86,6 +105,7 @@ class ParMapFunc [T:ClassTag,R:ClassTag](val f: T=>R)  extends ParallelFunction[
     if(func.isInstanceOf[ParMapFunc[_,_]]){
       val nf = func.asInstanceOf[ParMapFunc[R,U]]
       new ParMapFunc(f.andThen(nf.f))
+//      super.andThen(func)
     } else if(func.isInstanceOf[ParFindByFunc[_]]){
       val nf = func.asInstanceOf[ParFindByFunc[R]]
       val mapAll = (seq:Arr[T]) => {
@@ -121,6 +141,31 @@ class ParMapAllFunc [T:ClassTag,R:ClassTag](val f: Arr[T]=>Arr[R])  extends Para
   override def aggregate(params: Arr[T], res: Buffer[R]): Buffer[R] = {
 //    res ++= f(params)
     BufUtils.combine(res, f(params))
+  }
+}
+
+
+/**
+ * function apply on each partition of data with awareness of the global index
+ * @param f
+ * @tparam T input type
+ * @tparam R return type
+ */
+class ParMapWithIndexFunc [T:ClassTag,R:ClassTag](val f: (Long, Arr[T]) => Arr[R])  extends ParallelFunction[T,R] {
+
+
+  val dependency = FullDep
+
+
+  override def apply(params: Arr[T]): Arr[R] = {
+    val idx = getTaskContext().taskIdx
+    f(idx, params)
+  }
+
+  override def aggregate(params: Arr[T], res: Buffer[R]): Buffer[R] = {
+    //    res ++= f(params)
+    val idx = getTaskContext().taskIdx
+    BufUtils.combine(res, f(idx, params))
   }
 }
 
@@ -341,7 +386,17 @@ class NullFunc[T: ClassTag] extends ParallelFunction[T,T] {
 class ParCombinedFunc [T:ClassTag,U:ClassTag,R:ClassTag](val dependency:FuncDependency, parallel: Arr[T]=>Arr[R],
                                                          val preF: Arr[T]=>Arr[U],
                                                          val aggregation:(Arr[T], Buf[U]) => Buf[U],
-                                                         val postF: Arr[U] => Arr[R])  extends ParallelFunction[T,R]  {
+                                                         val postF: Arr[U] => Arr[R],
+                                                         var parentFunc:ParallelFunction[T,_],
+                                                         var curFUnc:ParallelFunction[_,R])  extends ParallelFunction[T,R]  {
+
+
+  override def setTaskContext(context: TaskContext): Unit = {
+    parentFunc.setTaskContext(context)
+    curFUnc.setTaskContext(context)
+    if(runTimeContext == null) runTimeContext = new  AtomicReference[TaskContext]()
+    runTimeContext.set(context)
+  }
 
   override def apply(params: Arr[T]): Arr[R] = {
     parallel(params)

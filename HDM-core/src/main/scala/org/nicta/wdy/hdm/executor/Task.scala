@@ -27,6 +27,7 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
                                           input: Seq[ParHDM[_, I]],
                                           func: ParallelFunction[I, R],
                                           dep: DataDependency,
+                                          idx:Int = 0,
                                           keepPartition: Boolean = true,
                                           partitioner: Partitioner[R] = null,
                                           appContext: AppContext,
@@ -39,6 +40,7 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
   implicit val maxWaitResponseTime = Duration(600, TimeUnit.SECONDS)
 
   override def call() = try {
+    func.setTaskContext(TaskContext(this))
     if(dep == OneToOne || dep == OneToN)
       runSequenceTask()
     else
@@ -47,6 +49,8 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
     case e : Throwable =>
       e.printStackTrace()
       throw e
+  } finally {
+    func.removeTaskContext()
   }
 
 

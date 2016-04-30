@@ -22,6 +22,8 @@ abstract class ParallelTask [R : ClassTag] extends Serializable with Callable[Se
 
   val taskId: String
 
+  val idx:Int
+
   def input:Seq[HDM[_]]
 
   val dep: DataDependency

@@ -116,7 +116,7 @@ class TechfestDemo {
       }
     case "sample" =>
       //      val start = System.currentTimeMillis()
-      hdm.sample(25, 500000)foreach(println(_))
+      hdm.sample(100, 500000)foreach(println(_))
     case "collect" =>
       val start = System.currentTimeMillis()
       val itr = hdm.collect()
@@ -270,6 +270,29 @@ class TechfestDemo {
     onEvent(res, "sample")
     Thread.sleep(15000000)
   }
+
+  @Test
+  def testZipIndex(): Unit ={
+    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
+    implicit val parallelism = 1
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    hDMContext.init(leader = context)
+    Thread.sleep(1500)
+
+    val hdm = HDM(path)
+    val data1 = hdm
+
+    val data2 = hdm.map{ w =>
+      val as = w.split(",")
+      (as(2).toInt, as(1))
+    }
+
+    val res = data2
+    res.zipWithIndex.collect().take(200).foreach(println(_))
+    Thread.sleep(15000000)
+  }
+
 
   @After
   def after() {

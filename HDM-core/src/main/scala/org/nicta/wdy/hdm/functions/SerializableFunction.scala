@@ -41,3 +41,10 @@ trait Mergeable[R]{
   def merge(params:Seq[R], res:Buffer[R]): Buffer[R]
 
 }
+
+
+object SerializableFunction extends  Serializable{
+
+
+
+}

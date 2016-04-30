@@ -25,6 +25,7 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
                                                                input2: Seq[HDM[U]],
                                                                func: DualInputFunction[T, U, R],
                                                                dep: DataDependency,
+                                                               idx:Int = 0,
                                                                keepPartition: Boolean = true,
                                                                partitioner: Partitioner[R] = null,
                                                                appContext: AppContext,
@@ -39,9 +40,11 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
 
   override lazy val input = input1 ++ input2
 
-  override def call(): Seq[DDM[_, R]] = {
+  override def call(): Seq[DDM[_, R]] = try {
+    func.setTaskContext(TaskContext(this))
     runTaskAsynchronously()
-
+  } finally {
+    func.removeTaskContext()
   }
 
   def runTaskIteratively(): Seq[DDM[_, R]] ={

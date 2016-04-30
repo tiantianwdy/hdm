@@ -1,6 +1,7 @@
 package org.nicta.wdy.hdm.functions
 
 import org.nicta.wdy.hdm._
+import org.nicta.wdy.hdm.executor.TaskContext
 
 import scala.collection.mutable.{Buffer, HashMap}
 import scala.reflect.ClassTag
@@ -10,6 +11,14 @@ import scala.reflect.ClassTag
  */
 abstract class DualInputFunction[T: ClassTag, U: ClassTag, R: ClassTag] extends SerializableFunction[(Arr[T], Arr[U]), Arr[R]] with Aggregatable[(Arr[T], Arr[U]), Buf[R]] {
 
+
+  private val runTimeContext:ThreadLocal[TaskContext] = new  ThreadLocal[TaskContext]()
+
+  def setTaskContext(context:TaskContext) = runTimeContext.set(context)
+
+  def removeTaskContext() = runTimeContext.remove()
+
+  def getTaskContext() = runTimeContext.get()
 
   def andThen[V: ClassTag](func:ParallelFunction[R, V]):DualInputFunction[T, U, V] = {
     this match {
