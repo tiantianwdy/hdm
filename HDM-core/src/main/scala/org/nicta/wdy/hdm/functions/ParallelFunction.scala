@@ -48,45 +48,49 @@ abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFu
 
   def none(feature:FunctionFeature):Boolean = !has(feature)
 
-//  def andThen[U:ClassTag](func: ParallelFunction[R, U]): ParallelFunction[T, U] = {
-//    new ParChainedFunc(this, func)
-//  }
-
   def andThen[U:ClassTag](func: ParallelFunction[R, U]): ParallelFunction[T, U] = {
-    val f = (seq:Arr[T]) => func(this.apply(seq))
-    val combinedDep = if(this.dependency == FullDep || func.dependency == FullDep) FullDep else PartialDep
-    if(this.dependency == PartialDep) {
-      val a = (seq: Arr[T], res: Buf[U]) => {
-        func.aggregate(this.apply(seq), res)
-      }
-      val post = (b:Arr[U]) => b
-      new ParCombinedFunc[T,U,U](dependency= combinedDep, parallel = f, preF = f, aggregation = a, postF = post, parentFunc = this, curFUnc = func)
-    } else {//if(this.dependency == FullDep)
-      val a = (seq: Arr[T], res: Buf[R]) => {
-        this.aggregate(seq, res)
-      }
-      val post = (b:Arr[R]) => func.apply(b)
-      new ParCombinedFunc[T,R,U](dependency= combinedDep, parallel = f, preF = this.apply(_), aggregation = a, postF = post, parentFunc = this, curFUnc = func)
-    }
+    ParCombinedFunc(this, func)
   }
 
   def compose[I:ClassTag](func: ParallelFunction[I, T]): ParallelFunction[I, R] = {
-    val f = (seq:Arr[I]) => this.apply(func.apply(seq))
-    val combinedDep = if(func.dependency == FullDep || this.dependency == FullDep) FullDep else PartialDep
-    if(func.dependency == PartialDep) {
-      val a = (seq: Arr[I], res: Buf[R]) => {
-        this.aggregate(func.apply(seq), res)
-      }
-      val post = (b:Arr[R]) => b
-      new ParCombinedFunc[I,R,R](dependency= combinedDep, parallel = f, preF = f, aggregation = a, postF = post, parentFunc = func, curFUnc = this)
-    } else {//if(func.dependency == FullDep)
-    val a = (seq: Arr[I], res: Buf[T]) => {
-        func.aggregate(seq, res)
-      }
-      val post = (b:Arr[T]) => this.apply(b)
-      new ParCombinedFunc[I,T,R](dependency= combinedDep, parallel = f, preF = func.apply(_), aggregation = a, postF = post, parentFunc = func, curFUnc = this)
-    }
+    ParCombinedFunc(func, this)
   }
+
+//  def andThen[U:ClassTag](func: ParallelFunction[R, U]): ParallelFunction[T, U] = {
+//    val f = (seq:Arr[T]) => func(this.apply(seq))
+//    val combinedDep = if(this.dependency == FullDep || func.dependency == FullDep) FullDep else PartialDep
+//    if(this.dependency == PartialDep) {
+//      val a = (seq: Arr[T], res: Buf[U]) => {
+//        func.aggregate(this.apply(seq), res)
+//      }
+//      val post = (b:Arr[U]) => b
+//      new ParCombinedFunc[T,U,U](dependency= combinedDep, parallel = f, preF = f, aggregation = a, postF = post, parentFunc = this, curFUnc = func)
+//    } else {//if(this.dependency == FullDep)
+//      val a = (seq: Arr[T], res: Buf[R]) => {
+//        this.aggregate(seq, res)
+//      }
+//      val post = (b:Arr[R]) => func.apply(b)
+//      new ParCombinedFunc[T,R,U](dependency= combinedDep, parallel = f, preF = this.apply(_), aggregation = a, postF = post, parentFunc = this, curFUnc = func)
+//    }
+//  }
+
+//  def compose[I:ClassTag](func: ParallelFunction[I, T]): ParallelFunction[I, R] = {
+//    val f = (seq:Arr[I]) => this.apply(func.apply(seq))
+//    val combinedDep = if(func.dependency == FullDep || this.dependency == FullDep) FullDep else PartialDep
+//    if(func.dependency == PartialDep) {
+//      val a = (seq: Arr[I], res: Buf[R]) => {
+//        this.aggregate(func.apply(seq), res)
+//      }
+//      val post = (b:Arr[R]) => b
+//      new ParCombinedFunc[I,R,R](dependency= combinedDep, parallel = f, preF = f, aggregation = a, postF = post, parentFunc = func, curFUnc = this)
+//    } else {//if(func.dependency == FullDep)
+//    val a = (seq: Arr[I], res: Buf[T]) => {
+//        func.aggregate(seq, res)
+//      }
+//      val post = (b:Arr[T]) => this.apply(b)
+//      new ParCombinedFunc[I,T,R](dependency= combinedDep, parallel = f, preF = func.apply(_), aggregation = a, postF = post, parentFunc = func, curFUnc = this)
+//    }
+//  }
 
 //  def getAggregator():Aggregator[Seq[T],Seq[R]]
 
@@ -221,7 +225,7 @@ class ParGroupByFunc[T: ClassTag, K: ClassTag](val f: T => K) extends ParallelFu
   val dependency = FullDep
 
   override def apply(params: Arr[T]): Arr[(K, Iterable[T])] = {
-    params.toSeq.groupBy(f).toIterator
+    params.toIterable.groupBy(f).toIterator
   }
 
 
@@ -383,34 +387,6 @@ class NullFunc[T: ClassTag] extends ParallelFunction[T,T] {
 
 }
 
-class ParCombinedFunc [T:ClassTag,U:ClassTag,R:ClassTag](val dependency:FuncDependency, parallel: Arr[T]=>Arr[R],
-                                                         val preF: Arr[T]=>Arr[U],
-                                                         val aggregation:(Arr[T], Buf[U]) => Buf[U],
-                                                         val postF: Arr[U] => Arr[R],
-                                                         var parentFunc:ParallelFunction[T,_],
-                                                         var curFUnc:ParallelFunction[_,R])  extends ParallelFunction[T,R]  {
-
-
-  override def setTaskContext(context: TaskContext): Unit = {
-    parentFunc.setTaskContext(context)
-    curFUnc.setTaskContext(context)
-    if(runTimeContext == null) runTimeContext = new  AtomicReference[TaskContext]()
-    runTimeContext.set(context)
-  }
-
-  override def apply(params: Arr[T]): Arr[R] = {
-    parallel(params)
-  }
-
-  override def aggregate(params: Arr[T], res: Buffer[R]): Buffer[R] = ???
-
-
-  def partialAggregate(params: Arr[T], res: Buffer[U]): Buffer[U] = {
-    aggregation(params,res)
-  }
-
-  val mediateType = classTag[U]
-}
 
 
 class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)

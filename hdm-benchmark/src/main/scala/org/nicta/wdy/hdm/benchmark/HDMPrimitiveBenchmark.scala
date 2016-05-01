@@ -22,13 +22,13 @@ object HDMBenchmark {
     val dataTag = if(args.length >= 5) args(4) else "ranking"
     val len = if(args.length >= 6) args(5).toInt else 3
 
+    val start = System.currentTimeMillis()
+
     AppContext.defaultAppContext.appName = "hdm-examples"
     AppContext.defaultAppContext.version = "0.0.1"
     val hDMContext = HDMContext.defaultHDMContext
     hDMContext.init(leader = context, slots = 0)
     Thread.sleep(64)
-
-    val start = System.currentTimeMillis()
 
     val benchmark = dataTag match {
       case "userVisits" => new KVBasedPrimitiveBenchmark(context, 1, 3)

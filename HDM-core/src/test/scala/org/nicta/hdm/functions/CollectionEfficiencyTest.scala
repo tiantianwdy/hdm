@@ -189,7 +189,7 @@ class CollectionEfficiencyTest {
 
   @Test
   def testMultipleFunctionEfficiency(): Unit ={
-    val f = (d:(String,Double)) => (d._1.substring(2), d._2)
+    val f = (d:(String,Double)) => (d._1.substring(1), d._2)
     val seq = data
     val start = System.currentTimeMillis()
     val result = seq.map{d => (d._1.substring(2), d._2)}
@@ -204,12 +204,35 @@ class CollectionEfficiencyTest {
   }
 
   @Test
+  def testCombinedFunction(): Unit ={
+    val init = System.currentTimeMillis()
+    val collection = generateTuple(5000000, 10000)
+    val f = (d:(String, String)) => (d._1.substring(1), d._2)
+    val f2 = (d:(String, String)) => (d._1, d._2.toDouble)
+    val f3 = (d:(String, Double)) => (d._1, d._2 * 20.5D)
+    val f4 = (d:(String, Double)) => (d._1, d._2 * 20.5D)
+    val mapF = new ParMapFunc(f)
+    val mapF2 = new ParMapFunc(f2)
+    val mapF3 = new ParMapFunc(f3)
+    val mapF4 = new ParMapFunc(f4)
+    val combinedFunc = mapF.andThen(mapF2).andThen(mapF3).andThen(mapF4)
+//    val chainedFUnc = mapF.chain(mapF2).chain(mapF3).chain(mapF4)
+    val start = System.currentTimeMillis()
+    val result = combinedFunc.apply(collection)
+//      .map{d => (d._1.substring(0, 3), d._2)}
+    println(s"finished with size ${result.size}")
+    val end = System.currentTimeMillis()
+    println(s"func finished in ${end - start} ms")
+    println(s"finished in total ${end - init} ms")
+  }
+
+  @Test
   def testEmbededMuliFunction(): Unit ={
     val f = (d:(String,Double)) => (d._1.substring(2), d._2)
     val seq = data
     val start = System.currentTimeMillis()
     val result = seq.map{f.andThen(f).andThen(f).andThen(f)}
-//      .map{d => (d._1.substring(0, 3), d._2)}
+    //      .map{d => (d._1.substring(0, 3), d._2)}
     println(s"finished in ${result.take(10)} ms")
     val end = System.currentTimeMillis() - start
     println(s"finished in $end ms")

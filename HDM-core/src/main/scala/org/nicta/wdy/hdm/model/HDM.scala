@@ -97,7 +97,7 @@ abstract class HDM[R: ClassTag] extends Serializable {
                                                dep:DataDependency = OneToOne,
                                                keepPartition:Boolean = true,
                                                partitioner:Partitioner[U] = new KeepPartitioner[U](1)): ParHDM[R, U] = {
-    ClosureCleaner(mapAll)
+//    ClosureCleaner(mapAll)
     new DFM[R, U](children = Seq(this), dependency = dep, func = new ParMapAllFunc(mapAll), distribution = distribution, location = location, keepPartition = keepPartition, partitioner = partitioner, appContext = this.appContext)
 
   }
@@ -105,7 +105,7 @@ abstract class HDM[R: ClassTag] extends Serializable {
   protected[hdm] def mapPartitionsWithIdx[U:ClassTag](mapAll:(Long, Arr[R]) => Arr[U],
                                                keepPartition:Boolean = true,
                                                partitioner:Partitioner[U] = new KeepPartitioner[U](1)): ParHDM[R, U] = {
-    ClosureCleaner(mapAll)
+//    ClosureCleaner(mapAll)
     new DFM[R, U](children = Seq(this), dependency = OneToOne, func = new ParMapWithIndexFunc(mapAll), distribution = distribution, location = location, keepPartition = keepPartition, partitioner = partitioner, appContext = this.appContext)
 
   }
@@ -186,10 +186,10 @@ abstract class HDM[R: ClassTag] extends Serializable {
     val hdm = this.cache()
     val reduceNumber = parallelism * hdmContext.PLANER_PARALLEL_NETWORK_FACTOR
     val sampleSize = (math.min(100.0 * reduceNumber, 1e6)/ reduceNumber).toInt
-
+    println(s"got sample size: [${sampleSize}, reduce Number: ${reduceNumber}}].")
     val sampleFUnc = (elems:Arr[R]) => SampleUtils.randomSampling(elems.toSeq, sampleSize).toIterator
     val samples = hdm.mapPartitions(sampleFUnc).collect().toBuffer
-    println(s"got sample size: [${samples.size}}].")
+
     val bounds = RangePartitioning.decideBoundary(samples, reduceNumber)
     val partitioner = new RangePartitioner(bounds)
     val parallel = new DFM[R, R](children = Seq(hdm), dependency = OneToOne, func = new NullFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = partitioner, appContext = this.appContext)
@@ -334,7 +334,7 @@ abstract class HDM[R: ClassTag] extends Serializable {
         }
         sample(sampleFunc)(parallelism)
       case Right(size) =>
-        val sizePerPartition = Math.min(1, Math.round(size.toFloat/(parallelism)))
+        val sizePerPartition = Math.max(1, Math.round(size.toFloat/(parallelism)))
         val sampleFunc = (in:Arr[R]) => {
           in.take(sizePerPartition)
         }
