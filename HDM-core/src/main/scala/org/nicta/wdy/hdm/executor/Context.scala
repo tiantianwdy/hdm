@@ -342,7 +342,7 @@ object HDMContext extends Logging{
    * @tparam V
    * @return
    */
-  implicit def hdmToKVHDM[T:ClassTag, K:ClassTag, V: ClassTag](hdm:ParHDM[T, (K,V)] ): KvHDM[T,K,V] = {
+  implicit def hdmToKVHDM[K:ClassTag, V: ClassTag](hdm:HDM[(K,V)] ): KvHDM[K,V] = {
     new KvHDM(hdm)
   }
 
