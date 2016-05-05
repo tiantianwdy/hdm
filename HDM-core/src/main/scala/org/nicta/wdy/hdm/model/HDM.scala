@@ -231,10 +231,10 @@ abstract class HDM[R: ClassTag] extends Serializable {
     new DualDFM[R, U, (K,(Iterable[R], Iterable[U]))](input1 = Seq(inputThis), input2 = Seq(inputThat), dependency = NToOne, func = groupFunc, distribution = distribution, location = location, keepPartition = true, appContext = this.appContext)
   }
 
-  def joinBy[K:ClassTag, U:ClassTag](other:HDM[U], f1: R => K, f2: U => K): HDM[(K, R, U)] = {
+  def joinBy[K:ClassTag, U:ClassTag](other:HDM[U], f1: R => K, f2: U => K): HDM[(K, (R, U))] = {
     this.cogroup(other, f1, f2).mapPartitions{ arr =>
       arr.flatMap{ tup =>
-        for{r <- tup._2._1; u <- tup._2._2} yield {(tup._1, r, u)}
+        for{r <- tup._2._1; u <- tup._2._2} yield {(tup._1, (r, u))}
       }
     }
   }
