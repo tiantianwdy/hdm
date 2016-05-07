@@ -173,7 +173,7 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
     hdmBackEnd
   }
 
-  def submitJob(appName:String, version:String, hdm:HDM[_], parallel:Int): Future[HDM[_]] = {
+  def submitJob(master:String, appName:String, version:String, hdm:HDM[_], parallel:Int): Future[HDM[_]] = {
     val rootPath =  SmsSystem.rootPath
     //    HDMContext.declareHdm(Seq(hdm))
     val promise = SmsSystem.askLocalMsg(HDMContext.JOB_RESULT_DISPATCHER, RegisterPromiseMsg(appName, version, rootPath + "/"+ HDMContext.JOB_RESULT_DISPATCHER)) match {
@@ -183,7 +183,7 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
     //    val jobMsg = SubmitJobMsg(appId, hdm, rootPath + "/"+JOB_RESULT_DISPATCHER, parallel)
     val jobBytes = this.defaultSerializer.serialize(hdm).array
     val jobMsg = new SerializedJobMsg(appName, version, jobBytes, rootPath + "/"+ HDMContext.JOB_RESULT_DISPATCHER, parallel)
-    SmsSystem.askAsync(leaderPath.get()+ "/"+ HDMContext.CLUSTER_EXECUTOR_NAME, jobMsg)
+    SmsSystem.askAsync(master+ "/"+ HDMContext.CLUSTER_EXECUTOR_NAME, jobMsg)
     if(promise ne null) promise.future
     else throw new Exception("add job dispatcher failed.")
   }
@@ -197,7 +197,10 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
 
   def compute(hdm:HDM[_], parallelism:Int):Future[HDM[_]] = {
     //    addJob(hdm.id, explain(hdm, parallelism))
-    submitJob(hdm.appContext.appName, hdm.appContext.version, hdm, parallelism)
+    submitJob(hdm.appContext.masterPath,
+      hdm.appContext.appName,
+      hdm.appContext.version,
+      hdm, parallelism)
   }
 
   def declareHdm(hdms:Seq[ParHDM[_,_]], declare:Boolean = true) = {

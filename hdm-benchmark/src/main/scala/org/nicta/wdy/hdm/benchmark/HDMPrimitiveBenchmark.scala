@@ -26,6 +26,7 @@ object HDMBenchmark {
 
     AppContext.defaultAppContext.appName = "hdm-examples"
     AppContext.defaultAppContext.version = "0.0.1"
+    AppContext.defaultAppContext.masterPath = context
     val hDMContext = HDMContext.defaultHDMContext
     hDMContext.init(leader = context, slots = 0)
     Thread.sleep(64)

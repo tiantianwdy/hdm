@@ -34,7 +34,7 @@ class TechfestDemo {
 
   val hDMContext = HDMContext.defaultHDMContext
 
-  val appContext = new AppContext
+  AppContext.defaultAppContext.masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
 
 
   @Test
@@ -50,7 +50,7 @@ class TechfestDemo {
     Thread.sleep(1000)
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
 //    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits")
-    val hdm = HDM(path, appContext)
+    val hdm = HDM(path)
 
     val wordCount = hdm.map{ w =>
       val as = w.split(",");
