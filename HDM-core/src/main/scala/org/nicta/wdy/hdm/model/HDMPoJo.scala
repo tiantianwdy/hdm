@@ -1,6 +1,9 @@
 package org.nicta.wdy.hdm.model
 
 /**
+ * A serializable HDM PoJo without reference of function dependencies and objects
+ * Mainly used for information monitoring and sharing as messages
+ *
  * Created by tiantian on 8/04/16.
  */
 class HDMPoJo(val id: String,

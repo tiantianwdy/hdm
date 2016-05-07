@@ -1,13 +1,13 @@
-package org.nicta.wdy.hdm.model
+package org.nicta.wdy.hdm.math
 
+import breeze.linalg.DenseVector
 import breeze.math.Semiring
+import org.nicta.wdy.hdm.executor.HDMContext._
+import HDMatrix._
+import org.nicta.wdy.hdm.model.HDM
 
 import scala.reflect.ClassTag
-import scala.{specialized=>types}
-import breeze.linalg.{Vector, DenseVector}
-import org.nicta.wdy.hdm.executor.HDMContext._
-import org.nicta.wdy.hdm.math.MatrixLike
-import org.nicta.wdy.hdm.model.HDMatrix._
+import scala.{specialized => types}
 
 /**
  * Created by tiantian on 4/05/16.

@@ -1,10 +1,10 @@
-package org.nicta.wdy.hdm.model
-
-import org.nicta.wdy.hdm.math.VectorLike
-import scala.reflect.ClassTag
-import scala.{specialized=>types}
+package org.nicta.wdy.hdm.math
 
 import org.nicta.wdy.hdm.executor.HDMContext._
+import org.nicta.wdy.hdm.model.HDM
+
+import scala.reflect.ClassTag
+import scala.{specialized => types}
 
 /**
  * Created by tiantian on 5/05/16.
@@ -47,5 +47,19 @@ class HDVector[@types(Double, Int, Float, Long) T:ClassTag](self:HDM[(Long, T)])
   def sum(implicit parallelism:Int) = {
     reduce(e.plus(_, _)).collect().next()
   }
+
+  // alias operations
+
+  def + (another:HDM[(Long, T)]) = add(another)
+
+  def + (d:T) = add(d)
+
+  def - (d:T) = minus(d)
+
+  def -: = negate()
+
+  def * (another:HDM[(Long, T)]) = times(another)
+
+  def * (d:T) = multiply(d)
 
 }

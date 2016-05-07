@@ -1,15 +1,12 @@
-package org.nicta.wdy.hdm
-
+package org.nicta.wdy.hdm.utils
 
 import _root_.java.lang.reflect.Field
 
-import scala.collection.JavaConverters._
-import scala.collection.mutable.{Set => MSet, Map => MMap}
+import org.objectweb.asm.Opcodes._
+import org.objectweb.asm.{ClassReader, ClassVisitor, MethodVisitor, Type}
 
 import scala.annotation.tailrec
-
-import org.objectweb.asm.{ClassReader, MethodVisitor, Type, ClassVisitor}
-import org.objectweb.asm.Opcodes._
+import scala.collection.mutable.{Map => MMap, Set => MSet}
 
 /**
  * Copied from Spark, written by Matei Zaharia (matei@cs.berkeley.edu).

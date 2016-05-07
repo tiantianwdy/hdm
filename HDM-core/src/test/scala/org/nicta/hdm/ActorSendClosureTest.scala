@@ -2,6 +2,8 @@ package org.nicta.hdm
 
 import java.util.concurrent.{Executors, ExecutorService}
 
+import org.nicta.wdy.hdm.utils.ClosureCleaner
+
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 import scala.concurrent.Promise
@@ -13,7 +15,6 @@ import akka.pattern.pipe
 import akka.util.Timeout
 
 import org.junit.Test
-import org.nicta.wdy.hdm.ClosureCleaner
 
 /**
  * Created by Tiantian on 2014/5/27.

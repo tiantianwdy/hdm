@@ -78,46 +78,6 @@ abstract class ParHDM[T:ClassTag, R:ClassTag]() extends  HDM[R] {
   }
 
 
-  // matrix operations
-  /*
-   override def apply[B >: T](m: Int, n: Int): B = ???
-
-   override def cExtract[B >: T](from: Long, to: Long): Matrices[B] = ???
-
-   override def rExtract[B >: T](from: Long, to: Long): Matrices[B] = ???
-
-   override def lAppend[B >: T](m: Matrices[B]): Matrices[B] = ???
-
-   override def append[B >: T](m: Matrices[B]): Matrices[B] = ???
-
-   override def length(): Unit = ???
-
-   override def inverse(): Unit = ???
-
-   override def t[B >: T](): Matrices[B] = ???
-
-   override def /[B >: T](m: B): Matrices[B] = ???
-
-   override def /[B >: T](m: Matrices[B]): Matrices[B] = ???
-
-   override def *[B >: T](m: B): Matrices[B] = ???
-
-   override def *[B >: T](m: Matrices[B]): Matrices[B] = ???
-
-   override def -[B >: T](m: B): Matrices[B] = ???
-
-   override def -[B >: T](m: Matrices[B]): Matrices[B] = ???
-
-   override def +[B >: T](m: B): Matrices[B] = ???
-
-   override def +[B >: T](m: Matrices[B]): Matrices[B] = ???
-
-   override def cLength(): Long = ???
-
-   override def rlength(): Long = ???
-
-   */
-
 }
 
 

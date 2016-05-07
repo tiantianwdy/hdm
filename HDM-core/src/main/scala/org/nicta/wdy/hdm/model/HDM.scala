@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.model
 
-import org.nicta.wdy.hdm.utils.SampleUtils
-import org.nicta.wdy.hdm.{Arr, ClosureCleaner}
+import org.nicta.wdy.hdm.utils.{ClosureCleaner, SampleUtils}
+import org.nicta.wdy.hdm.Arr
 
 import scala.concurrent.{Await, Future}
 import scala.reflect.runtime.universe.{WeakTypeTag,weakTypeOf}
@@ -395,16 +395,3 @@ object HDM{
   def findRemoteHDM[T:ClassTag, R:ClassTag](path:String): List[HDM[R]] = ???
 }
 
-
-sealed trait Distribution extends Serializable
-
-case object Vertical extends Distribution
-
-case object Horizontal extends Distribution
-
-
-sealed trait Location extends Serializable
-
-case object Local extends Location
-
-case object Remote extends Location

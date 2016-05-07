@@ -24,3 +24,18 @@ trait FuncDependency extends Serializable
 case object FullDep extends FuncDependency
 
 case object PartialDep extends FuncDependency
+
+
+
+sealed trait Distribution extends Serializable
+
+case object Vertical extends Distribution
+
+case object Horizontal extends Distribution
+
+
+sealed trait Location extends Serializable
+
+case object Local extends Location
+
+case object Remote extends Location

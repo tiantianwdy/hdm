@@ -1,5 +1,7 @@
 package org.nicta.wdy.hdm
 
+import org.nicta.wdy.hdm.utils.ClosureCleaner
+
 
 /**
  * Created by Tiantian on 2014/5/25.
