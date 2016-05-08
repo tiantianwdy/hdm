@@ -222,23 +222,6 @@ abstract class HDM[R: ClassTag] extends Serializable {
     this.isCompress = true
     this
   }
-  // double input functions
-
-  def cogroup[K:ClassTag, U:ClassTag](other:HDM[U], f1: R=>K, f2: U => K): HDM[(K,(Iterable[R], Iterable[U]))] = {
-    val inputThis = this.partitionBy(f1(_).hashCode())
-    val inputThat = other.partitionBy(f2(_).hashCode())
-    val groupFunc = new CoGroupFunc[R,U,K](f1, f2)
-    new DualDFM[R, U, (K,(Iterable[R], Iterable[U]))](input1 = Seq(inputThis), input2 = Seq(inputThat), dependency = NToOne, func = groupFunc, distribution = distribution, location = location, keepPartition = true, appContext = this.appContext)
-  }
-
-  def joinBy[K:ClassTag, U:ClassTag](other:HDM[U], f1: R => K, f2: U => K): HDM[(K, (R, U))] = {
-    this.cogroup(other, f1, f2).mapPartitions{ arr =>
-      arr.flatMap{ tup =>
-        for{r <- tup._2._1; u <- tup._2._2} yield {(tup._1, (r, u))}
-      }
-    }
-  }
-
 
   def zipWithIndex(implicit parallelism:Int): HDM[(Long, R)] = {
     import scala.collection.mutable
@@ -262,6 +245,24 @@ abstract class HDM[R: ClassTag] extends Serializable {
       arr.zipWithIndex.map(_.swap).map(t => (t._1 + localIdx(idx), t._2) )
     }
   }
+
+  // double input functions
+
+  def cogroup[K:ClassTag, U:ClassTag](other:HDM[U], f1: R=>K, f2: U => K): HDM[(K,(Iterable[R], Iterable[U]))] = {
+    val inputThis = this.partitionBy(f1(_).hashCode())
+    val inputThat = other.partitionBy(f2(_).hashCode())
+    val groupFunc = new CoGroupFunc[R,U,K](f1, f2)
+    new DualDFM[R, U, (K,(Iterable[R], Iterable[U]))](input1 = Seq(inputThis), input2 = Seq(inputThat), dependency = NToOne, func = groupFunc, distribution = distribution, location = location, keepPartition = true, appContext = this.appContext)
+  }
+
+  def joinBy[K:ClassTag, U:ClassTag](other:HDM[U], f1: R => K, f2: U => K): HDM[(K, (R, U))] = {
+    this.cogroup(other, f1, f2).mapPartitions{ arr =>
+      arr.flatMap{ tup =>
+        for{r <- tup._2._1; u <- tup._2._2} yield {(tup._1, (r, u))}
+      }
+    }
+  }
+
 
   def union[A <: R](h:HDM[A]): HDM[R]  = {
 
