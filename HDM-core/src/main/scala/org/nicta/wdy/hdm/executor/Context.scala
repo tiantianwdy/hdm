@@ -14,7 +14,7 @@ import org.nicta.wdy.hdm.model.{GroupedSeqHDM, HDM, KvHDM, ParHDM}
 import org.nicta.wdy.hdm.planing.StaticPlaner
 import org.nicta.wdy.hdm.scheduling.{AdvancedScheduler, SchedulingPolicy}
 import org.nicta.wdy.hdm.serializer.{JavaSerializer, SerializerInstance}
-import org.nicta.wdy.hdm.server.{DependencyManager, ProvenanceManager}
+import org.nicta.wdy.hdm.server._
 import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
 import org.nicta.wdy.hdm.utils.Logging
 
@@ -158,7 +158,7 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
   }
 
 
-  def getServerBackend():HDMServerBackend = {
+  def getServerBackend():ServerBackend = {
     if(hdmBackEnd == null) {
       val appManager = new AppManager
       val blockManager = HDMBlockManager()

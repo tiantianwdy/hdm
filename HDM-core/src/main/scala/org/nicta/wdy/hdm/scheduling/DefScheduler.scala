@@ -11,6 +11,7 @@ import org.nicta.wdy.hdm.functions.{ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.message.AddTaskMsg
 import org.nicta.wdy.hdm.model._
+import org.nicta.wdy.hdm.server.{PromiseManager, ResourceManager}
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 import org.nicta.wdy.hdm.utils.Logging
 

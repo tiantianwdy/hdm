@@ -5,7 +5,7 @@ import java.util.concurrent.{Semaphore, ConcurrentHashMap, LinkedBlockingQueue, 
 import java.util.concurrent.atomic.AtomicBoolean
 
 
-import org.nicta.wdy.hdm.server.ProvenanceManager
+import org.nicta.wdy.hdm.server.{PromiseManager, ResourceManager, ProvenanceManager}
 import org.nicta.wdy.hdm.server.provenance.ExecutionTrace
 
 import scala.collection.mutable.ListBuffer

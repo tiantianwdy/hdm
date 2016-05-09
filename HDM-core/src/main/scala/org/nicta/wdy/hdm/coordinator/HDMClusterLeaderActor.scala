@@ -5,10 +5,11 @@ import java.nio.ByteBuffer
 import akka.actor.ActorPath
 import com.baidu.bpit.akka.actors.worker.WorkActor
 import com.baidu.bpit.akka.server.SmsSystem
-import org.nicta.wdy.hdm.executor.{HDMServerBackend, HDMContext}
+import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.message._
 import org.nicta.wdy.hdm.model.{HDMPoJo, HDM}
+import org.nicta.wdy.hdm.server.ServerBackend
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -17,7 +18,7 @@ import scala.util.{Failure, Success}
 /**
  * Created by tiantian on 7/09/15.
  */
-class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int , val hDMContext:HDMContext) extends WorkActor {
+class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hDMContext:HDMContext) extends WorkActor {
 
   def this(cores:Int) {
     this(HDMContext.defaultHDMContext.getServerBackend(), cores, HDMContext.defaultHDMContext)
@@ -186,7 +187,10 @@ class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int , val
       }
       log.info(s"A task has been added from [${sender.path}}]; id: ${task.taskId}} ")
 
-    //deprecated, replaced by SubmitJobMsg
+    /**
+     * deprecated, replaced by SerializedJobMsg
+     *
+     */
     case AddHDMsMsg(appId, hdms, resultHandler) =>
       val senderPath = sender.path
       val fullPath = ActorPath.fromString(resultHandler).toStringWithAddress(senderPath.address)
@@ -202,7 +206,7 @@ class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int , val
       log.info(s"A job has been added from [${sender.path}}]; id: ${appId}} ")
 
     /**
-     *
+     * process a job msg with serialized hdm object
      */
     case SerializedJobMsg(appName, version, serHDM, resultHandler, parallel) =>
       val appLoader = hdmBackend.dependencyManager.getClassLoader(appName, version)
@@ -223,7 +227,7 @@ class HDMClusterLeaderActor(val hdmBackend:HDMServerBackend, val cores:Int , val
       log.info(s"A job has been added from [${sender.path}}]; id: ${appId}} ")
 
     /**
-     * be replaced by SerializedJobMsg
+     * has been replaced by SerializedJobMsg
      */
     case SubmitJobMsg(appId, hdm, resultHandler, parallel) =>
       val senderPath = sender.path

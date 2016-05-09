@@ -1,8 +1,8 @@
-package org.nicta.wdy.hdm.executor
+package org.nicta.wdy.hdm.server
 
 import java.util.concurrent.ConcurrentHashMap
 
-import scala.concurrent.{Promise, Future}
+import scala.concurrent.Promise
 
 /**
  * Created by tiantian on 24/08/15.

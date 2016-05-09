@@ -1,12 +1,12 @@
-package org.nicta.wdy.hdm.executor
+package org.nicta.wdy.hdm.server
 
-import java.util.concurrent.{Semaphore, ConcurrentHashMap}
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.{ConcurrentHashMap, Semaphore}
 
 import org.nicta.wdy.hdm.scheduling.Scheduler
 
-import scala.collection.mutable
 import scala.collection.JavaConversions._
+import scala.collection.mutable
 
 /**
  * Created by tiantian on 24/08/15.
