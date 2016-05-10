@@ -10,3 +10,5 @@ case class JoinMsg(sender:String, state:Int) extends CoordinatingMsg
 case class LeaveMsg(sender:String) extends CoordinatingMsg
 
 case class CollaborateMsg(sender:String, state:Int) extends CoordinatingMsg
+
+case class AskCollaborateMsg(sibling:String) extends CoordinatingMsg

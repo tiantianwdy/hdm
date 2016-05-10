@@ -12,7 +12,7 @@ import org.nicta.wdy.hdm.io.{CompressionCodec, SnappyCompressionCodec}
 import org.nicta.wdy.hdm.message._
 import org.nicta.wdy.hdm.model.{GroupedSeqHDM, HDM, KvHDM, ParHDM}
 import org.nicta.wdy.hdm.planing.StaticPlaner
-import org.nicta.wdy.hdm.scheduling.{AdvancedScheduler, SchedulingPolicy}
+import org.nicta.wdy.hdm.scheduling.{MultiClusterScheduler, AdvancedScheduler, SchedulingPolicy}
 import org.nicta.wdy.hdm.serializer.{JavaSerializer, SerializerInstance}
 import org.nicta.wdy.hdm.server._
 import org.nicta.wdy.hdm.storage.{Block, HDMBlockManager}
@@ -90,7 +90,7 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
   val planer = new StaticPlaner(this)
 
 
-  private var hdmBackEnd:HDMServerBackend = null
+  private var hdmBackEnd:ServerBackend = null
 
   lazy val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
 
@@ -105,8 +105,9 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
 
   def startAsMaster(port:Int = 8999, conf: Config = defaultConf, slots:Int = 0){
     SmsSystem.startAsMaster(port, isLinux, conf)
-    //    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorLeader", slots)
-    SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.HDMClusterLeaderActor", slots)
+//    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorLeader", slots)
+//    SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.HDMClusterLeaderActor", slots)
+    SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.HDMMultiClusterLeader", slots)
     SmsSystem.addActor(HDMContext.BLOCK_MANAGER_NAME, "localhost","org.nicta.wdy.hdm.coordinator.BlockManagerLeader", null)
     SmsSystem.addActor(HDMContext.JOB_RESULT_DISPATCHER, "localhost","org.nicta.wdy.hdm.coordinator.ResultHandler", null)
     leaderPath.set(SmsSystem.rootPath)
@@ -158,17 +159,29 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
   }
 
 
-  def getServerBackend():ServerBackend = {
-    if(hdmBackEnd == null) {
-      val appManager = new AppManager
-      val blockManager = HDMBlockManager()
-      val promiseManager = new DefPromiseManager
-      val resourceManager = new DefResourceManager
-      val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
-      //    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
-      val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, schedulingPolicy)
-      hdmBackEnd = new HDMServerBackend(blockManager, scheduler, planer, resourceManager, promiseManager, DependencyManager(), HDMContext.defaultHDMContext)
-      log.warn(s"created new HDMServerBackend.")
+  def getServerBackend(mode:String = "single"):ServerBackend = {
+    if(hdmBackEnd == null) mode match {
+      case "single" =>
+        val appManager = new AppManager
+        val blockManager = HDMBlockManager()
+        val promiseManager = new DefPromiseManager
+        val resourceManager = new DefResourceManager
+        val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
+        //    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
+        val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, schedulingPolicy)
+        hdmBackEnd = new HDMServerBackend(blockManager, scheduler, planer, resourceManager, promiseManager, DependencyManager(), HDMContext.defaultHDMContext)
+        log.warn(s"created new HDMServerBackend.")
+
+      case "multiple" =>
+        val appManager = new AppManager
+        val blockManager = HDMBlockManager()
+        val promiseManager = new DefPromiseManager
+        val resourceManager = new TreeResourceManager
+        val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
+        val scheduler = new MultiClusterScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, schedulingPolicy)
+        hdmBackEnd = new MultiClusterBackend(blockManager, scheduler, planer, resourceManager, promiseManager, DependencyManager(), HDMContext.defaultHDMContext)
+        log.warn(s"created new MultiClusterBackend.")
+
     }
     hdmBackEnd
   }

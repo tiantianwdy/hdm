@@ -96,11 +96,11 @@ class TechfestDemo {
     hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1500)
     val hdm =
-//    benchmark.testGroupBy(data,len, parallelism)
+    benchmark.testGroupBy(data,len, parallelism)
 //    benchmark.testMultipleMap(data,len, parallelism)
 //    benchmark.testMultiMapFilter(data,len, parallelism, "a")
 //    benchmark.testFindByKey(data,len, parallelism, "a")
-    benchmark.testReduceByKey(data,len, parallelism)
+//    benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)
 
     onEvent(hdm, "compute")(parallelism)
