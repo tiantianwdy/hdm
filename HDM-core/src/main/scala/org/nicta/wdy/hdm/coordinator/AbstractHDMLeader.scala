@@ -11,11 +11,13 @@ import scala.concurrent.ExecutionContext
 /**
  * Created by tiantian on 9/05/16.
  */
-abstract class AbstractHDMLeader (val hdmBackend:ServerBackend, val cores:Int , val hDMContext:HDMContext) extends WorkActor
-                                                                                                            with QueryReceiver
-                                                                                                            with SchedulingMsgReceiver
-                                                                                                            with DepMsgReceiver
-                                                                                                            with ClusterMsgReceiver {
+abstract class AbstractHDMLeader (val hdmBackend:ServerBackend,
+                                  val cores:Int ,
+                                  val hDMContext:HDMContext) extends WorkActor
+                                                              with QueryReceiver
+                                                              with SchedulingMsgReceiver
+                                                              with DepMsgReceiver
+                                                              with ClusterMsgReceiver {
 
   implicit val executorService: ExecutionContext = hDMContext.executionContext
 
@@ -70,12 +72,14 @@ abstract class AbstractHDMLeader (val hdmBackend:ServerBackend, val cores:Int , 
  * @param cores
  * @param hDMContext
  */
-class SingleClusterLeader (override val hdmBackend:ServerBackend, override val cores:Int , override val hDMContext:HDMContext)
-  extends AbstractHDMLeader(hdmBackend, cores, hDMContext)
-  with DefQueryMsgReceiver
-  with DefDepReceiver
-  with DefSchedulingReceiver
-  with SingleClusteringReceiver {
+class SingleClusterLeader (override val hdmBackend:ServerBackend,
+                           override val cores:Int ,
+                           override val hDMContext:HDMContext)
+                            extends AbstractHDMLeader(hdmBackend, cores, hDMContext)
+                            with DefQueryMsgReceiver
+                            with DefDepReceiver
+                            with DefSchedulingReceiver
+                            with SingleClusteringReceiver {
 
   def this(cores: Int) {
     this(HDMContext.defaultHDMContext.getServerBackend(), cores, HDMContext.defaultHDMContext)

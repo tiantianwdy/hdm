@@ -17,12 +17,14 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
                             override val resourceManager: ResourceManager,
                             override val historyManager: ProvenanceManager,
                             override val actorSys:ActorSystem,
-                            override val schedulingPolicy:SchedulingPolicy)(implicit override val executorService:ExecutionContext) extends AdvancedScheduler(blockManager,
-                                                                                                                                                              promiseManager,
-                                                                                                                                                             resourceManager,
-                                                                                                                                                             historyManager,
-                                                                                                                                                             actorSys,
-                                                                                                                                                             schedulingPolicy) {
+                            override val schedulingPolicy:SchedulingPolicy)
+                           (implicit override val executorService:ExecutionContext)
+                            extends AdvancedScheduler(blockManager,
+                                                      promiseManager,
+                                                      resourceManager,
+                                                      historyManager,
+                                                      actorSys,
+                                                      schedulingPolicy) {
 
   def scheduleRemoteTask[R: ClassTag](task: ParallelTask[R]): Promise[HDM[R]] = {
     val promise = promiseManager.createPromise[HDM[R]](task.taskId)
@@ -30,7 +32,6 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
     val workerPath = candidates.head.toString
     resourceManager.decResource(workerPath, 1)
     super.runRemoteTask(workerPath, task)
-    //todo replace with planner.nextPlanning
     promise
   }
 

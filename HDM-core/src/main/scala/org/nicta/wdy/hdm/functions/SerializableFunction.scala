@@ -9,7 +9,7 @@ import scala.collection.mutable.Buffer
  */
 
 /**
- *
+ * basic interface for generic functions with a serializable feature
  * @tparam R return type
  */
 trait SerializableFunction[I,R] extends  Serializable{
@@ -18,6 +18,12 @@ trait SerializableFunction[I,R] extends  Serializable{
 
 }
 
+
+/**
+ * interface for a function to support calculate the results in an aggregation manner
+ * @tparam T
+ * @tparam R
+ */
 trait Aggregatable[T,R] extends  Serializable {
 
 
@@ -26,6 +32,12 @@ trait Aggregatable[T,R] extends  Serializable {
 
 }
 
+/**
+ * an advanced interface for a function to support calculate the results in an aggregation manner
+ * support to do some  post processing after all the data are collected by calling [[org.nicta.wdy.hdm.functions.Aggregator]].result() method
+ * @tparam T
+ * @tparam R
+ */
 trait Aggregator[T, R] extends  Serializable {
 
   def init(zero:R)
@@ -36,6 +48,11 @@ trait Aggregator[T, R] extends  Serializable {
 
 }
 
+
+/**
+ * an interface for functions to support merging result from the results of multiple sub-functions
+ * @tparam R
+ */
 trait Mergeable[R]{
 
   def merge(params:Seq[R], res:Buffer[R]): Buffer[R]
@@ -43,6 +60,9 @@ trait Mergeable[R]{
 }
 
 
+/**
+ * factory object for [[SerializableFunction]], place holder for adding new constructors when needed
+ */
 object SerializableFunction extends  Serializable{
 
 

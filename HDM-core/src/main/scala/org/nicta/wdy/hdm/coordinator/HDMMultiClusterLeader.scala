@@ -15,12 +15,21 @@ import scala.collection.JavaConversions._
 /**
  * Created by tiantian on 9/05/16.
  */
-class HDMMultiClusterLeader(override val hdmBackend:MultiClusterBackend, override val cores:Int , override val hDMContext:HDMContext)
-                                                                                    extends AbstractHDMLeader(hdmBackend, cores, hDMContext)
-                                                                                    with DefQueryMsgReceiver
-                                                                                    with DefDepReceiver{
 
+/**
+ * a class leader which is able to handle multi-clusters with sibling master nodes for each master
+ * @param hdmBackend
+ * @param cores
+ * @param hDMContext
+ */
+class HDMMultiClusterLeader(override val hdmBackend:MultiClusterBackend,
+                            override val cores:Int ,
+                            override val hDMContext:HDMContext)
+                            extends AbstractHDMLeader(hdmBackend, cores, hDMContext)
+                            with DefQueryMsgReceiver
+                            with DefDepReceiver{
 
+  //  holding the task map to the origins of the remote tasks received from sibling masters
   private val remoteTaskMap = new ConcurrentHashMap[String, String]()
 
   def this(cores: Int) {
@@ -55,6 +64,7 @@ class HDMMultiClusterLeader(override val hdmBackend:MultiClusterBackend, overrid
   }
 
   override def processScheduleMsg: PartialFunction[SchedulingMsg, Unit] = {
+
     case AddTaskMsg(task) => // task management msg
       hdmBackend.taskReceived(task) onComplete {
         case Success(hdm) => sender ! hdm

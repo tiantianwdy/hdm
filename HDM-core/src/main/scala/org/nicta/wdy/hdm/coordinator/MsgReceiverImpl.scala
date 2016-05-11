@@ -12,7 +12,12 @@ import scala.collection.mutable
 import scala.util.{Failure, Success}
 
 /**
+ *  Default Message Receivers for HDM Cluster leader
  * Created by tiantian on 9/05/16.
+ */
+
+/**
+ * the receiver for processing query messages
  */
 trait DefQueryMsgReceiver extends QueryReceiver{
 
@@ -84,6 +89,9 @@ trait DefQueryMsgReceiver extends QueryReceiver{
 
 }
 
+/**
+ * the message receiver for processing dependencies messages
+ */
 trait DefDepReceiver extends DepMsgReceiver {
 
   this: AbstractHDMLeader =>
@@ -110,6 +118,10 @@ trait DefDepReceiver extends DepMsgReceiver {
 
 }
 
+
+/**
+  * the messages receiver for processing scheduling messages
+  */
 trait DefSchedulingReceiver extends SchedulingMsgReceiver {
 
   this: AbstractHDMLeader =>
@@ -158,6 +170,10 @@ trait DefSchedulingReceiver extends SchedulingMsgReceiver {
 
 }
 
+
+/**
+ * the message reveiver for processing coordiation messages in a single cluster architecture
+ */
 trait SingleClusteringReceiver extends ClusterMsgReceiver {
 
   this: AbstractHDMLeader =>

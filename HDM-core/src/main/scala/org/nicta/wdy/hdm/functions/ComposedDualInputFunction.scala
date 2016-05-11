@@ -7,6 +7,20 @@ import scala.reflect.ClassTag
 /**
  * Created by tiantian on 31/03/16.
  */
+
+/**
+ * a composed function object used for combining dual input functions (functions with dual input types) with a subsequent parallel function (functions with only one input type)
+ * @param dualFunc
+ * @param pFunc
+ * @param ev1
+ * @param ev2
+ * @param ev3
+ * @param ev4
+ * @tparam T
+ * @tparam U
+ * @tparam V
+ * @tparam R
+ */
 class ComposedDualInputFunction[T: ClassTag, U: ClassTag, V: ClassTag, R: ClassTag](val dualFunc: DualInputFunction[T, U, V],
                                                                                     val pFunc: ParallelFunction[V, R])
   extends DualInputFunction[T, U, R] with Aggregator[(Arr[T], Arr[U]), Buf[R]] {
