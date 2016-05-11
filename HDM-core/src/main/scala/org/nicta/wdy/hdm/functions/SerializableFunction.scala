@@ -20,7 +20,7 @@ trait SerializableFunction[I,R] extends  Serializable{
 
 
 /**
- * interface for a function to support calculate the results in an aggregation manner
+ * interface for a function to support calculating the results in an aggregation manner
  * @tparam T
  * @tparam R
  */
@@ -33,17 +33,29 @@ trait Aggregatable[T,R] extends  Serializable {
 }
 
 /**
- * an advanced interface for a function to support calculate the results in an aggregation manner
- * support to do some  post processing after all the data are collected by calling [[org.nicta.wdy.hdm.functions.Aggregator]].result() method
+ * an advanced interface for a function to support calculating the results in an aggregation manner
+ * support to do some pre and post processing before and after data are collected by the [[Aggregator]]
  * @tparam T
  * @tparam R
  */
 trait Aggregator[T, R] extends  Serializable {
 
+  /**
+   * initiate the aggregator with starting data
+   * @param zero
+   */
   def init(zero:R)
 
+  /**
+   * performing aggregation with new input data
+   * @param params
+   */
   def aggregate(params:T): Unit
 
+  /**
+   * get the final result from this aggregator, this may trigger some delayed aggregation processes due to performance consideration in previous aggregation steps
+   * @return
+   */
   def result: R
 
 }
