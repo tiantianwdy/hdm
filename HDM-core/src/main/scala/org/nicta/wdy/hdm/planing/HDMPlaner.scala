@@ -24,6 +24,8 @@ trait HDMPlaner extends Serializable {
 }
 
 
+
+
 trait DynamicPlaner {
 
   /**
@@ -105,3 +107,4 @@ class StaticPlaner(hDMContext: HDMContext) extends HDMPlaner {
     }
 
 }
+

@@ -2,7 +2,7 @@ package org.nicta.wdy.hdm.server
 
 import org.nicta.wdy.hdm.executor.{ParallelTask, HDMContext}
 import org.nicta.wdy.hdm.model.{HDM, ParHDM}
-import org.nicta.wdy.hdm.planing.HDMPlaner
+import org.nicta.wdy.hdm.planing.{MultiClusterPlaner, HDMPlaner}
 import org.nicta.wdy.hdm.scheduling.{MultiClusterScheduler}
 import org.nicta.wdy.hdm.storage.HDMBlockManager
 
@@ -13,7 +13,7 @@ import scala.concurrent.{Promise, Future}
  */
 class MultiClusterBackend (val blockManager: HDMBlockManager,
                            override val scheduler: MultiClusterScheduler,
-                           val planner: HDMPlaner,
+                           val planner: MultiClusterPlaner,
                            override val resourceManager: TreeResourceManager,
                            val eventManager: PromiseManager,
                            val dependencyManager:DependencyManager,
@@ -22,18 +22,32 @@ class MultiClusterBackend (val blockManager: HDMBlockManager,
 
   def init(): Unit = {
     scheduler.init()
+    scheduler.initStateScheduling()
     new Thread{
       override def run(): Unit = {
         scheduler.startup()
       }
     }.start()
+    new Thread{
+      override def run(): Unit = {
+        scheduler.startStateScheduling()
+      }
+    }.start()
   }
 
   def jobReceived(jobId:String, version:String, hdm:HDM[_], parallelism:Int):Future[_] ={
-    val exeId = dependencyManager.addInstance(jobId, version, hdm)
-    val plans = hDMContext.explain(hdm, parallelism)
-    dependencyManager.addPlan(exeId, plans)
-    scheduler.submitJob(jobId, version, exeId, plans.physicalPlan)
+    val jobs = planner.planStages(hdm, parallelism)
+    scheduler.addJobStages(jobs)
+//    val remoteFutures = for (remoteJob <- jobs.remoteJobs) yield {
+//      // create and submit a job to a remote master
+//      scheduler.addRemoteJob(remoteJob)
+//    }
+//    val futures = for (localJob <- jobs.localJobs) yield {
+//      val plans = planner.plan(localJob, parallelism)
+//      dependencyManager.addPlan(exeId, plans)
+//      scheduler.submitJob(jobId, version, exeId, plans.physicalPlan)
+//    }
+//    futures.last
   }
 
 

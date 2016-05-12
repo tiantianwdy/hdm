@@ -11,7 +11,7 @@ import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 import org.nicta.wdy.hdm.io.{CompressionCodec, SnappyCompressionCodec}
 import org.nicta.wdy.hdm.message._
 import org.nicta.wdy.hdm.model.{GroupedSeqHDM, HDM, KvHDM, ParHDM}
-import org.nicta.wdy.hdm.planing.StaticPlaner
+import org.nicta.wdy.hdm.planing.{StaticMultiClusterPlanner, StaticPlaner}
 import org.nicta.wdy.hdm.scheduling.{MultiClusterScheduler, AdvancedScheduler, SchedulingPolicy}
 import org.nicta.wdy.hdm.serializer.{JavaSerializer, SerializerInstance}
 import org.nicta.wdy.hdm.server._
@@ -103,14 +103,16 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
   }
 
 
-  def startAsMaster(port:Int = 8999, conf: Config = defaultConf, slots:Int = 0){
+  def startAsMaster(port:Int = 8999, conf: Config = defaultConf, slots:Int = 0, mode:String = "single-cluster"){
     SmsSystem.startAsMaster(port, isLinux, conf)
 //    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.ClusterExecutorLeader", slots)
 //    SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.HDMClusterLeaderActor", slots)
-    SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost","org.nicta.wdy.hdm.coordinator.HDMMultiClusterLeader", slots)
+    val masterCls = if (mode == "multi-cluster") "org.nicta.wdy.hdm.coordinator.HDMMultiClusterLeader"
+                   else  "org.nicta.wdy.hdm.coordinator.HDMClusterLeaderActor"
+    SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost", masterCls, slots)
     SmsSystem.addActor(HDMContext.BLOCK_MANAGER_NAME, "localhost","org.nicta.wdy.hdm.coordinator.BlockManagerLeader", null)
     SmsSystem.addActor(HDMContext.JOB_RESULT_DISPATCHER, "localhost","org.nicta.wdy.hdm.coordinator.ResultHandler", null)
-    leaderPath.set(SmsSystem.rootPath)
+    leaderPath.set(SmsSystem.physicalRootPath)
   }
 
   def startAsSlave(masterPath:String, port:Int = 10010, blockPort:Int = 9091, conf: Config = defaultConf, slots:Int = cores){
@@ -178,8 +180,9 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
         val promiseManager = new DefPromiseManager
         val resourceManager = new TreeResourceManager
         val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
-        val scheduler = new MultiClusterScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, schedulingPolicy)
-        hdmBackEnd = new MultiClusterBackend(blockManager, scheduler, planer, resourceManager, promiseManager, DependencyManager(), HDMContext.defaultHDMContext)
+        val multiPlanner = new StaticMultiClusterPlanner(planer, HDMContext.defaultHDMContext)
+        val scheduler = new MultiClusterScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, DependencyManager(), multiPlanner, schedulingPolicy)
+        hdmBackEnd = new MultiClusterBackend(blockManager, scheduler, multiPlanner, resourceManager, promiseManager, DependencyManager(), HDMContext.defaultHDMContext)
         log.warn(s"created new MultiClusterBackend.")
 
     }

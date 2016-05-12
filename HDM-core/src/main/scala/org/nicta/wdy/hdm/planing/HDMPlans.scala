@@ -10,3 +10,8 @@ case class HDMPlans(logicalPlan:Seq[HDM[_]],
                     physicalPlan:Seq[HDM[_]]) extends Serializable{
 
 }
+
+case class MultiClusterPlans(remoteJobs:Seq[HDM[_]],
+                             localJobs:Seq[HDM[_]])  extends Serializable{
+}
+

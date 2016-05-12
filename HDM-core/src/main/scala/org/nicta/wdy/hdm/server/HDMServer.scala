@@ -20,6 +20,7 @@ object HDMServer {
   var port = defaultConf.getInt("akka.remote.netty.tcp.port")
   var slots = 1
   var blockServerPort = 9091
+  var mode = "single-cluster"
   var isMaster = Try {
     defaultConf.getBoolean("hdm.cluster.isMaster")
   } getOrElse false
@@ -53,6 +54,7 @@ object HDMServer {
       case "-b" | "-bport" => blockServerPort = param._2.toInt
       case "-m" | "-master" => isMaster = param._2.toBoolean
       case "-P" | "-parent" => parentPath = param._2
+      case "-M" | "-mode" => mode = param._2
       case "-s" | "-slots" => slots = param._2.toInt
       case "-c" | "-conf" => try {
         defaultConf = ConfigFactory.load(param._2)

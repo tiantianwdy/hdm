@@ -38,18 +38,26 @@ class TreeResourceManager extends DefResourceManager{
     siblingMap.remove(siblingId)
   }
 
-  def getAllChildrenRes():Int = {
+  def getAllChildrenCores():Int = {
     if(childrenMap.isEmpty) 0
     else {
       childrenMap.values().map(_.get()).sum
     }
   }
 
-  def getAllSiblingRes():Int = {
+  def getAllSiblingCores():Int = {
     if(siblingMap.isEmpty) 0
     else {
       siblingMap.values().map(_.get()).sum
     }
+  }
+
+  def getChildrenRes():mutable.Map[String, AtomicInteger] = {
+    childrenMap
+  }
+
+  def getSiblingRes():mutable.Map[String, AtomicInteger] = {
+    siblingMap
   }
 
 }

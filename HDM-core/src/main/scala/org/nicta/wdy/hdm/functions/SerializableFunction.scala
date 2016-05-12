@@ -1,6 +1,5 @@
 package org.nicta.wdy.hdm.functions
 
-import org.nicta.wdy.hdm.Buf
 
 import scala.collection.mutable.Buffer
 

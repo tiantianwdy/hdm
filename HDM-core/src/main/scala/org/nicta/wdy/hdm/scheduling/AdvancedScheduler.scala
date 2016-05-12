@@ -38,7 +38,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
   //  private val workingSize = new Semaphore(0)
 
-  private val isRunning = new AtomicBoolean(false)
+  protected val isRunning = new AtomicBoolean(false)
 
   private val nonEmptyLock = new Semaphore(0)
 

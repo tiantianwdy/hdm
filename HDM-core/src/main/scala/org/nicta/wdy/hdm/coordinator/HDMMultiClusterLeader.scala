@@ -58,7 +58,7 @@ class HDMMultiClusterLeader(override val hdmBackend:MultiClusterBackend,
       log.info(s"A sibling has joined from [${senderPath}] ")
 
     case AskCollaborateMsg(sibling) =>
-      val totalCores = hdmBackend.resourceManager.getAllChildrenRes()
+      val totalCores = hdmBackend.resourceManager.getAllChildrenCores()
       hdmBackend.resourceManager.addSibling(sibling, 0)
       context.actorSelection(sibling) ! CollaborateMsg(selfPath, totalCores)
   }
