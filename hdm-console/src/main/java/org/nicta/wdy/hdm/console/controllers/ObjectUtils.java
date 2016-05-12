@@ -13,7 +13,6 @@ public class ObjectUtils {
     public static ObjectMapper mapper = new ObjectMapper();
 
     public static String objectToJson(Object obj) throws JsonProcessingException {
-
         String res = mapper.writeValueAsString(obj);
         return res;
     }
