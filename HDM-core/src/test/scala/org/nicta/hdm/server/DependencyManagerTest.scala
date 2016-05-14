@@ -50,8 +50,8 @@ class DependencyManagerTest {
   def testSubmitAppByMsg(): Unit ={
 
     val start = System.currentTimeMillis()
-    val master = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster/ClusterExecutor"
-    val file = "/home/tiantian/.m2/repository/org/nicta/HDM-benchmark/0.0.1/HDM-benchmark-0.0.1.jar"
+    val master = "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster/ClusterExecutor"
+    val file = "/home/tiantian/Dev/workspace/hdm/hdm-benchmark/target/HDM-benchmark-0.0.1.jar"
     SmsSystem.startAsClient(master, 20001)
     Thread.sleep(100)
     DependencyManager.submitAppByPath(master, "hdm-examples", "0.0.1", file, "dwu")
@@ -78,7 +78,7 @@ class DependencyManagerTest {
     val file = "/home/tiantian/Dev/lib/hdm/HDM-benchmark-0.0.1.jar"
     SmsSystem.startAsClient(master, 20001)
     val serJob = hDMContext.defaultSerializer.serialize(master).array()
-    val jobMsg = SerializedJobMsg("hdm-examples", "0.0.1", serJob, "akka.tcp://slaveSys@127.0.0.1:20001/user/smsSlave"+ "/"+ HDMContext.JOB_RESULT_DISPATCHER, 2)
+    val jobMsg = SerializedJobMsg("hdm-examples", "0.0.1", serJob, "akka.tcp://slaveSys@127.0.0.1:20001/user/smsSlave"+ "/"+ HDMContext.JOB_RESULT_DISPATCHER, master, 2)
     Thread.sleep(100)
     SmsSystem.askSync(master, jobMsg)
     Thread.sleep(5000)

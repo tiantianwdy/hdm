@@ -21,5 +21,13 @@ class HDMBenchmarkTest {
     Thread.sleep(100000)
   }
 
+  @Test
+  def testRunShuffleJobs(): Unit = {
+    implicit val parallelism = 2
+    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/weather"
+    multiClusterBenchmark.testShuffleTask(data, data)
+
+    Thread.sleep(100000)
+  }
 
 }

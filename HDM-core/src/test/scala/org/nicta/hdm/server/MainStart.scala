@@ -8,8 +8,8 @@ import org.nicta.wdy.hdm.executor.HDMContext
 object MainStart  {
 
   def main(args: Array[String]): Unit ={
-
-    HDMContext.defaultHDMContext.init(slots = 0) // start master
+    HDMContext.defaultHDMContext.startAsMaster(mode = "multi-cluster")
+//    HDMContext.defaultHDMContext.init(slots = 0) // start master
   }
 
 }

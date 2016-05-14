@@ -16,7 +16,7 @@ import akka.actor.ActorSystem
 import akka.util.Timeout
 import akka.pattern._
 import org.nicta.wdy.hdm.executor._
-import org.nicta.wdy.hdm.functions.{DualInputFunction, ParUnionFunc, ParallelFunction}
+import org.nicta.wdy.hdm.functions.{NullFunc, DualInputFunction, ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.message.{SerializedTaskMsg, AddTaskMsg}
 import org.nicta.wdy.hdm.model._
@@ -40,11 +40,11 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
   protected val isRunning = new AtomicBoolean(false)
 
-  private val nonEmptyLock = new Semaphore(0)
+  protected val nonEmptyLock = new Semaphore(0)
 
-  private val taskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
+  protected val taskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
 
-  private val appBuffer: java.util.Map[String, ListBuffer[ParallelTask[_]]] = new ConcurrentHashMap[String, ListBuffer[ParallelTask[_]]]()
+  protected val appBuffer: java.util.Map[String, ListBuffer[ParallelTask[_]]] = new ConcurrentHashMap[String, ListBuffer[ParallelTask[_]]]()
 
 
   override def startup(): Unit = {
@@ -183,11 +183,12 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     }
     blockManager.addRef(ref)
     val endTime = System.currentTimeMillis()
+    val serRef = ref.toSerializable()
 //    HDMContext.declareHdm(Seq(ref))
     log.info(s"A task is succeeded : [${taskId + "_" + func}}] ")
-    val promise = promiseManager.removePromise(taskId).asInstanceOf[Promise[ParHDM[_, _]]]
+    val promise = promiseManager.removePromise(taskId).asInstanceOf[Promise[HDM[_]]]
     if (promise != null && !promise.isCompleted ){
-      promise.success(ref.asInstanceOf[ParHDM[_, _]])
+      promise.success(serRef)
       log.info(s"A promise is triggered for : [${taskId + "_" + func}}] ")
     } else if (promise eq null) {
       log.warn(s"no matched promise found: ${taskId}")

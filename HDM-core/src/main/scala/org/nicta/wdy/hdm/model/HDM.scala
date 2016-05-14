@@ -22,7 +22,7 @@ import scala.util.{Left, Random, Try}
 abstract class HDM[R: ClassTag] extends Serializable {
 
   @transient
-  val hdmContext:HDMContext = HDMContext.defaultHDMContext
+  var hdmContext:HDMContext = HDMContext.defaultHDMContext
 
   @transient
   implicit val executionContext = hdmContext.executionContext //todo to changed to get from dynamic hdm context
@@ -346,6 +346,8 @@ abstract class HDM[R: ClassTag] extends Serializable {
   def sample(sampleFunc:Arr[R] => Arr[R])(implicit parallelism:Int):Future[Iterator[R]] = {
     this.mapPartitions(sampleFunc).traverse(parallelism)
   }
+
+  def toSerializable():HDM[R]
 
   // end of actions
 

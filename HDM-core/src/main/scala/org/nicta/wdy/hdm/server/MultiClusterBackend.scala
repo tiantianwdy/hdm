@@ -50,6 +50,13 @@ class MultiClusterBackend (val blockManager: HDMBlockManager,
 //    futures.last
   }
 
+  def coordinationJobReceived(jobId:String, version:String, hdm:HDM[_], parallelism:Int):Future[_] ={
+    val exeId = dependencyManager.addInstance(jobId, version, hdm)
+    val plans = planner.plan(hdm, parallelism)
+    dependencyManager.addPlan(exeId, plans)
+    scheduler.submitJob(jobId, version, exeId, plans.physicalPlan)
+  }
+
 
   def taskReceived[R](task:ParallelTask[R]):Future[_] = {
     val promise = Promise[ParHDM[_, R]]()

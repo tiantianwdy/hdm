@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.model
 
+import akka.actor.FSM.NullFunction
 import org.nicta.wdy.hdm.executor.{RandomPartitioner, HDMContext, Partitioner, Context}
 import org.nicta.wdy.hdm.functions.{ParUnionFunc, NullFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path
@@ -77,7 +78,9 @@ abstract class ParHDM[T:ClassTag, R:ClassTag]() extends  HDM[R] {
       "}"
   }
 
-
+  override def toSerializable(): HDM[R] = {
+    this.copy(children = Seq.empty[HDM[T]], func = null)
+  }
 }
 
 

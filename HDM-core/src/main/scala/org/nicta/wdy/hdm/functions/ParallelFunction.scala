@@ -387,7 +387,14 @@ class NullFunc[T: ClassTag] extends ParallelFunction[T,T] {
 
 }
 
+class NullParFunc[T: ClassTag, R: ClassTag] extends ParallelFunction[T, R] {
 
+  val dependency = PartialDep
+
+  override def apply(params: Arr[T]): Arr[R] = ???
+
+  override def aggregate(params: Arr[T], res: mutable.Buffer[R]): mutable.Buffer[R] = ???
+}
 
 class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)
                             (implicit ordering: Ordering[T])

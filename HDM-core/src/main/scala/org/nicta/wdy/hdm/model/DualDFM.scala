@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.model
 
 import org.nicta.wdy.hdm.executor.{AppContext, KeepPartitioner, Partitioner, HDMContext}
-import org.nicta.wdy.hdm.functions.{DualInputFunction, ParallelFunction}
+import org.nicta.wdy.hdm.functions.{NullDualFunc, DualInputFunction, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.storage.{Declared, BlockState}
 
@@ -98,5 +98,9 @@ class DualDFM[T: ClassTag, U: ClassTag, R: ClassTag](val id: String = HDMContext
       s"state: ${state} \n" +
       s"cache: ${isCache} \n" +
       "}"
+  }
+
+  override def toSerializable(): HDM[R] = {
+    this.copy(input1 = Seq.empty[HDM[T]], input2 = Seq.empty[HDM[U]], func = new NullDualFunc[T, U, R])
   }
 }

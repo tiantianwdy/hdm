@@ -69,7 +69,7 @@ object HDMServer {
     val hDMContext = new HDMContext(defaultConf)
 
     if (isMaster)
-      hDMContext.startAsMaster(port, defaultConf)//port, defaultConf
+      hDMContext.startAsMaster(port = port, conf = defaultConf, mode = mode)//port, defaultConf
     else
       hDMContext.startAsSlave(parentPath, port, blockServerPort, defaultConf, slots)//parentPath, port, defaultConf
     println(s"[HDM Node Startted] as ${if (isMaster) "master" else "slave"} at port: $port .")

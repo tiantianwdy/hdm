@@ -47,7 +47,7 @@ class RemoteDependencySubmitTest {
     }
 
     val jobMsg = SerializedJobMsg(appContext.appName, appContext.version, jobBytes,
-      hDMContext.leaderPath.get() + "/"+ HDMContext.JOB_RESULT_DISPATCHER, parallelism)
+      hDMContext.leaderPath.get() + "/"+ HDMContext.JOB_RESULT_DISPATCHER, hDMContext.leaderPath.get(), parallelism)
     Thread.sleep(100)
     SmsSystem.askAsync(context, jobMsg)
     Thread.sleep(50000)

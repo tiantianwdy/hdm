@@ -208,7 +208,7 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
     /**
      * process a job msg with serialized hdm object
      */
-    case SerializedJobMsg(appName, version, serHDM, resultHandler, parallel) =>
+    case SerializedJobMsg(appName, version, serHDM, resultHandler, from, parallel) =>
       val appLoader = hdmBackend.dependencyManager.getClassLoader(appName, version)
       val serializer = hDMContext.defaultSerializer
       val hdm = serializer.deserialize[HDM[_]](ByteBuffer.wrap(serHDM), appLoader)
@@ -216,10 +216,10 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
       val senderPath = sender.path
       val fullPath = ActorPath.fromString(resultHandler).toStringWithAddress(senderPath.address)
       hdmBackend.jobReceived(appName, version, hdm, parallel) onComplete {
-        case Success(hdm) =>
+        case Success(res) =>
           val resActor = context.actorSelection(fullPath)
-          resActor ! JobCompleteMsg(appId, 1, hdm)
-          log.info(s"A job has completed successfully. result has been send to [${resultHandler}}]; appId: ${appId}} ")
+          resActor ! JobCompleteMsg(appId, 1, res)
+          log.info(s"A job has completed successfully. result has been send to [${resultHandler}}]; appId: ${appId}}; res: ${res} ")
         case Failure(t) =>
           context.actorSelection(resultHandler) ! JobCompleteMsg(appId, 1, t.toString)
           log.info(s"A job has failed. result has been send to [${resultHandler}}]; appId: ${appId}} ")

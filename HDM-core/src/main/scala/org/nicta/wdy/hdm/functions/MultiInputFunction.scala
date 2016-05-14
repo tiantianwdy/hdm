@@ -1,5 +1,7 @@
 package org.nicta.wdy.hdm.functions
 
+import java.util.concurrent.atomic.AtomicReference
+
 import org.nicta.wdy.hdm._
 import org.nicta.wdy.hdm.executor.TaskContext
 
@@ -12,11 +14,15 @@ import scala.reflect.ClassTag
 abstract class DualInputFunction[T: ClassTag, U: ClassTag, R: ClassTag] extends SerializableFunction[(Arr[T], Arr[U]), Arr[R]] with Aggregatable[(Arr[T], Arr[U]), Buf[R]] {
 
 
-  private val runTimeContext:ThreadLocal[TaskContext] = new  ThreadLocal[TaskContext]()
+  @transient
+  protected var runTimeContext:AtomicReference[TaskContext] = new  AtomicReference[TaskContext]()
 
-  def setTaskContext(context:TaskContext) = runTimeContext.set(context)
+  def setTaskContext(context:TaskContext) = {
+    if(runTimeContext == null) runTimeContext = new  AtomicReference[TaskContext]()
+    runTimeContext.set(context)
+  }
 
-  def removeTaskContext() = runTimeContext.remove()
+  def removeTaskContext() = runTimeContext.set(null)
 
   def getTaskContext() = runTimeContext.get()
 
@@ -147,4 +153,11 @@ class JoinByFunc[T: ClassTag, U: ClassTag, K: ClassTag](f1:T => K, f2: U => K ) 
 
   override def aggregate(params: (Arr[T], Arr[U]), res: Buffer[(Iterable[T], Iterable[U])]): Buffer[(Iterable[T], Iterable[U])] = ???
 
+}
+
+class NullDualFunc[T: ClassTag, U: ClassTag, R: ClassTag] extends DualInputFunction[T, U, R] {
+
+  override def apply(params: (Arr[T], Arr[U])): Arr[R] = ???
+
+  override def aggregate(params: (Arr[T], Arr[U]), res: Buf[R]): Buf[R] = ???
 }

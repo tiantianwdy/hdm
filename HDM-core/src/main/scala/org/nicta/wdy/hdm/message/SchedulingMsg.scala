@@ -23,7 +23,7 @@ case class JobCompleteMsg(appId:String, state:Int, result:Any) extends Schedulin
 
 case class StopTaskMsg(appId:String, taskId:String) extends SchedulingMsg
 
-case class SerializedJobMsg(appName:String, version:String, serJob:Array[Byte], resultReceiver:String, parallelism:Int) extends SchedulingMsg
+case class SerializedJobMsg(appName:String, version:String, serJob:Array[Byte], resultReceiver:String, source:String, parallelism:Int) extends SchedulingMsg
 
 case class SerializedTaskMsg(appName:String, version:String, taskID:String, serTask:Array[Byte]) extends SchedulingMsg
 
