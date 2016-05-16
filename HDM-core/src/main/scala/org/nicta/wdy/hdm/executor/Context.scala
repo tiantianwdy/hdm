@@ -167,7 +167,7 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
         val appManager = new AppManager
         val blockManager = HDMBlockManager()
         val promiseManager = new DefPromiseManager
-        val resourceManager = new DefResourceManager
+        val resourceManager = new SingleClusterResourceManager
         val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
         //    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
         val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, schedulingPolicy)
@@ -192,7 +192,7 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
   def submitJob(master:String, appName:String, version:String, hdm:HDM[_], parallel:Int): Future[HDM[_]] = {
     val rootPath =  SmsSystem.physicalRootPath
     //    HDMContext.declareHdm(Seq(hdm))
-    val promise = SmsSystem.askLocalMsg(HDMContext.JOB_RESULT_DISPATCHER, RegisterPromiseMsg(appName, version, rootPath + "/"+ HDMContext.JOB_RESULT_DISPATCHER)) match {
+    val promise = SmsSystem.askLocalMsg(HDMContext.JOB_RESULT_DISPATCHER, RegisterPromiseMsg(appName, version, hdm.id, rootPath + "/"+ HDMContext.JOB_RESULT_DISPATCHER)) match {
       case Some(promise) => promise.asInstanceOf[Promise[HDM[_]]]
       case none => null
     }
