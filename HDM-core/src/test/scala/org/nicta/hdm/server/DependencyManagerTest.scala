@@ -50,7 +50,7 @@ class DependencyManagerTest {
   def testSubmitAppByMsg(): Unit ={
 
     val start = System.currentTimeMillis()
-    val master = "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster/ClusterExecutor"
+    val master = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster/ClusterExecutor"
     val file = "/home/tiantian/Dev/workspace/hdm/hdm-benchmark/target/HDM-benchmark-0.0.1.jar"
     SmsSystem.startAsClient(master, 20001)
     Thread.sleep(100)

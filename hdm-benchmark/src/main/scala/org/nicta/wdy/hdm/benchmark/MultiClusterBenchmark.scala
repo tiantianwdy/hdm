@@ -52,22 +52,22 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
     import HDMContext._
     hDMContext.init(leader = master1, 0)
 
-    val vecLen = 10
+    val vecLen = 2
     val data1 = Path(dataPath1)
     val data2 = Path(dataPath2)
     val dataDP1 = HDM(data1, appContext1)
     val dataDP2 = HDM(data2, appContext2)
 
-    val trainingDp1 = dataDP1.map(line => line.split("\\s+"))
-      .map{ seq => seq.drop(3).dropRight(6)}
-      .filter(seq => seq.forall(s => s.matches("\\d+(.\\d+)?")))
-      .map{ seq => seq.take(vecLen).map(_.toDouble)}.map(arr => arr(0) -> arr)
+    val trainingDp1 = dataDP1.map(line => line.split(","))
+//      .map{ seq => seq.drop(3).dropRight(6)}
+//      .filter(seq => seq.forall(s => s.matches("\\d+(.\\d+)?")))
+      .map{ seq => seq.take(vecLen)}.map(arr => arr(0) -> arr(1))
     //      .zipWithIndex.mapValues(d => DenseVector(d))
 
-    val trainingDp2 = dataDP2.map(line => line.split("\\s+"))
-      .map{ seq => seq.drop(3).dropRight(6)}
-      .filter(seq => seq.forall(s => s.matches("\\d+(.\\d+)?")))
-      .map{ seq => seq.take(vecLen).map(_.toDouble)}.map(arr => arr(0) -> arr)
+    val trainingDp2 = dataDP2.map(line => line.split(","))
+//      .map{ seq => seq.drop(3).dropRight(6)}
+//      .filter(seq => seq.forall(s => s.matches("\\d+(.\\d+)?")))
+      .map{ seq => seq.take(vecLen)}.map(arr => arr(0) -> arr(1))
     //      .zipWithIndex.mapValues(d => DenseVector(d))
 
     val job = trainingDp1.joinByKey(trainingDp2)

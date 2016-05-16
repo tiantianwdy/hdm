@@ -82,13 +82,16 @@ class RemoteDependencySubmitTest {
         hdm.blocks.foreach(println(_))
         System.exit(0)
       }
+
     case "sample" =>
       //      val start = System.currentTimeMillis()
       hdm.sample(25, 500000)foreach(println(_))
+
     case "collect" =>
       val start = System.currentTimeMillis()
       val itr = hdm.collect()
       println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received results: ${itr.size}")
+
     case x =>
   }
 
