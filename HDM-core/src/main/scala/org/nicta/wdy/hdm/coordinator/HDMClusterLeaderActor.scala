@@ -197,7 +197,7 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
       hdmBackend.jobReceived(appId, "", hdms.head, cores) onComplete {
         case Success(hdm) =>
           val resActor = context.actorSelection(fullPath)
-          resActor ! JobCompleteMsg(appId, 1, hdm)
+          resActor ! JobCompleteMsg(appId, 0, hdm)
           log.info(s"A job has completed successfully. result has been send to [${resultHandler}}]; appId: ${appId}} ")
         case Failure(t) =>
           context.actorSelection(resultHandler) ! JobCompleteMsg(appId, 1, t.toString)
@@ -218,7 +218,7 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
       hdmBackend.jobReceived(appName, version, hdm, parallel) onComplete {
         case Success(res) =>
           val resActor = context.actorSelection(fullPath)
-          resActor ! JobCompleteMsg(appId, 1, res)
+          resActor ! JobCompleteMsg(hdm.id, 0, res)
           log.info(s"A job has completed successfully. result has been send to [${resultHandler}}]; appId: ${appId}}; res: ${res} ")
         case Failure(t) =>
           context.actorSelection(resultHandler) ! JobCompleteMsg(appId, 1, t.toString)
@@ -233,9 +233,9 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
       val senderPath = sender.path
       val fullPath = ActorPath.fromString(resultHandler).toStringWithAddress(senderPath.address)
       hdmBackend.jobReceived(appId, "", hdm, parallel) onComplete {
-        case Success(hdm) =>
+        case Success(res) =>
           val resActor = context.actorSelection(fullPath)
-          resActor ! JobCompleteMsg(appId, 1, hdm)
+          resActor ! JobCompleteMsg(hdm.id, 0, res)
           log.info(s"A job has completed successfully. result has been send to [${resultHandler}}]; appId: ${appId}} ")
         case Failure(t) =>
           context.actorSelection(resultHandler) ! JobCompleteMsg(appId, 1, t.toString)

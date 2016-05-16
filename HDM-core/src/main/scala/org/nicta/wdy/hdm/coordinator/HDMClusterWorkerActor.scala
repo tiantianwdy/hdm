@@ -64,6 +64,7 @@ class HDMClusterWorkerActor(leaderPath: String, slots:Int, blockContext: BlockCo
       case Success(results) =>
         context.actorSelection(leaderPath) ! TaskCompleteMsg(task.appId, task.taskId, task.func.toString, results)
         log.info(s"A task [${task.taskId + "_" + task.func}] has been completed in ${System.currentTimeMillis() - startTime} ms.")
+        log.info(s"TaskCompleteMsg has been sent to ${leaderPath}.")
         log.info(s"Memory remanding: ${HDMBlockManager.freeMemMB} MB.")
       //recycle memory when workers are free
       //          if(runningTasks.decrementAndGet() <= 0) Future {

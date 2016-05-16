@@ -94,10 +94,10 @@ class HDMMultiClusterLeader(override val hdmBackend:MultiClusterBackend,
       future onComplete {
         case Success(res) =>
           val resActor = context.actorSelection(resultHandler)
-          resActor ! JobCompleteMsg(appId, 1, res)
+          resActor ! JobCompleteMsg(hdm.id, 0, res)
           log.info(s"A job has completed successfully. result has been send to [${resultHandler}]; appId: ${appId}}; res: ${res}  ")
         case Failure(t) =>
-          context.actorSelection(resultHandler) ! JobCompleteMsg(appId, 1, t.toString)
+          context.actorSelection(resultHandler) ! JobCompleteMsg(hdm.id, 1, t.toString)
           log.info(s"A job has failed. result has been send to [${resultHandler}]; appId: ${appId}} ")
       }
       log.info(s"A job has been added from [${sender.path}]; id: ${appId} ")
@@ -111,9 +111,13 @@ class HDMMultiClusterLeader(override val hdmBackend:MultiClusterBackend,
       hdmBackend.resourceManager.incResource(workerPath, 1)
       if(remoteTaskMap.containsKey(taskId)){
         hdmBackend.resourceManager.siblingMap.foreach(kv =>
-          if(kv._1 != workerPath) context.actorSelection(kv._1) ! TaskCompleteMsg(appId, taskId, func, results)
+          if(kv._1 != workerPath) {
+            log.info(s"sending a remote TaskCompleteMsg: ${taskId + "_" + func} to ${kv._1}")
+            context.actorSelection(kv._1) ! TaskCompleteMsg(appId, taskId, func, results)
+          }
         )
       } else {
+        log.info(s"Local task completed: ${taskId + "_" + func}")
         hdmBackend.taskSucceeded(appId, taskId, func, results)
       }
 

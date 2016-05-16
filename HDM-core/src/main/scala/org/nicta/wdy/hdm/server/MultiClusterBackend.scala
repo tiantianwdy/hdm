@@ -28,9 +28,16 @@ class MultiClusterBackend (val blockManager: HDMBlockManager,
         scheduler.startup()
       }
     }.start()
+
     new Thread{
       override def run(): Unit = {
         scheduler.startStateScheduling()
+      }
+    }.start()
+
+    new Thread{
+      override def run(): Unit = {
+        scheduler.startRemoteTaskScheduling()
       }
     }.start()
   }

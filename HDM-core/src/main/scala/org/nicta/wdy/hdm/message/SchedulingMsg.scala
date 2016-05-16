@@ -27,4 +27,4 @@ case class SerializedJobMsg(appName:String, version:String, serJob:Array[Byte], 
 
 case class SerializedTaskMsg(appName:String, version:String, taskID:String, serTask:Array[Byte]) extends SchedulingMsg
 
-case class RegisterPromiseMsg(appName:String, version:String, triggerPath:String) extends SchedulingMsg
+case class RegisterPromiseMsg(appName:String, version:String, lastTaskID:String, triggerPath:String) extends SchedulingMsg

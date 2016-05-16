@@ -1,10 +1,11 @@
 package org.nicta.wdy.hdm.scheduling
 
-import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue}
+import java.util.concurrent.{Semaphore, ConcurrentHashMap, LinkedBlockingQueue}
 
 import akka.actor.ActorSystem
-import org.nicta.wdy.hdm.executor.{HDMContext, Partitioner, ParallelTask}
+import org.nicta.wdy.hdm.executor.{ClusterExecutor, HDMContext, Partitioner, ParallelTask}
 import org.nicta.wdy.hdm.functions.ParallelFunction
+import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.{DDM, ParHDM, DFM, HDM}
 import org.nicta.wdy.hdm.planing.{MultiClusterPlaner, JobStage}
 import org.nicta.wdy.hdm.server._
@@ -38,71 +39,45 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
 
   private val stateQueue = new LinkedBlockingQueue[JobStage]()
 
+  private val remoteTaskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
+
+  protected val remoteTaskNonEmptyLock = new Semaphore(0)
+
   private val appStateBuffer: java.util.Map[String, ListBuffer[JobStage]] = new ConcurrentHashMap[String, ListBuffer[JobStage]]()
 
-  override def startup(): Unit = {
-    isRunning.set(true)
-    while (isRunning.get) {
-      if(taskQueue.isEmpty) {
-        nonEmptyLock.acquire()
-      }
-      resourceManager.waitForNonEmpty()
-      val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
-      import scala.collection.JavaConversions._
-
-      val tasks = taskQueue.map { task =>
-        val ids = task.input.map(_.id)
-        val inputLocations = HDMBlockManager().getLocations(ids)
-        val inputSize = HDMBlockManager().getblockSizes(ids).map(_ / 1024)
-        SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
-      }.toSeq
-
-      val plans = schedulingPolicy.plan(tasks, candidates,
-        HDMContext.defaultHDMContext.SCHEDULING_FACTOR_CPU,
-        HDMContext.defaultHDMContext.SCHEDULING_FACTOR_IO ,
-        HDMContext.defaultHDMContext.SCHEDULING_FACTOR_NETWORK)
-
-      val scheduledTasks = taskQueue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
-      val now = System.currentTimeMillis()
-      plans.foreach(tuple => {
-        scheduledTasks.get(tuple._1) match {
-          case Some(task) =>
-            taskQueue.remove(task)
-            scheduleTask(task, tuple._2)
-            // trace task
-            val eTrace = ExecutionTrace(task.taskId,
-              task.appId,
-              task.version,
-              task.exeId,
-              task.func.getClass.getSimpleName,
-              task.func.toString,
-              task.input.map(_.id),
-              Seq(task.taskId),
-              tuple._2,
-              task.dep.toString,
-              task.partitioner.getClass.getCanonicalName,
-              now,
-              -1L,
-              "Running")
-            historyManager.addExecTrace(eTrace)
-          case None => //do nothing
-        }
-      })
-    }
-  }
 
   def initStateScheduling(): Unit ={
     stateQueue.clear()
     appStateBuffer.clear()
+    remoteTaskQueue.clear()
+  }
+
+  def startRemoteTaskScheduling(): Unit ={
+    while (isRunning.get) {
+//      if(remoteTaskQueue.isEmpty) {
+//        remoteTaskNonEmptyLock.acquire()
+//      }
+      val task = remoteTaskQueue.take()
+      log.info(s"Waiting for resources...")
+      resourceManager.waitForNonEmpty()
+      log.info(s"Completed waiting for resources...")
+      // todo use scheduling policy to choose optimal candidates
+      //      scheduleOnResource(remoteTaskQueue, resourceManager.getChildrenRes())
+      val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getChildrenRes())
+      val workerPath = candidates.head.toString
+      resourceManager.decResource(workerPath, 1)
+      log.info(s"A remote task has been assigned to: [$workerPath] [${task.taskId + "_" + task.func.toString}}] ")
+      if (Path.isLocal(workerPath)) ClusterExecutor.runTask(task)
+      else runRemoteTask(workerPath, task)
+    }
   }
 
 
   def scheduleRemoteTask[R: ClassTag](task: ParallelTask[R]): Promise[HDM[R]] = {
+    // todo change to using a scheduling thread and scheduling on local nodes
     val promise = promiseManager.createPromise[HDM[R]](task.taskId)
-    val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getChildrenRes())
-    val workerPath = candidates.head.toString
-    resourceManager.decResource(workerPath, 1)
-    super.runRemoteTask(workerPath, task)
+    remoteTaskQueue.offer(task)
+    remoteTaskNonEmptyLock.release()
     promise
   }
 
@@ -136,16 +111,17 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
         dependencyManager.addPlan(exeId, plans)
         submitJob(appName, version, exeId, plans.physicalPlan)
       } else {
-        blockManager.addRef(hdm)
-        val ref = runRemoteJob(hdm, stage.parallelism)
-        ref.onComplete{
-          case Success(resHDM) =>
-            jobSucceed(appName+"#"+version, hdm.id, resHDM.blocks)
-          case Failure(f) =>
-        }
         // send to remote master state based on context
+        val ref = runRemoteJob(hdm, stage.parallelism)
+        blockManager.addRef(hdm)
+        ref
+      }.onComplete {
+        case Success(resHDM) => synchronized {
+          log.info(s"A Job succeed with ${resHDM}")
+          jobSucceed(appName+"#"+version, hdm.id, resHDM.blocks)
+        }
+        case Failure(f) =>
       }
-
     }
   }
 
@@ -177,6 +153,7 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
 
   def triggerStage(appId:String): Unit = {
     val stages  = appStateBuffer.get(appId)
+    log.info(s"finding stages: ${stages}")
     if(stages != null && stages.nonEmpty){
       val nextStages = stages.filter { sg =>
         sg.parents.forall { job =>
@@ -184,6 +161,7 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
           ref.state == Computed
         }
       }
+      log.info(s"New stages are triggered: ${nextStages}")
       nextStages.foreach(stateQueue.offer(_))
     }
   }

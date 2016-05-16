@@ -148,7 +148,7 @@ trait DefSchedulingReceiver extends SchedulingMsgReceiver {
       hdmBackend.jobReceived(appName, version, hdm, parallel) onComplete {
         case Success(res) =>
           val resActor = context.actorSelection(fullPath)
-          resActor ! JobCompleteMsg(appId, 1, res)
+          resActor ! JobCompleteMsg(hdm.id, 0, res)
           log.info(s"A job has completed successfully. result has been send to [${resultHandler}}]; appId: ${appId}}; res:${res}  ")
         case Failure(t) =>
           context.actorSelection(resultHandler) ! JobCompleteMsg(appId, 1, t.toString)
