@@ -1,27 +1,26 @@
 package org.nicta.wdy.hdm.scheduling
 
-import java.util.concurrent.locks.ReentrantLock
-import java.util.concurrent.{Semaphore, ConcurrentHashMap, LinkedBlockingQueue, TimeUnit}
-import java.util.concurrent.atomic.AtomicBoolean
-
-
-import org.nicta.wdy.hdm.server.{PromiseManager, ResourceManager, ProvenanceManager}
-import org.nicta.wdy.hdm.server.provenance.ExecutionTrace
-
-import scala.collection.mutable.ListBuffer
-import scala.concurrent.{Future, Promise, ExecutionContext}
-import scala.reflect.ClassTag
+import java.util.concurrent._
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import akka.actor.ActorSystem
-import akka.util.Timeout
 import akka.pattern._
+import akka.util.Timeout
 import org.nicta.wdy.hdm.executor._
-import org.nicta.wdy.hdm.functions.{NullFunc, DualInputFunction, ParUnionFunc, ParallelFunction}
+import org.nicta.wdy.hdm.functions.{DualInputFunction, ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path
-import org.nicta.wdy.hdm.message.{SerializedTaskMsg, AddTaskMsg}
+import org.nicta.wdy.hdm.message.SerializedTaskMsg
 import org.nicta.wdy.hdm.model._
+import org.nicta.wdy.hdm.server.provenance.ExecutionTrace
+import org.nicta.wdy.hdm.server.{PromiseManager, ProvenanceManager, ResourceManager}
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 import org.nicta.wdy.hdm.utils.Logging
+
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.reflect.ClassTag
+import scala.collection.JavaConversions._
 
 
 /**
@@ -47,54 +46,58 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
   protected val appBuffer: java.util.Map[String, ListBuffer[ParallelTask[_]]] = new ConcurrentHashMap[String, ListBuffer[ParallelTask[_]]]()
 
 
+  protected def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], resources:mutable.Map[String, AtomicInteger]): Unit ={
+
+    val candidates = Scheduler.getAllAvailableWorkers(resources)
+
+    val tasks = blockingQue.map { task =>
+      val ids = task.input.map(_.id)
+      val inputLocations = HDMBlockManager().getLocations(ids)
+      val inputSize = HDMBlockManager().getblockSizes(ids).map(_ / 1024)
+      SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
+    }.toSeq
+
+    val plans = schedulingPolicy.plan(tasks, candidates,
+      HDMContext.defaultHDMContext.SCHEDULING_FACTOR_CPU,
+      HDMContext.defaultHDMContext.SCHEDULING_FACTOR_IO ,
+      HDMContext.defaultHDMContext.SCHEDULING_FACTOR_NETWORK)
+
+    val scheduledTasks = taskQueue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
+    val now = System.currentTimeMillis()
+    plans.foreach(tuple => {
+      scheduledTasks.get(tuple._1) match {
+        case Some(task) =>
+          blockingQue.remove(task)
+          scheduleTask(task, tuple._2)
+          // trace task
+          val eTrace = ExecutionTrace(task.taskId,
+            task.appId,
+            task.version,
+            task.exeId,
+            task.func.getClass.getSimpleName,
+            task.func.toString,
+            task.input.map(_.id),
+            Seq(task.taskId),
+            tuple._2,
+            task.dep.toString,
+            task.partitioner.getClass.getCanonicalName,
+            now,
+            -1L,
+            "Running")
+          historyManager.addExecTrace(eTrace)
+        case None => //do nothing
+      }
+    })
+  }
+
   override def startup(): Unit = {
     isRunning.set(true)
-    while (isRunning.get) {
+    while (isRunning.get) try {
       if(taskQueue.isEmpty) {
         nonEmptyLock.acquire()
       }
       resourceManager.waitForNonEmpty()
-      val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
-      import scala.collection.JavaConversions._
-
-      val tasks = taskQueue.map { task =>
-        val ids = task.input.map(_.id)
-        val inputLocations = HDMBlockManager().getLocations(ids)
-        val inputSize = HDMBlockManager().getblockSizes(ids).map(_ / 1024)
-        SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
-      }.toSeq
-
-      val plans = schedulingPolicy.plan(tasks, candidates,
-        HDMContext.defaultHDMContext.SCHEDULING_FACTOR_CPU,
-        HDMContext.defaultHDMContext.SCHEDULING_FACTOR_IO ,
-        HDMContext.defaultHDMContext.SCHEDULING_FACTOR_NETWORK)
-
-      val scheduledTasks = taskQueue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
-      val now = System.currentTimeMillis()
-      plans.foreach(tuple => {
-        scheduledTasks.get(tuple._1) match {
-          case Some(task) =>
-            taskQueue.remove(task)
-            scheduleTask(task, tuple._2)
-            // trace task
-            val eTrace = ExecutionTrace(task.taskId,
-              task.appId,
-              task.version,
-              task.exeId,
-              task.func.getClass.getSimpleName,
-              task.func.toString,
-              task.input.map(_.id),
-              Seq(task.taskId),
-              tuple._2,
-              task.dep.toString,
-              task.partitioner.getClass.getCanonicalName,
-              now,
-              -1L,
-              "Running")
-            historyManager.addExecTrace(eTrace)
-          case None => //do nothing
-        }
-      })
+      scheduleOnResource(taskQueue, resourceManager.getAllResources())
     }
   }
 
