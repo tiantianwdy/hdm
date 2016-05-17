@@ -178,7 +178,7 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
         val appManager = new AppManager
         val blockManager = HDMBlockManager()
         val promiseManager = new DefPromiseManager
-        val resourceManager = new TreeResourceManager
+        val resourceManager = new MultiClusterResourceManager
         val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
         val multiPlanner = new StaticMultiClusterPlanner(planer, HDMContext.defaultHDMContext)
         val scheduler = new MultiClusterScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, DependencyManager(), multiPlanner, schedulingPolicy)

@@ -18,7 +18,7 @@ import org.nicta.wdy.hdm.utils.Logging
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{Lock, ExecutionContext, Future, Promise}
 import scala.reflect.ClassTag
 import scala.collection.JavaConversions._
 
@@ -40,6 +40,8 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
   protected val isRunning = new AtomicBoolean(false)
 
   protected val nonEmptyLock = new Semaphore(0)
+
+  protected val resAccessorlock = new Lock
 
   protected val taskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
 
@@ -96,8 +98,10 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       if(taskQueue.isEmpty) {
         nonEmptyLock.acquire()
       }
+      resAccessorlock.acquire()
       resourceManager.waitForNonEmpty()
       scheduleOnResource(taskQueue, resourceManager.getAllResources())
+      resAccessorlock.release()
     }
   }
 

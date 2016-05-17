@@ -14,7 +14,7 @@ import scala.concurrent.{Promise, Future}
 class MultiClusterBackend (val blockManager: HDMBlockManager,
                            override val scheduler: MultiClusterScheduler,
                            val planner: MultiClusterPlaner,
-                           override val resourceManager: TreeResourceManager,
+                           override val resourceManager: MultiClusterResourceManager,
                            val eventManager: PromiseManager,
                            val dependencyManager:DependencyManager,
                            val hDMContext: HDMContext) extends ServerBackend {

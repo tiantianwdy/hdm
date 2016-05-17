@@ -13,7 +13,7 @@ import org.nicta.wdy.hdm.server.provenance.ExecutionTrace
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.{Future, Promise, ExecutionContext}
+import scala.concurrent.{Lock, Future, Promise, ExecutionContext}
 import scala.reflect.ClassTag
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success}
@@ -23,7 +23,7 @@ import scala.util.{Failure, Success}
  */
 class MultiClusterScheduler(override val blockManager:HDMBlockManager,
                             override val promiseManager:PromiseManager,
-                            override val resourceManager: TreeResourceManager,
+                            override val resourceManager: MultiClusterResourceManager,
                             override val historyManager: ProvenanceManager,
                             override val actorSys:ActorSystem,
                             val dependencyManager:DependencyManager,
@@ -40,10 +40,14 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
   private val stateQueue = new LinkedBlockingQueue[JobStage]()
 
   private val remoteTaskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
+  private val localTaskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
 
   protected val remoteTaskNonEmptyLock = new Semaphore(0)
+  protected val localTaskNonEmptyLock = new Semaphore(0)
 
   private val appStateBuffer: java.util.Map[String, ListBuffer[JobStage]] = new ConcurrentHashMap[String, ListBuffer[JobStage]]()
+
+
 
 
   def initStateScheduling(): Unit ={
@@ -52,26 +56,49 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
     remoteTaskQueue.clear()
   }
 
+
+  def startLocalTaskScheduling(): Unit = {
+    isRunning.set(true)
+    while (isRunning.get) try {
+      if(localTaskQueue.isEmpty) {
+        nonEmptyLock.acquire()
+      }
+      resAccessorlock.acquire()
+      resourceManager.waitForChildrenNonEmpty()
+      scheduleOnResource(localTaskQueue, resourceManager.getChildrenRes())
+      resAccessorlock.release()
+    }
+  }
+
   def startRemoteTaskScheduling(): Unit ={
     while (isRunning.get) {
 //      if(remoteTaskQueue.isEmpty) {
 //        remoteTaskNonEmptyLock.acquire()
 //      }
       val task = remoteTaskQueue.take()
+      resAccessorlock.acquire()
       log.info(s"Waiting for resources...")
-      resourceManager.waitForNonEmpty()
+      resourceManager.waitForChildrenNonEmpty()
       log.info(s"Completed waiting for resources...")
       // todo use scheduling policy to choose optimal candidates
       //      scheduleOnResource(remoteTaskQueue, resourceManager.getChildrenRes())
       val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getChildrenRes())
       val workerPath = candidates.head.toString
       resourceManager.decResource(workerPath, 1)
+      resAccessorlock.release()
       log.info(s"A remote task has been assigned to: [$workerPath] [${task.taskId + "_" + task.func.toString}}] ")
       if (Path.isLocal(workerPath)) ClusterExecutor.runTask(task)
       else runRemoteTask(workerPath, task)
     }
   }
 
+  def scheduleLocalTask[R: ClassTag](task: ParallelTask[R]): Promise[HDM[R]] = {
+    // todo change to using a scheduling thread and scheduling on local nodes
+    val promise = promiseManager.createPromise[HDM[R]](task.taskId)
+    localTaskQueue.offer(task)
+    localTaskNonEmptyLock.release()
+    promise
+  }
 
   def scheduleRemoteTask[R: ClassTag](task: ParallelTask[R]): Promise[HDM[R]] = {
     // todo change to using a scheduling thread and scheduling on local nodes

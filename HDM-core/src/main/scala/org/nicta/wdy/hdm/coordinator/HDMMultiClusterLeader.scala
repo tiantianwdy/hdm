@@ -41,19 +41,19 @@ class HDMMultiClusterLeader(override val hdmBackend:MultiClusterBackend,
     // coordinating msg
     case JoinMsg(path, state) =>
       val senderPath = sender().path.toString
-      hdmBackend.resourceManager.addResource(senderPath, state)
+//      hdmBackend.resourceManager.addResource(senderPath, state)
       hdmBackend.resourceManager.addChild(senderPath, state)
       log.info(s"A child has joined from [${senderPath}] ")
 
     case LeaveMsg(senderPath) =>
       hdmBackend.resourceManager.removeResource(senderPath)
-      hdmBackend.resourceManager.removeChild(senderPath)
-      hdmBackend.resourceManager.removeSibling(senderPath)
+//      hdmBackend.resourceManager.removeChild(senderPath)
+//      hdmBackend.resourceManager.removeSibling(senderPath)
       log.info(s"A node has left from [${senderPath}] ")
 
     case CollaborateMsg(path, state) =>
       val senderPath = sender().path.toString
-      hdmBackend.resourceManager.addResource(senderPath, state)
+//      hdmBackend.resourceManager.addResource(senderPath, state)
       hdmBackend.resourceManager.addSibling(senderPath, state)
       log.info(s"A sibling has joined from [${senderPath}] ")
 
