@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.scheduling
 
-import java.util.concurrent.{Semaphore, ConcurrentHashMap, LinkedBlockingQueue}
+import java.util.concurrent.{CopyOnWriteArrayList, Semaphore, ConcurrentHashMap, LinkedBlockingQueue}
 
 import akka.actor.ActorSystem
 import org.nicta.wdy.hdm.executor.{ClusterExecutor, HDMContext, Partitioner, ParallelTask}
@@ -45,7 +45,7 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
   protected val remoteTaskNonEmptyLock = new Semaphore(0)
   protected val localTaskNonEmptyLock = new Semaphore(0)
 
-  private val appStateBuffer: java.util.Map[String, ListBuffer[JobStage]] = new ConcurrentHashMap[String, ListBuffer[JobStage]]()
+  private val appStateBuffer: java.util.Map[String, CopyOnWriteArrayList[JobStage]] = new ConcurrentHashMap[String, CopyOnWriteArrayList[JobStage]]()
 
 
 
@@ -113,16 +113,16 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
     HDMContext.defaultHDMContext.compute(hdm, parallelism)
   }
 
-  def addJobStages(states:Seq[JobStage]): Future[HDM[_]] = {
+  def addJobStages(appId:String, states:Seq[JobStage]): Future[HDM[_]] = {
+    val promise = promiseManager.createPromise[HDM[_]](appId)
     states.map{ sg =>
-      val promise = promiseManager.createPromise[HDM[_]](sg.jobId)
       if(sg.parents == null || sg.parents.isEmpty){
         stateQueue.offer(sg)
       } else {
-        appStateBuffer.getOrElseUpdate(sg.appId, new ListBuffer[JobStage]()) += sg
+        appStateBuffer.getOrElseUpdate(sg.appId, new CopyOnWriteArrayList[JobStage]()) += sg
       }
-      promise.future
-    }.last
+    }
+    promise.future
   }
 
   def startStateScheduling(): Unit ={
@@ -132,21 +132,22 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
       val appName = hdm.appContext.appName
       val version = hdm.appContext.version
       val exeId = dependencyManager.addInstance(appName, version , hdm)
-      if(stage.isLocal){
+      blockManager.addRef(hdm)
+      val jobFuture = if(stage.isLocal){
         //if job is local
         val plans = planner.plan(hdm, stage.parallelism)
         dependencyManager.addPlan(exeId, plans)
         submitJob(appName, version, exeId, plans.physicalPlan)
       } else {
         // send to remote master state based on context
-        val ref = runRemoteJob(hdm, stage.parallelism)
-        blockManager.addRef(hdm)
-        ref
-      }.onComplete {
-        case Success(resHDM) => synchronized {
-          log.info(s"A Job succeed with ${resHDM}")
-          jobSucceed(appName+"#"+version, hdm.id, resHDM.blocks)
-        }
+        val future = runRemoteJob(hdm, stage.parallelism)
+        future
+      }
+      jobFuture.onComplete {
+        case Success(resHDM) => {
+            log.info(s"A Stage succeed with ${hdm.id}")
+            jobSucceed(appName + "#" + version, hdm.id, resHDM.blocks)
+          }
         case Failure(f) =>
       }
     }
@@ -174,11 +175,11 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
     }
     blockManager.addRef(ref)
     // trigger following jobs
-    triggerStage(appId)
+    triggerStage(appId, ref)
 
   }
 
-  def triggerStage(appId:String): Unit = {
+  def triggerStage(appId:String, hdm:HDM[_]): Unit = {
     val stages  = appStateBuffer.get(appId)
     log.info(s"finding stages: ${stages}")
     if(stages != null && stages.nonEmpty){
@@ -189,7 +190,16 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
         }
       }
       log.info(s"New stages are triggered: ${nextStages}")
-      nextStages.foreach(stateQueue.offer(_))
+      nextStages.foreach{stage =>
+        stages.remove(stage)
+        stateQueue.offer(stage)
+      }
+    } else {
+      log.info(s"A Job succeed id: ${appId}")
+      val promise = promiseManager.getPromise(appId)
+      if(promise ne null) {
+        promise.asInstanceOf[Promise[HDM[_]]].success(hdm)
+      }
     }
   }
 

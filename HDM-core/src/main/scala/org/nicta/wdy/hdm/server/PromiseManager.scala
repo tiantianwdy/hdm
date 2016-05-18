@@ -2,6 +2,8 @@ package org.nicta.wdy.hdm.server
 
 import java.util.concurrent.ConcurrentHashMap
 
+import org.nicta.wdy.hdm.utils.Logging
+
 import scala.concurrent.Promise
 
 /**
@@ -15,16 +17,12 @@ trait PromiseManager {
 
   def removePromise(id:String):Promise[_]
   
-  def createPromise[T](id:String):Promise[T] = {
-    val promise = Promise[T]()
-    addPromise(id, promise)
-    promise
-  }
+  def createPromise[T](id:String):Promise[T]
 
 }
 
 
-class DefPromiseManager extends  PromiseManager{
+class DefPromiseManager extends  PromiseManager with Logging {
 
   val promiseMap = new ConcurrentHashMap[String, Promise[_]]()
 
@@ -38,5 +36,16 @@ class DefPromiseManager extends  PromiseManager{
 
   override def getPromise(id: String): Promise[_] = {
     promiseMap.get(id)
+  }
+
+  override def createPromise[T](id:String):Promise[T]  = {
+    if(promiseMap.containsKey(id)){
+      getPromise(id).asInstanceOf[Promise[T]]
+    } else {
+      val promise = Promise[T]()
+      log.info(s"created a new promise with id ${id}")
+      addPromise(id, promise)
+      promise
+    }
   }
 }

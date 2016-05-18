@@ -45,7 +45,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
   protected val taskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
 
-  protected val appBuffer: java.util.Map[String, ListBuffer[ParallelTask[_]]] = new ConcurrentHashMap[String, ListBuffer[ParallelTask[_]]]()
+  protected val appBuffer: java.util.Map[String, CopyOnWriteArrayList[ParallelTask[_]]] = new ConcurrentHashMap[String, CopyOnWriteArrayList[ParallelTask[_]]]()
 
 
   protected def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], resources:mutable.Map[String, AtomicInteger]): Unit ={
@@ -123,7 +123,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
   override def addTask[R](task: ParallelTask[R]): Promise[HDM[R]] = {
     val promise = promiseManager.createPromise[HDM[R]](task.taskId)
     if (!appBuffer.containsKey(task.appId))
-      appBuffer.put(task.appId, new ListBuffer[ParallelTask[ _]])
+      appBuffer.put(task.appId, new CopyOnWriteArrayList[ParallelTask[ _]])
     val lst = appBuffer.get(task.appId)
     lst += task
     triggerTasks(task.appId) //todo replace with planner.nextPlanning
@@ -131,7 +131,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
   }
 
   override def submitJob(appId: String, version:String, exeId:String, hdms: Seq[HDM[_]]): Future[HDM[_]] = {
-    hdms.map { h => h match {
+    val taskSeq = hdms.map { h => h match {
       case hdm: ParHDM[_, _] =>
         blockManager.addRef(h)
         val task = Task(appId = appId,
@@ -163,7 +163,10 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           blockContext = HDMContext.defaultHDMContext.blockContext())
         addTask(task)
       }
-    }.last.future
+    }
+    val promise = taskSeq.last
+    log.info(s"Created job promise Id: " + promise)
+    promise.future
   }
 
 
@@ -196,7 +199,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     val promise = promiseManager.removePromise(taskId).asInstanceOf[Promise[HDM[_]]]
     if (promise != null && !promise.isCompleted ){
       promise.success(serRef)
-      log.info(s"A promise is triggered for : [${taskId + "_" + func}}] ")
+      log.info(s"A promise [${promise}] is triggered for : [${taskId + "_" + func}}] ")
     } else if (promise eq null) {
       log.warn(s"no matched promise found: ${taskId}")
     }
