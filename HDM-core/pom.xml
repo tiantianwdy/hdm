@@ -88,8 +88,8 @@
             </plugins>
         </pluginManagement>
 
-        <sourceDirectory>src/main/scala</sourceDirectory>
-        <testSourceDirectory>src/test/scala</testSourceDirectory>
+        <sourceDirectory>src/main/java</sourceDirectory>
+        <testSourceDirectory>src/test/java</testSourceDirectory>
 
         <resources>
             <resource>

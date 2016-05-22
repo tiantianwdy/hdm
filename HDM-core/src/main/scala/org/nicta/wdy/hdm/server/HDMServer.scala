@@ -26,11 +26,7 @@ object HDMServer {
   } getOrElse false
 
   private def loadConf(conf: Config) {
-    parentPath = conf.getString("hdm.cluster.master.url")
-    port = conf.getInt("akka.remote.netty.tcp.port")
-    isMaster = Try {
-      defaultConf.getBoolean("hdm.cluster.isMaster")
-    } getOrElse false
+    HDMContext.setDefaultConf(conf)
   }
 
   /**
@@ -66,17 +62,22 @@ object HDMServer {
       }
     })
 
-    val hDMContext = new HDMContext(defaultConf)
+//    val hDMContext = new HDMContext(defaultConf)
+    val hDMContext = HDMContext.defaultHDMContext
 
-    if (isMaster)
+    if (isMaster){
+      println(s"starting master with $port, $mode, ${hDMContext.PLANER_PARALLEL_CPU_FACTOR}, ${hDMContext.PLANER_PARALLEL_NETWORK_FACTOR}")
       hDMContext.startAsMaster(port = port, conf = defaultConf, mode = mode)//port, defaultConf
+    }
     else
       hDMContext.startAsSlave(parentPath, port, blockServerPort, defaultConf, slots)//parentPath, port, defaultConf
     println(s"[HDM Node Startted] as ${if (isMaster) "master" else "slave"} at port: $port .")
 
     Runtime.getRuntime.addShutdownHook(new Thread {
       override def run(): Unit = {
+        println(s"HDMContext is shuting down...")
         hDMContext.shutdown()
+        println(s"HDMContext has shut down successfully..")
       }
     })
   }

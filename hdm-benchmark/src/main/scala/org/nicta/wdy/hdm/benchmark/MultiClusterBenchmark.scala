@@ -51,6 +51,7 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
   def testShuffleTask(dataPath1:String, dataPath2:String)(implicit parallelism:Int): Unit ={
     import HDMContext._
     hDMContext.init(leader = master1, 0)
+    Thread.sleep(200)
 
     val vecLen = 2
     val data1 = Path(dataPath1)

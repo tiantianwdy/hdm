@@ -23,7 +23,7 @@ class HDMBenchmarkTest {
 
   @Test
   def testRunShuffleJobs(): Unit = {
-    implicit val parallelism = 1
+    implicit val parallelism = 2
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings"
     multiClusterBenchmark.testShuffleTask(data, data)
 
