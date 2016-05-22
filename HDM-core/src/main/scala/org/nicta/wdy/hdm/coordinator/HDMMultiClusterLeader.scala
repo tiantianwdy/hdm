@@ -27,7 +27,7 @@ class HDMMultiClusterLeader(override val hdmBackend:MultiClusterBackend,
                             override val hDMContext:HDMContext)
                             extends AbstractHDMLeader(hdmBackend, cores, hDMContext)
                             with DefQueryMsgReceiver
-                            with DefDepReceiver{
+                            with MultiCLusterDepReceiver{
 
   //  holding the task map to the origins of the remote tasks received from sibling masters
   private val remoteTaskMap = new ConcurrentHashMap[String, String]()
@@ -133,27 +133,63 @@ class HDMMultiClusterLeader(override val hdmBackend:MultiClusterBackend,
 
 trait MultiClusterReceiver extends ClusterMsgReceiver {
 
-  this: AbstractHDMLeader =>
+  this: HDMMultiClusterLeader =>
 
   override def processClusterMsg: PartialFunction[CoordinatingMsg, Unit] = {
     // coordinating msg
     case JoinMsg(path, state) =>
       val senderPath = sender().path.toString
-      hdmBackend.resourceManager.addResource(senderPath, state)
-      log.info(s"A executor has joined from [${senderPath}] ")
+      //      hdmBackend.resourceManager.addResource(senderPath, state)
+      hdmBackend.resourceManager.addChild(senderPath, state)
+      log.info(s"A child has joined from [${senderPath}] ")
 
     case LeaveMsg(senderPath) =>
       hdmBackend.resourceManager.removeResource(senderPath)
-      log.info(s"A executor has left from [${senderPath}] ")
+      //      hdmBackend.resourceManager.removeChild(senderPath)
+      //      hdmBackend.resourceManager.removeSibling(senderPath)
+      log.info(s"A node has left from [${senderPath}] ")
 
     case CollaborateMsg(path, state) =>
       val senderPath = sender().path.toString
-      hdmBackend.resourceManager.addResource(senderPath, state)
-      //todo add sibling to [[TreeResourceManager]]
-      log.info(s"A executor has joined from [${senderPath}] ")
+      //      hdmBackend.resourceManager.addResource(senderPath, state)
+      hdmBackend.resourceManager.addSibling(senderPath, state)
+      log.info(s"A sibling has joined from [${senderPath}] ")
+
+    case AskCollaborateMsg(sibling) =>
+      val totalCores = hdmBackend.resourceManager.getAllChildrenCores()
+      hdmBackend.resourceManager.addSibling(sibling, 0)
+      context.actorSelection(sibling) ! CollaborateMsg(selfPath, totalCores)
   }
 }
 
+/**
+ * the message receiver for processing dependencies messages
+ */
+trait MultiCLusterDepReceiver extends DepMsgReceiver {
+
+  this: HDMMultiClusterLeader =>
+
+  override def processDepMsg: PartialFunction[DependencyMsg, Unit] = {
+    case AddApplication(appName, version, content, author) =>
+      hdmBackend.submitApplicationBytes(appName, version, content, author)
+      hdmBackend.resourceManager.getChildrenRes().map(_._1) foreach { slave =>
+        if (slave != selfPath) {
+          log.info(s"sending application [$appName#$version] to $slave ...")
+          context.actorSelection(slave) ! AddApplication(appName, version, content, author)
+        }
+      }
+
+    case AddDependency(appName, version, depName, content, author) =>
+      hdmBackend.addDep(appName, version, depName, content, author)
+      hdmBackend.resourceManager.getChildrenRes().map(_._1) foreach { slave =>
+        if (slave != selfPath){
+          log.info(s"sending dependency [$depName] of [$appName#$version] to $slave ...")
+          context.actorSelection(slave) ! AddDependency(appName, version, depName, content, author)
+        }
+      }
+  }
+
+}
 
 trait MultiClusterScheduling extends SchedulingMsgReceiver {
 
