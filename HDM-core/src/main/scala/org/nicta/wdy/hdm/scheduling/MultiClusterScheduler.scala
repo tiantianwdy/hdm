@@ -28,7 +28,8 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
                             override val actorSys:ActorSystem,
                             val dependencyManager:DependencyManager,
                             val planner: MultiClusterPlaner,
-                            override val schedulingPolicy:SchedulingPolicy)
+                            override val schedulingPolicy:SchedulingPolicy,
+                            val hDMContext: HDMContext)
                            (implicit override val executorService:ExecutionContext)
                             extends AdvancedScheduler(blockManager,
                                                       promiseManager,
@@ -110,7 +111,7 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
 
 
   def runRemoteJob(hdm:HDM[_], parallelism:Int):Future[HDM[_]] = {
-    HDMContext.defaultHDMContext.compute(hdm, parallelism)
+    hDMContext.compute(hdm, parallelism)
   }
 
   def addJobStages(appId:String, states:Seq[JobStage]): Future[HDM[_]] = {
@@ -140,8 +141,7 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
         submitJob(appName, version, exeId, plans.physicalPlan)
       } else {
         // send to remote master state based on context
-        val future = runRemoteJob(hdm, stage.parallelism)
-        future
+        runRemoteJob(hdm, stage.parallelism)
       }
       jobFuture.onComplete {
         case Success(resHDM) => {

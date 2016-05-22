@@ -171,7 +171,7 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
         val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
         //    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
         val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, schedulingPolicy)
-        hdmBackEnd = new HDMServerBackend(blockManager, scheduler, planer, resourceManager, promiseManager, DependencyManager(), HDMContext.defaultHDMContext)
+        hdmBackEnd = new HDMServerBackend(blockManager, scheduler, planer, resourceManager, promiseManager, DependencyManager(), this)
         log.warn(s"created new HDMServerBackend.")
 
       case "multiple" =>
@@ -181,8 +181,8 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
         val resourceManager = new MultiClusterResourceManager
         val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
         val multiPlanner = new StaticMultiClusterPlanner(planer, HDMContext.defaultHDMContext)
-        val scheduler = new MultiClusterScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, DependencyManager(), multiPlanner, schedulingPolicy)
-        hdmBackEnd = new MultiClusterBackend(blockManager, scheduler, multiPlanner, resourceManager, promiseManager, DependencyManager(), HDMContext.defaultHDMContext)
+        val scheduler = new MultiClusterScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, DependencyManager(), multiPlanner, schedulingPolicy, this)
+        hdmBackEnd = new MultiClusterBackend(blockManager, scheduler, multiPlanner, resourceManager, promiseManager, DependencyManager(), this)
         log.warn(s"created new MultiClusterBackend.")
 
     }
@@ -297,7 +297,7 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
 
 object HDMContext extends Logging{
 
-  lazy val defaultConf = ConfigFactory.load("hdm-core.conf")
+  val _defaultConf = new AtomicReference[Config]()
 
   lazy val defaultHDMContext = apply()
 
@@ -318,6 +318,10 @@ object HDMContext extends Logging{
 
   val CORES = Runtime.getRuntime.availableProcessors
 
+  def defaultConf() = _defaultConf.get()
+
+  def setDefaultConf(conf:Config) = _defaultConf.set(conf)
+
   def newClusterId():String = {
     UUID.randomUUID().toString
   }
@@ -327,10 +331,14 @@ object HDMContext extends Logging{
   }
 
   def apply() = {
+    if (defaultConf == null) {
+      setDefaultConf(ConfigFactory.load("hdm-core.conf"))
+    }
     new HDMContext(defaultConf)
   }
 
   def apply(conf:Config) = {
+    setDefaultConf(conf)
     new HDMContext(conf)
   }
 
