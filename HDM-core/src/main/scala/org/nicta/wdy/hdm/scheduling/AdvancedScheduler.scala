@@ -48,9 +48,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
   protected val appBuffer: java.util.Map[String, CopyOnWriteArrayList[ParallelTask[_]]] = new ConcurrentHashMap[String, CopyOnWriteArrayList[ParallelTask[_]]]()
 
 
-  protected def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], resources:mutable.Map[String, AtomicInteger]): Unit ={
-
-    val candidates = Scheduler.getAllAvailableWorkers(resources)
+  protected def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], candidates:Seq[Path]): Unit ={
 
     val tasks = blockingQue.map { task =>
       val ids = task.input.map(_.id)
@@ -100,7 +98,8 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       }
       resAccessorlock.acquire()
       resourceManager.waitForNonEmpty()
-      scheduleOnResource(taskQueue, resourceManager.getAllResources())
+      val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
+      scheduleOnResource(taskQueue, candidates)
       resAccessorlock.release()
     }
   }

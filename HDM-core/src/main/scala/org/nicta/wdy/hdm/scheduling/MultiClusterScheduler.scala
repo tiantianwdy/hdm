@@ -57,6 +57,23 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
     remoteTaskQueue.clear()
   }
 
+  override def startup(): Unit = {
+    isRunning.set(true)
+    while (isRunning.get) try {
+      if(taskQueue.isEmpty) {
+        nonEmptyLock.acquire()
+      }
+      resAccessorlock.acquire()
+      resourceManager.waitForNonEmpty()
+      resourceManager.childrenRWLock.readLock().lock()
+      val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
+      resourceManager.childrenRWLock.readLock().unlock()
+      scheduleOnResource(taskQueue, candidates)
+      resAccessorlock.release()
+    }
+  }
+
+
 
   def startLocalTaskScheduling(): Unit = {
     isRunning.set(true)
@@ -66,7 +83,10 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
       }
       resAccessorlock.acquire()
       resourceManager.waitForChildrenNonEmpty()
-      scheduleOnResource(localTaskQueue, resourceManager.getChildrenRes())
+      resourceManager.childrenRWLock.readLock().lock()
+      val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getChildrenRes())
+      resourceManager.childrenRWLock.readLock().unlock()
+      scheduleOnResource(localTaskQueue, candidates)
       resAccessorlock.release()
     }
   }
@@ -78,13 +98,18 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
 //      }
       val task = remoteTaskQueue.take()
       resAccessorlock.acquire()
-      log.info(s"Waiting for resources...")
-      resourceManager.waitForChildrenNonEmpty()
+
+      var candidates = Scheduler.getAllAvailableWorkers(resourceManager.getChildrenRes())
+      while(candidates == null || candidates.isEmpty){
+        log.info(s"Waiting for resources...")
+        resourceManager.waitForChildrenNonEmpty()
+        resourceManager.childrenRWLock.readLock().lock()
+        candidates = Scheduler.getAllAvailableWorkers(resourceManager.getChildrenRes())
+        resourceManager.childrenRWLock.readLock().unlock()
+      }
       log.info(s"Completed waiting for resources...")
-      // todo use scheduling policy to choose optimal candidates
-      //      scheduleOnResource(remoteTaskQueue, resourceManager.getChildrenRes())
-      val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getChildrenRes())
-      val workerPath = candidates.head.toString
+      // todo use scheduling policy to choose optimal candidates : scheduleOnResource(remoteTaskQueue, candidates)
+      val workerPath = Scheduler.findClosestWorker(task, candidates).toString
       resourceManager.decResource(workerPath, 1)
       resAccessorlock.release()
       log.info(s"A remote task has been assigned to: [$workerPath] [${task.taskId + "_" + task.func.toString}}] ")
@@ -196,9 +221,12 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
       }
     } else {
       log.info(s"A Job succeed id: ${appId}")
-      val promise = promiseManager.getPromise(appId)
-      if(promise ne null) {
+      val promise = promiseManager.removePromise(appId)
+      if ((promise ne null) && (!promise.isCompleted)) {
         promise.asInstanceOf[Promise[HDM[_]]].success(hdm)
+      }
+      if(appStateBuffer.containsKey(appId)){
+        appStateBuffer.remove(appId)
       }
     }
   }

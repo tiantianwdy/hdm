@@ -1,5 +1,7 @@
 package org.nicta.wdy.hdm.message
 
+import java.util.UUID
+
 /**
  * Created by Tiantian on 2014/12/19.
  */
@@ -12,3 +14,7 @@ case class LeaveMsg(sender:String) extends CoordinatingMsg
 case class CollaborateMsg(sender:String, state:Int) extends CoordinatingMsg
 
 case class AskCollaborateMsg(sibling:String) extends CoordinatingMsg
+
+case class ResSync(msgId:String = UUID.randomUUID().toString, resId:String, change:Int) extends CoordinatingMsg
+
+case class ResSyncResp(msgId:String, state:Int) extends CoordinatingMsg

@@ -312,13 +312,33 @@ object Scheduler extends Logging{
       }
     }
     val weights = tasks.map{ t=>
-      t.input.map{ _.blockSize / 1024 * 1024F // MB
-    }}
+      t.input.map{ in =>
+        if(in.blockSize > 0) in.blockSize / 1024 * 1024F // MB
+        else 1F
+      }
+    }
     Path.findClosestCluster(candidate, inputLocations, weights)
   } catch {
     case e: Throwable =>
       log.error(s"failed to find task for worker:$candidate")
       0
+  }
+
+  def findClosestWorker(task:ParallelTask[_], candidates:Seq[Path]): Path ={
+    val inputLocations = task.input.flatMap { hdm =>
+      val nhdm = HDMBlockManager().getRef(hdm.id)
+      if(nhdm ne null){
+        if (nhdm.preferLocation == null)
+          nhdm.blocks.map(Path(_))
+        else Seq(nhdm.preferLocation)
+      } else{
+        hdm.blocks.map(Path(_))
+      }
+    }
+    if (candidates.size > 0) {
+      val workerPath = Path.findClosestLocation(candidates, inputLocations)
+      workerPath
+    } else throw new RuntimeException("cannot find worker within a empty candidate lists")
   }
 
 
