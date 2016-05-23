@@ -38,7 +38,7 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
 
   final val outType = classTag[R]
 
-  override lazy val input = input1 ++ input2
+  override def input = input1 ++ input2
 
   override def call(): Seq[DDM[_, R]] = try {
     func.setTaskContext(TaskContext(this))
