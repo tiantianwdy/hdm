@@ -5,10 +5,10 @@ cd $business_path
 lib=`find lib -name *.jar | xargs`
 port="8999"
 mode="single-cluster"
-if [ $# -gt 1 ]; then
+if [ $# -gt 0 ]; then
  port="$1"
 fi
-if [ $# -gt 2 ]; then
+if [ $# -gt 1 ]; then
  mode="$2"
 fi
 
