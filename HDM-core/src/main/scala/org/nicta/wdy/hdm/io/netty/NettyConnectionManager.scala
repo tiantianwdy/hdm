@@ -73,10 +73,13 @@ class NettyConnectionManager(val connectionNumPerPeer:Int,
 
 object NettyConnectionManager extends Logging{
 
-  lazy val defaultManager = new NettyConnectionManager(HDMContext.defaultHDMContext.NETTY_CLIENT_CONNECTIONS_PER_PEER,
+  lazy val defaultManager = {
+    val compressor = if (HDMContext.defaultHDMContext.BLOCK_COMPRESS_IN_TRANSPORTATION) HDMContext.defaultHDMContext.compressor
+    else null
+    new NettyConnectionManager(HDMContext.defaultHDMContext.NETTY_CLIENT_CONNECTIONS_PER_PEER,
     HDMContext.defaultHDMContext.NETTY_BLOCK_CLIENT_THREADS,
-    HDMContext.defaultHDMContext.defaultSerializer,
-    HDMContext.defaultHDMContext.compressor)
+    HDMContext.defaultHDMContext.defaultSerializer, compressor)
+  }
 
   val localHost = InetAddress.getLocalHost.getHostName
 

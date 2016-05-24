@@ -182,11 +182,17 @@ object HDMBlockManager extends Logging{
 
   var defaultManager = new DefaultHDMBlockManager(HDMContext.defaultHDMContext) // todo change to loading according to the config
 
-  var defaultBlockServer =  new NettyBlockServer(HDMContext.defaultHDMContext.NETTY_BLOCK_SERVER_PORT,
-    HDMContext.defaultHDMContext.NETTY_BLOCK_SERVER_THREADS,
-    defaultManager,
-    HDMContext.defaultHDMContext.defaultSerializer,
-    HDMContext.defaultHDMContext.compressor)
+  var defaultBlockServer =  {
+    val hDMContext = HDMContext.defaultHDMContext
+    val compressor = if (hDMContext.BLOCK_COMPRESS_IN_TRANSPORTATION) hDMContext.compressor
+    else null
+    new NettyBlockServer(hDMContext.NETTY_BLOCK_SERVER_PORT,
+      hDMContext.NETTY_BLOCK_SERVER_THREADS,
+      defaultManager,
+      hDMContext.defaultSerializer,
+      compressor)
+  }
+
 
   def localBlockServerAddress:String = {
     val localAddr = new InetSocketAddress(NettyConnectionManager.localHost, HDMContext.defaultHDMContext.NETTY_BLOCK_SERVER_PORT)
@@ -195,11 +201,13 @@ object HDMBlockManager extends Logging{
 
   def initBlockServer(hDMContext: HDMContext) = {
     defaultManager = new DefaultHDMBlockManager(hDMContext)
+    val compressor = if (hDMContext.BLOCK_COMPRESS_IN_TRANSPORTATION) hDMContext.compressor
+    else null
     defaultBlockServer =  new NettyBlockServer(hDMContext.NETTY_BLOCK_SERVER_PORT,
       hDMContext.NETTY_BLOCK_SERVER_THREADS,
       defaultManager,
       hDMContext.defaultSerializer,
-      hDMContext.compressor)
+      compressor)
     defaultBlockServer.init()
     defaultBlockServer.start()
   }
