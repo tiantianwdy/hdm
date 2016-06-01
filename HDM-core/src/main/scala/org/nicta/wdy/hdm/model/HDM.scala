@@ -182,7 +182,15 @@ abstract class HDM[R: ClassTag] extends Serializable {
 
   }
 
-  def sorted(implicit ordering: Ordering[R], parallelism:Int): ParHDM[_, R] = {
+  /**
+   * sort the data by the ordering object
+   *
+   * @param preSort whether perform pre-sorting before shuffle
+   * @param ordering the ordering object for sorting
+   * @param parallelism parallelism for execution
+   * @return
+   */
+  def sorted(preSort:Boolean)(implicit ordering: Ordering[R], parallelism:Int): ParHDM[_, R] = {
     val hdm = this.cache()
     val reduceNumber = parallelism * hdmContext.PLANER_PARALLEL_NETWORK_FACTOR
     val sampleSize = (math.min(100.0 * reduceNumber, 1e6)/ reduceNumber).toInt
@@ -192,20 +200,30 @@ abstract class HDM[R: ClassTag] extends Serializable {
 
     val bounds = RangePartitioning.decideBoundary(samples, reduceNumber)
     val partitioner = new RangePartitioner(bounds)
-    val parallel = new DFM[R, R](children = Seq(hdm), dependency = OneToOne, func = new NullFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = partitioner, appContext = this.appContext)
-    //    val sortByFunc = (elems:Buf[R]) =>  elems.sorted(ordering)
-    new DFM[R,R](children = Seq(parallel), dependency = NToOne, func = new SortFunc[R](true), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[R](1), parallelism = reduceNumber, appContext = this.appContext)
+    if(preSort){
+      val parallel = new DFM[R, R](children = Seq(hdm), dependency = OneToOne, func = new SortFunc[R](false), distribution = distribution, location = location, keepPartition = false, partitioner = partitioner, appContext = this.appContext)
+      new DFM[R,R](children = Seq(parallel), dependency = NToOne, func = new SortFunc[R](false), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[R](1), parallelism = reduceNumber, appContext = this.appContext)
 
+    } else {
+      val parallel = new DFM[R, R](children = Seq(hdm), dependency = OneToOne, func = new NullFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = partitioner, appContext = this.appContext)
+      new DFM[R,R](children = Seq(parallel), dependency = NToOne, func = new SortFunc[R](true), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[R](1), parallelism = reduceNumber, appContext = this.appContext)
+    }
   }
 
-
-  def sortBy(f:(R,R) => Int)(implicit parallelism:Int): ParHDM[_, R] = {
+  /**
+   * sort the data by the sorting function f
+   * @param f function for deciding order of elments
+   * @param preSort whether perform pre-sorting before shuffle
+   * @param parallelism parallelism for execution
+   * @return
+   */
+  def sortBy(f:(R,R) => Int, preSort:Boolean = true)(implicit parallelism:Int): ParHDM[_, R] = {
     ClosureCleaner(f)
     val ordering = new Ordering[R]{
 
       override def compare(x: R, y: R): Int = f(x, y)
     }
-    sorted(ordering, parallelism)
+    sorted(preSort)(ordering, parallelism)
   }
 
   def partitionBy(func:R => Int):ParHDM[_, R] = {

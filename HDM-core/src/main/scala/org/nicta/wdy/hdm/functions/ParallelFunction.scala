@@ -476,14 +476,15 @@ class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)
         Sorting.stableSort(bufArray)
       }
       bufArray.toBuffer
-    } else
+    } else{
       buffer.toBuffer
+    }
   }
 
   override def aggregate(params: Arr[T]): Unit = {
-    if (sortInMerge) {
+    if (sortInMerge) { // leave sorting to merge stage
       buffer ++= params
-    } else {
+    } else { // if input are sorted, accumulatively combine them
       buffer = SortingUtils.mergeSorted(params.toArray, buffer)
     }
   }
