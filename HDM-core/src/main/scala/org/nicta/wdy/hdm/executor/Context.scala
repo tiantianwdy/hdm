@@ -43,6 +43,8 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
 
   lazy val PLANER_PARALLEL_NETWORK_FACTOR = Try {defaultConf.getInt("hdm.planner.parallelism.network.factor")} getOrElse (HDMContext.CORES)
 
+  val PLANER_INPUT_GROUPING = Try {defaultConf.getString("hdm.planner.input.group")} getOrElse ("boundary")
+
   val BLOCK_COMPRESS_IN_TRANSPORTATION = Try {defaultConf.getBoolean("hdm.io.network.block.compress")} getOrElse (true)
 
   val NETTY_BLOCK_SERVER_THREADS = Try {defaultConf.getInt("hdm.io.netty.server.threads")} getOrElse(HDMContext.CORES)
