@@ -28,7 +28,8 @@ class NettyConnectionManager(val connectionNumPerPeer:Int,
   private val connectionCacheMap = new ConcurrentHashMap[String, ConnectionPool]()
 
 
-/*  def getConnection(host:String, port:Int):NettyBlockFetcher ={
+/*
+   def getConnection(host:String, port:Int):NettyBlockFetcher ={
     val cId = host + ":" + port
     val activeCon = if(connectionCacheMap.containsKey(cId)) {
       val con = connectionCacheMap.get(cId)
@@ -44,7 +45,8 @@ class NettyConnectionManager(val connectionNumPerPeer:Int,
     connectionCacheMap.put(cId, activeCon)
     if(!activeCon.isRunning) activeCon.schedule()
     activeCon
-  }*/
+  }
+  */
 
   def getConnection(host:String, port:Int):NettyBlockFetcher ={
     val cId = host + ":" + port
@@ -104,12 +106,14 @@ object NettyConnectionManager extends Logging{
     new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, -4, 4)
   }
 
-/*  def getFrameEncoder():MessageToByteEncoder = {
+/*
+  def getFrameEncoder():MessageToByteEncoder = {
     new LengthFieldPrepender(8)
-  }*/
+  }
+  */
 
   def getPrivateStaticField(name:String) = try {
-    val f = PooledByteBufAllocator.DEFAULT.getClass().getDeclaredField(name);
+    val f = PooledByteBufAllocator.DEFAULT.getClass().getDeclaredField(name)
     f.setAccessible(true);
     f.getInt(null);
   }

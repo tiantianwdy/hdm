@@ -39,12 +39,12 @@ object NettyTestServer {
   }
 
 
-  def main(args:Array[String]): Unit ={
+  def main(args:Array[String]): Unit = {
     HDMBlockManager.initBlockServer(HDMContext.defaultHDMContext)
     for(i <- 0 until blkSize){
       val id = s"blk-00$i"
       HDMBlockManager().add(id, Block(id, data2))
     }
-
   }
+
 }

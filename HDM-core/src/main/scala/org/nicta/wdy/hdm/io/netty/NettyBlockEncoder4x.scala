@@ -57,7 +57,7 @@ class NettyBlockResponseEncoder4x(serializerInstance: SerializerInstance, compre
       val end = System.currentTimeMillis() - start
       log.info(s"compressed data${compressed.length}, in $end ms.")
       compressed
-    } else{
+    } else {
       val serialized = serializerInstance.serialize(msg).array()
       val end = System.currentTimeMillis() - start
       log.info(s"encoded data:${serialized.length} bytes, in $end ms.")

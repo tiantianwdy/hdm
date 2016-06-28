@@ -103,7 +103,7 @@ class NettyBlockServerHandler(blockManager: HDMBlockManager) extends  ChannelInb
       if(blk ne null){
         while(!ctx.channel().isActive){
           log.warn(s"Reconnecting to ${ctx.channel().remoteAddress()}")
-          ctx.connect(ctx.channel().remoteAddress()).awaitUninterruptibly(60*1000)
+          ctx.connect(ctx.channel().remoteAddress()).awaitUninterruptibly(60 * 1000)
         }
         ctx.writeAndFlush(blk).addListener(NettyChannelListener(ctx.channel(), System.currentTimeMillis()))
       }

@@ -41,12 +41,15 @@ class NettyBlockFetcher(val nThreads:Int, val serializerInstance: SerializerInst
   private val workingThread:Thread = new Thread {
 
     override def run(): Unit = {
+
       while(running.get()){
         workingSize.acquire(1)
         val blkIds = ArrayBuffer.empty[String]
+        var callbackAddr = ""
         //merge multiple fetch messages into one
         do {
           val req = requestsQueue.take()
+          callbackAddr = req.msg.location
           req.msg.blockIds foreach {id =>
             callbackMap.put(id, req.callback)
           }
@@ -56,7 +59,7 @@ class NettyBlockFetcher(val nThreads:Int, val serializerInstance: SerializerInst
         outGoingMsg.addAndGet(blkIds.length)
         val address = if (channel.remoteAddress() ne null ) channel.remoteAddress() else channel.localAddress()
         if(address ne null ) try {
-          val msg = QueryBlockMsg(blkIds, address.toString)
+          val msg = QueryBlockMsg(blkIds, callbackAddr)
           channel.writeAndFlush(msg).addListener(NettyChannelListener(channel, System.currentTimeMillis()))
 //          Thread.sleep(100)
         } catch {
@@ -66,7 +69,9 @@ class NettyBlockFetcher(val nThreads:Int, val serializerInstance: SerializerInst
             e.printStackTrace()
         }
       }
+
     }
+
   }
 
   def init(): Unit ={
@@ -89,7 +94,7 @@ class NettyBlockFetcher(val nThreads:Int, val serializerInstance: SerializerInst
         .option[java.lang.Boolean](ChannelOption.TCP_NODELAY, true)
         .option[java.lang.Integer](ChannelOption.CONNECT_TIMEOUT_MILLIS, 120*1000)
         .option[ByteBufAllocator](ChannelOption.ALLOCATOR, allocator)
-      //        .option[java.lang.Integer](ChannelOption.SO_RCVBUF, 1024)
+//        .option[java.lang.Integer](ChannelOption.SO_RCVBUF, 1024)
     } finally {
 //      workerGroup.shutdownGracefully()
     }
