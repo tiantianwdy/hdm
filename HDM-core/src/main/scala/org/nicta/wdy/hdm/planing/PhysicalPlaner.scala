@@ -63,24 +63,23 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hD
         val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), parallelism = mediator.size, location = Path(hDMContext.clusterBlockPath), appContext = leafHdm.appContext)
         children ++ mediator :+ newParent
       } else {
-//        val blockLocations = children.map(hdm => Path(hdm.blocks.head))
-//        val blockMap = children.map(c => (c.location.toString, c)).toMap
-//        val groupPaths = Path.groupPathBySimilarity(blockLocations, defParallel)
-//        val inputs = groupPaths.map(seq => seq.map(b => blockMap(b.toString)))
+        // group input by location similarity
+        val inputs = hDMContext.PLANER_INPUT_GROUPING match {
+          case "minmin" =>
+            log.warn("group input data by MinminScheduling.")
+            val slots = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
+            val candidates = for (i <- 0 until slots.size) yield {
+              Path(slots(i).toString + "/" + i) //generate different path for slots on the same worker
+            }
+            log.warn(s"candidate size: ${candidates.size}. Default parallel: $defParallel .")
+            PlanningUtils.groupDDMByMinminScheduling(children, candidates, hDMContext)
+          case "boundary" =>
+            log.warn("group input data by DDM boundary.")
+            val weights = children.map(ddm => ddm.blockSize / 1024F)
+            DDMGroupUtils.groupDDMByBoundary(children, weights, defParallel)
+//          PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[String, String]]]]
+        }
 
-        // group by location similarity
-        val slots = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
-        val candidates = for( i <- 0 until slots.size) yield {
-          Path(slots(i).toString + "/" + i) //generate different path for slots on the same worker
-        }
-        log.warn(s"candidate size: ${candidates.size}. Default parallel: $defParallel .")
-        val inputs = if (candidates.size == defParallel) {
-          log.warn("group input data by MinminScheduling.")
-          PlanningUtils.groupDDMByMinminScheduling(children, candidates, hDMContext)
-        } else {
-          log.warn("group input data by DDM boundary.")
-          PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[String, String]]]]
-        }
         val func = target.func.asInstanceOf[ParallelFunction[String,R]]
 
         val mediator = inputs.map{seq =>

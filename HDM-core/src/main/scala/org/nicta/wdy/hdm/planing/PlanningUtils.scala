@@ -33,25 +33,6 @@ object PlanningUtils {
     groupBuffer.toSeq
   }
 
-  def weightedGroup[T](elems:Seq[T], weights:Array[Float], groupNum:Int):Seq[Buffer[T]]= {
-    require(elems.length == weights.length)
-    val groupBuffer = Array.fill(groupNum){Buffer.empty[T]}
-    val totalWeights = weights.sum
-    val weightPerGroup = totalWeights / groupNum
-    var accumulatedWeights = 0F
-    var groupIdx = 0
-    for(idx <- 0 until elems.length){
-      val cur = elems(idx)
-      if(accumulatedWeights < weightPerGroup){
-        groupBuffer(idx) += cur
-        accumulatedWeights += weights(idx)
-      } else {
-        accumulatedWeights = 0
-        groupIdx += 1
-      }
-    }
-    groupBuffer.toSeq
-  }
 
 
   def seqSlide[T](elem:Seq[T], slideLen:Int):Seq[T] ={
@@ -105,7 +86,7 @@ object PlanningUtils {
     }{
       val seq = ddmBuffer(i)
       val groupSize = distribution(i)
-      finalRes ++= (PlanningUtils.orderKeepingGroup(seq, groupSize))
+      finalRes ++= PlanningUtils.orderKeepingGroup(seq, groupSize)
     }
     finalRes
   }

@@ -6,7 +6,7 @@ import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.functions.NullFunc
 import org.nicta.wdy.hdm.io.{DataParser, Path}
 import org.nicta.wdy.hdm.model.DDM
-import org.nicta.wdy.hdm.planing.PlanningUtils
+import org.nicta.wdy.hdm.planing.{DDMGroupUtils, PlanningUtils}
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
@@ -153,35 +153,56 @@ class PathTest extends SchedulingTestData{
         s"value:${Path.path2Int(p)}"))
   }
 
+
+  def printGroupInfo(grouped:Seq[Seq[DDM[_, _]]]):Unit = {
+    println(s"total group:${grouped.size}")
+    grouped foreach{ ddms =>
+      println(s"group tasks:${ddms.size}, groupTotalSize = ${if(ddms.nonEmpty) ddms.map(_.blockSize).reduce(_ + _) else 0}" )
+      ddms.foreach(p => print(s"path: ${p.preferLocation} , " +
+        s" Size: ${p.blockSize} ; "))
+      println("")
+    }
+  }
+
+
   @Test
   def testDDMGroupByLocation() = {
     hDMContext.init()
 //    val path = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/"
 //    val ddms = DataParser.explainBlocks(Path(path))
     val numOfWorker = 20
-    val blockSizeRange = 128
+    val parallelism = 160
+    val blockSizeRange = 128 * 1024
     val pathPool = initAddressPool(numOfWorker)
     val candidates = generateWorkers(pathPool).map(Path(_))
     val paths = generateInputPath(pathPool, 1067).map(Path(_))
     val ddms = paths.map{path =>
       val id = HDMContext.newLocalId()
+      val blockSize = 128 * 1024 + Math.round(Math.random()) * blockSizeRange
       new DDM(location = path,
       preferLocation = path,
       func = new NullFunc[String],
-      blockSize = 128*1000 + 1L,
+      blockSize = blockSize.toLong,
       blocks = mutable.Buffer(HDMContext.defaultHDMContext.localBlockPath + "/" + id),
       appContext = AppContext())
     }
-//    val grouped = PlanningUtils.groupDDMByBoundary(ddms, 160)
+    val weights = ddms.map(ddm => ddm.blockSize / 1024F)
+    //    val grouped = PlanningUtils.groupDDMByBoundary(ddms, 160)
 ////    val grouped = Path.groupDDMByLocation(ddms, 4)
 //    candidates.foreach(println(_))
-    val grouped = PlanningUtils.groupDDMByMinminScheduling(ddms, candidates, hDMContext)
-        println(s"total group:${grouped.size}")
-        grouped foreach{ddm =>
-          println(s"group tasks:${ddm.size}, groupTotalSize = ${ddm.map(_.blockSize).reduce(_ + _)}" )
-          ddm.foreach(p => print(s"path: ${p.preferLocation} , " +
-            s" Size: ${p.blockSize} ; "))
-          println("")
-        }
+    val start = System.currentTimeMillis()
+    val grouped1 = PlanningUtils.groupDDMByMinminScheduling(ddms, candidates, hDMContext)
+    val point1 = System.currentTimeMillis()
+    val grouped2 = DDMGroupUtils.groupDDMByBoundary(ddms, weights, parallelism)
+    val point2 = System.currentTimeMillis()
+    val grouped3 = PlanningUtils.groupDDMByBoundary(ddms, parallelism)
+    val point3 = System.currentTimeMillis()
+    println("=== Minmin Group ===")
+//    printGroupInfo(grouped1)
+    println("=== Boundary Group with Weights ===")
+    printGroupInfo(grouped2)
+    println("=== Boundary Group ===")
+    printGroupInfo(grouped3)
+    println(s"Time consumed: minmin:${point1 - start} ms. \n Boundary Group with Weights: ${point2 - point1} ms. \n Boundary Group: ${point3 - point2} ms.")
   }
 }
