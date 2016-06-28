@@ -217,7 +217,7 @@ abstract class HDM[R: ClassTag] extends Serializable {
    * @param parallelism parallelism for execution
    * @return
    */
-  def sortBy(f:(R,R) => Int, preSort:Boolean = true)(implicit parallelism:Int): ParHDM[_, R] = {
+  def sortBy(f:(R,R) => Int, preSort:Boolean = false)(implicit parallelism:Int): ParHDM[_, R] = {
     ClosureCleaner(f)
     val ordering = new Ordering[R]{
 
