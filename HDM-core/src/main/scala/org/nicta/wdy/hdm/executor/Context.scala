@@ -43,7 +43,9 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
 
   lazy val PLANER_PARALLEL_NETWORK_FACTOR = Try {defaultConf.getInt("hdm.planner.parallelism.network.factor")} getOrElse (HDMContext.CORES)
 
-  val PLANER_INPUT_GROUPING = Try {defaultConf.getString("hdm.planner.input.group")} getOrElse ("boundary")
+  val PLANER_is_GROUP_INPUT = Try {defaultConf.getBoolean("hdm.planner.input.group")} getOrElse (false)
+
+  val PLANER_INPUT_GROUPING_POLICY = Try {defaultConf.getString("hdm.planner.input.group-policy")} getOrElse ("weighted")
 
   val BLOCK_COMPRESS_IN_TRANSPORTATION = Try {defaultConf.getBoolean("hdm.io.network.block.compress")} getOrElse (true)
 
@@ -174,7 +176,7 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
         //    val scheduler = new DefScheduler(blockManager, promiseManager, resourceManager, SmsSystem.system)
         val scheduler = new AdvancedScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, schedulingPolicy)
         hdmBackEnd = new HDMServerBackend(blockManager, scheduler, planer, resourceManager, promiseManager, DependencyManager(), this)
-        log.warn(s"created new HDMServerBackend.")
+        log.info(s"created new HDMServerBackend with scheduling: ${SCHEDULING_POLICY_CLASS}")
 
       case "multiple" =>
         val appManager = new AppManager
@@ -185,7 +187,7 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
         val multiPlanner = new StaticMultiClusterPlanner(planer, HDMContext.defaultHDMContext)
         val scheduler = new MultiClusterScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, DependencyManager(), multiPlanner, schedulingPolicy, this)
         hdmBackEnd = new MultiClusterBackend(blockManager, scheduler, multiPlanner, resourceManager, promiseManager, DependencyManager(), this)
-        log.warn(s"created new MultiClusterBackend.")
+        log.info(s"created new MultiClusterBackend with scheduling: ${SCHEDULING_POLICY_CLASS}")
 
     }
     hdmBackEnd

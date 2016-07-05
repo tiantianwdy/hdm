@@ -23,7 +23,7 @@ class HungarianScheduling extends SchedulingPolicy {
     val taskBuffer = inputs.toBuffer
     val results = mutable.Map.empty[String, String]
 
-    while(taskBuffer.nonEmpty){
+//    while(taskBuffer.nonEmpty){
       val jobSize = taskBuffer.length
       val workerSize = resources.length
       val costMatrix = Array.fill[Array[Double]](workerSize){
@@ -52,7 +52,7 @@ class HungarianScheduling extends SchedulingPolicy {
       }
       taskBuffer --= assigned
 
-    }
+//    }
     results
   }
 

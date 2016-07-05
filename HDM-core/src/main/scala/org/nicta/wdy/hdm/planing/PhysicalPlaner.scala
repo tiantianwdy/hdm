@@ -57,14 +57,14 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hD
       Seq(ddm)
     case leafHdm:DFM[_,String] if(input == null || input.isEmpty) =>
       val children = DataParser.explainBlocks(leafHdm.location, hDMContext, leafHdm.appContext)
-      if(leafHdm.keepPartition) {
+      if(!hDMContext.PLANER_is_GROUP_INPUT) {
         val func = target.func.asInstanceOf[ParallelFunction[String,R]]
         val mediator = children.map(ddm => new DFM(id = leafHdm.id + "_b" +children.indexOf(ddm), children = Seq(ddm), dependency = target.dependency, func = func, parallelism = 1, location = Path(hDMContext.clusterBlockPath), partitioner = target.partitioner, appContext = leafHdm.appContext))
         val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), parallelism = mediator.size, location = Path(hDMContext.clusterBlockPath), appContext = leafHdm.appContext)
         children ++ mediator :+ newParent
       } else {
         // group input by location similarity
-        val inputs = hDMContext.PLANER_INPUT_GROUPING match {
+        val inputs = hDMContext.PLANER_INPUT_GROUPING_POLICY match {
           case "minmin" =>
             log.warn("group input data by MinminScheduling.")
             val slots = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
@@ -73,11 +73,13 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hD
             }
             log.warn(s"candidate size: ${candidates.size}. Default parallel: $defParallel .")
             PlanningUtils.groupDDMByMinminScheduling(children, candidates, hDMContext)
-          case "boundary" =>
+          case "weighted" =>
             log.warn("group input data by DDM boundary.")
             val weights = children.map(ddm => ddm.blockSize / 1024F)
             DDMGroupUtils.groupDDMByBoundary(children, weights, defParallel)
-//          PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[String, String]]]]
+
+          case "boundary" =>
+          PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[String, String]]]]
         }
 
         val func = target.func.asInstanceOf[ParallelFunction[String,R]]

@@ -80,18 +80,18 @@ class SchedulingPolicyTest extends SchedulingTestData {
     val schedulingPolicy = new MinMinScheduling
     getSchedulingReport(schedulingPolicy,tasks, resources, cpuFactor, ioFactor, networkFactor)
 
-//    // compare with max-min scheduling
-//    println("================ max-min scheduling =======================")
-//    val maxMinScheduling = new MaxMinScheduling
-//    getSchedulingReport(maxMinScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
-//    // compare with fair-scheduling
+    // compare with max-min scheduling
+    println("================ max-min scheduling =======================")
+    val maxMinScheduling = new MaxMinScheduling
+    getSchedulingReport(maxMinScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
+    // compare with fair-scheduling
 //    println("================ fair-scheduling =======================")
 //    getSchedulingReport(new FairScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
 
-    println("================ Simple-scheduling =======================")
-    getSchedulingReport(new OneByOneScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
+//    println("================ Simple-scheduling =======================")
+//    getSchedulingReport(new OneByOneScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
 
-    println("================ Hungraian Scheduling =======================")
+    println("================ Hungarian Scheduling =======================")
     getSchedulingReport(new HungarianScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
   }
 

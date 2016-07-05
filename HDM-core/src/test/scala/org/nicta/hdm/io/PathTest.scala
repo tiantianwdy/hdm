@@ -170,7 +170,7 @@ class PathTest extends SchedulingTestData{
     hDMContext.init()
 //    val path = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings/"
 //    val ddms = DataParser.explainBlocks(Path(path))
-    val numOfWorker = 20
+    val numOfWorker = 160
     val parallelism = 160
     val blockSizeRange = 128 * 1024
     val pathPool = initAddressPool(numOfWorker)
@@ -198,7 +198,7 @@ class PathTest extends SchedulingTestData{
     val grouped3 = PlanningUtils.groupDDMByBoundary(ddms, parallelism)
     val point3 = System.currentTimeMillis()
     println("=== Minmin Group ===")
-//    printGroupInfo(grouped1)
+    printGroupInfo(grouped1)
     println("=== Boundary Group with Weights ===")
     printGroupInfo(grouped2)
     println("=== Boundary Group ===")

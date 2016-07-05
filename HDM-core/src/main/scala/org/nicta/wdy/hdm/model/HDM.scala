@@ -121,7 +121,7 @@ abstract class HDM[R: ClassTag] extends Serializable {
     ClosureCleaner(f)
     //todo add map side aggregation
     val pFunc = (t:R) => f(t).hashCode()
-    val parallel = new DFM[R,R](children = Seq(this), dependency = OneToN, func = new NullFunc[R], distribution = distribution, location = location, keepPartition = false, partitioner = new HashPartitioner(4, pFunc), appContext = this.appContext)
+    val parallel = new DFM[R,R](children = Seq(this), dependency = OneToN, func = new NullFunc[R], distribution = distribution, location = location, keepPartition = true, partitioner = new HashPartitioner(4, pFunc), appContext = this.appContext)
     //    val parallel = this.copy(dependency = OneToN, keepPartition = false, partitioner = new MappingPartitioner(4, pFunc))
     new DFM[R,(K, Iterable[R])](children = Seq(parallel), dependency = NToOne, func = new ParGroupByFunc(f), distribution = distribution, location = location, keepPartition = true, partitioner = new KeepPartitioner[(K, Iterable[R])](1), appContext = this.appContext)
 
@@ -396,7 +396,7 @@ object HDM{
     DDM(elems, HDMContext.defaultHDMContext,  appContext)
   }
 
-  def apply(path: Path,  appContext: AppContext = AppContext.defaultAppContext, hdmContext:HDMContext= HDMContext.defaultHDMContext,  keepPartition: Boolean = false): DFM[_, String] = {
+  def apply(path: Path,  appContext: AppContext = AppContext.defaultAppContext, hdmContext:HDMContext= HDMContext.defaultHDMContext,  keepPartition: Boolean = true): DFM[_, String] = {
     new DFM(children = null, location = path, keepPartition = keepPartition, func = new NullFunc[String], appContext = appContext)
   }
 
