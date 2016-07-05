@@ -62,21 +62,29 @@ object SchedulingUtils {
 
 
   def calculateExecutionTime(p:SchedulingTask, resources: Path, computeFactor: Double, ioFactor: Double, networkFactor:Double): Double = {
-    p.inputs.zip(p.inputSizes).map { tuple =>
-      //compute completion time of each input partition for this task
-      val dataLoadingTime = if (tuple._1.address == resources.address) {
+    val inputs = p.inputs
+    val amounts =  p.inputSizes
+    require(inputs.length == amounts.length)
+    var idx = 0
+    var sum = 0D
+    while(idx < inputs.length){
+      val in = inputs(idx)
+      val size = amounts(idx)
+      val dataLoadingTime = if (in.address == resources.address) {
         // input is process local
-        ioFactor * tuple._2
-      } else if (tuple._1.host == resources.host) {
+        ioFactor * size
+      } else if (in.host == resources.host) {
         // input is node local
-        ioFactor * 2 * tuple._2
+        ioFactor * 2 * size
       } else {
         // normally networkFactor > ioFactor, which means loading remote data is slower than loading data locally
-        networkFactor * tuple._2
+        networkFactor * size
       }
-      val computeTime = computeFactor * tuple._2
-      dataLoadingTime + computeTime
-    }.sum
+      val computeTime = computeFactor * size
+      sum += dataLoadingTime + computeTime
+      idx += 1
+    }
+    sum
   }
 
   /**
@@ -96,6 +104,21 @@ object SchedulingUtils {
     (minIdx, minV)
   }
 
+  def minObjectsWithIndex[T:ClassTag](vec:Array[T],  compare:(T,T)=> Boolean):(Int, T) = {
+    var minV = vec(0)
+    var minIdx = 0
+    var i = 0
+    while (i < vec.length) {
+      if(compare(vec(i), minV)){
+        minV = vec(i)
+        minIdx = i
+      }
+      i += 1
+    }
+    (minIdx, minV)
+  }
+
+
   def minWithIndex[T:ClassTag](vec:Vector[T])(implicit ordering: Ordering[T]):(Int, T) = {
     var minV = vec.head
     var minIdx = 0
@@ -104,6 +127,20 @@ object SchedulingUtils {
         minV = vec(i)
         minIdx = i
       }
+    }
+    (minIdx, minV)
+  }
+
+  def minWithIndex(vec:Array[Double]):(Int, Double) = {
+    var minV = vec(0)
+    var minIdx = 0
+    var i = 0
+    while (i < vec.length) {
+      if(vec(i) < minV){
+        minV = vec(i)
+        minIdx = i
+      }
+      i += 1
     }
     (minIdx, minV)
   }
