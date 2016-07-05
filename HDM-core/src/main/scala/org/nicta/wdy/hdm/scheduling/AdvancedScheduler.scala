@@ -62,7 +62,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       HDMContext.defaultHDMContext.SCHEDULING_FACTOR_IO ,
       HDMContext.defaultHDMContext.SCHEDULING_FACTOR_NETWORK)
 
-    val scheduledTasks = taskQueue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
+    val scheduledTasks = blockingQue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
     val now = System.currentTimeMillis()
     plans.foreach(tuple => {
       scheduledTasks.get(tuple._1) match {
