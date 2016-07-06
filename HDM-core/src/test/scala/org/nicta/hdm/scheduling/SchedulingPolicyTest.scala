@@ -68,10 +68,10 @@ class SchedulingPolicyTest extends SchedulingTestData {
 
   @Test
   def testSchedulingComparison: Unit ={
-    val numTask = 1000
-    val inputEachTask = 1
+    val numTask = 1067
+    val inputEachTask = 8
     val tasks = generateTasks(numTask, inputEachTask)
-    val resources = generateResources(160)
+    val resources = generateResources(1600)
 
     val cpuFactor = 1F
     val ioFactor = 5F
@@ -80,10 +80,14 @@ class SchedulingPolicyTest extends SchedulingTestData {
     val schedulingPolicy = new MinMinScheduling
     getSchedulingReport(schedulingPolicy,tasks, resources, cpuFactor, ioFactor, networkFactor)
 
-    // compare with max-min scheduling
-    println("================ max-min scheduling =======================")
-    val maxMinScheduling = new MaxMinScheduling
+    println("================ min-min opt scheduling =======================")
+    val maxMinScheduling = new MinminSchedulingOpt
     getSchedulingReport(maxMinScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
+
+    // compare with max-min scheduling
+//    println("================ max-min scheduling =======================")
+//    val maxMinScheduling = new MaxMinScheduling
+//    getSchedulingReport(maxMinScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
     // compare with fair-scheduling
 //    println("================ fair-scheduling =======================")
 //    getSchedulingReport(new FairScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)

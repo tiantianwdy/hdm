@@ -6,7 +6,7 @@ package org.nicta.wdy.hdm.planing
 
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.model.DDM
-import org.nicta.wdy.hdm.scheduling.SchedulingTask
+import org.nicta.wdy.hdm.scheduling.{MinMinScheduling, SchedulingTask}
 import org.nicta.wdy.hdm.storage.HDMBlockManager
 
 import scala.collection.mutable.Buffer
@@ -108,7 +108,8 @@ object PlanningUtils {
       val inputSize = Seq(ddm.blockSize / 1024)
       SchedulingTask(id, inputLocations, inputSize, ddm.dependency)
     }
-    val plans = hDMContext.schedulingPolicy.plan(tasks, candidates,
+    val policy = new MinMinScheduling
+    val plans = policy.plan(tasks, candidates,
       hDMContext.SCHEDULING_FACTOR_CPU,
       hDMContext.SCHEDULING_FACTOR_IO,
       hDMContext.SCHEDULING_FACTOR_NETWORK)

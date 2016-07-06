@@ -283,16 +283,16 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           )
           if ((tasks ne null) && !tasks.isEmpty) {
             seq --= tasks
-            tasks.foreach( t =>
-              if (t.func.isInstanceOf[ParUnionFunc[_]]) {
-                //copy input blocks directly
-                val blks = t.input.map(h => blockManager.getRef(h.id))
-                taskSucceeded(t.appId, t.taskId, t.func.toString, blks)
-              } else {
-                taskQueue.put(t)
-              }
-            )
+            val (unionTasks, acutalTasks) = tasks.span(_.func.isInstanceOf[ParUnionFunc[_]])
+            unionTasks.foreach {t =>
+              //copy input blocks directly
+              val blks = t.input.map(h => blockManager.getRef(h.id))
+              taskSucceeded(t.appId, t.taskId, t.func.toString, blks)
+            }
+            if(acutalTasks.nonEmpty){
+              acutalTasks.foreach(taskQueue.put(_))
               nonEmptyLock.release()
+            }
             log.info(s"New tasks have has been triggered: [${tasks.map(t => (t.taskId, t.func)) mkString (",")}}] ")
           }
         }

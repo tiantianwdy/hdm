@@ -48,17 +48,17 @@ class MinExecutionScheduling(val comparison:(Double, Double) => Boolean) extends
 //    log.info(s"initiate matrix in ${time1 - start} ms.")
 
     //find next scheduled job
-    while (!computationTimeMatrix.isEmpty) {
+    while (!computationTimeMatrix.isEmpty) { //todo: revise to only schedule one task for each worker every time rather than schedule all tasks.
 //      val time2 = System.currentTimeMillis()
       val selected = findNextMatching(jobCompletionTimeMatrix) // return (taskId, resourceIdx)
 //      val time3 = System.currentTimeMillis()
       val candidate = selected._1 -> resources.apply(selected._2).toString //transform to (taskId, resource)
 //      log.debug(s"find next candidate: $candidate in ${time3 - time2} ms.")
       results += candidate
-      //update time matrices and remove selected jobs
+//    update time matrices and remove selected jobs
       updateMatrix(computationTimeMatrix, jobCompletionTimeMatrix, selected)
-//      val time4 = System.currentTimeMillis()
-//      log.debug(s"update matrix in ${time4 - time3} ms.")
+//    val time4 = System.currentTimeMillis()
+//    log.debug(s"update matrix in ${time4 - time3} ms.")
     }
     results
   }

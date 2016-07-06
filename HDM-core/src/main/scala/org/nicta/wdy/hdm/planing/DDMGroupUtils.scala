@@ -8,7 +8,7 @@ import scala.collection.mutable.Buffer
 /**
  * Created by tiantian on 18/06/16.
  */
-object DDMGroupUtils {
+object DDMGroupUtils {//todo optimize performance and fix bugs that cause empty group
 
   def weightedGroup[T](elems:Seq[T], weights:Array[Float], groupNum:Int):Seq[Buffer[T]]= {
     require(elems.length == weights.length)
@@ -36,7 +36,7 @@ object DDMGroupUtils {
     val groupSize = Array.fill(groupNum){0F}
     val avgSize = elem.map(_._2).sum / groupNum
     var curGroup = 0
-    while(elemIter.hasNext  && curGroup < groupNum -1){
+    while(elemIter.hasNext  && curGroup < groupNum -1) {
       val cur = elemIter.next()
       groupBuffer(curGroup) += cur
       groupSize(curGroup) += cur._2
@@ -45,7 +45,7 @@ object DDMGroupUtils {
       }
     }
     curGroup = 0
-    while (elemIter.hasNext){
+    while (elemIter.hasNext) {
       val next = elemIter.next()
       while(groupSize(curGroup) > avgSize) curGroup = (curGroup + 1) % groupNum
       groupBuffer(curGroup) += next
@@ -55,14 +55,60 @@ object DDMGroupUtils {
     groupBuffer.toSeq
   }
 
+  def distributionGroup(ddmBuffer:Buffer[Buffer[(Path, Float)]], total:Float, group:Int, approximation:Float): Buffer[Buffer[(Path, Float)]] ={
+    val finalRes = Buffer.empty[Buffer[(Path, Float)]]
+    // subGrouping in each bounded group
+    val distribution = ddmBuffer.map{ seq =>
+      val seqSize = seq.map(_._2).sum
+      Math.round((seqSize/total) * group)
+    }
+    for{
+      i <- 0 until ddmBuffer.size
+    }{
+      val seq = ddmBuffer(i)
+      val groupSize = distribution(i)
+      finalRes ++= DDMGroupUtils.orderKeepingGroup(seq, groupSize, approximation)
+    }
+    finalRes
+  }
 
-  def groupPathByBoundary(paths:Seq[Path], weights:Seq[Float], n:Int, boundary:Int) = {
+  def mergeNeighbours(ddmBuffer:Buffer[Buffer[(Path, Float)]], total:Float, group:Int): Buffer[Buffer[(Path, Float)]] = { //todo optimize
+    require(ddmBuffer.length >= group)
+    val finalRes = Buffer.empty[Buffer[(Path, Float)]]
+    val avg = total / group
+    val bufSize = ddmBuffer.length
+    val weightsVector = ddmBuffer.map( buf => buf.map(_._2).sum)
+    var curWeight = 0
+    var curRes = Buffer.empty[(Path, Float)]
+    var curIdx = 0
+    var curBuffer = ddmBuffer(curIdx)
+    while(curIdx < bufSize && finalRes.length < group) {
+      while(curWeight < avg && curBuffer.size > 0){
+        val next = curBuffer.remove(0)
+        curRes += next
+        curWeight += next._2
+      }
+      if(curWeight > avg){
+        finalRes += curRes
+        curRes = Buffer.empty[(Path, Float)]
+        curWeight = 0
+      }
+      if(curBuffer.size <= 0){
+        curIdx += 1
+        curBuffer = ddmBuffer(curIdx)
+      }
+    }
+    finalRes
+  }
+
+  def groupPathByBoundary(paths:Seq[Path], weights:Seq[Float], n:Int, boundary:Int): Buffer[Buffer[(Path, Float)]] = {
     require(paths.length == weights.length)
     val tuples = paths.zip(weights)
     val sorted = tuples.sortWith( (p1,p2) => Path.path2Int(p1._1) < Path.path2Int(p2._1)).iterator
     val ddmBuffer = Buffer.empty[Buffer[(Path, Float)]]
     var buffer = Buffer.empty[(Path, Float)]
     val total = weights.sum
+
     val approximation = 0.2F
 
     if(sorted.hasNext){
@@ -80,20 +126,8 @@ object DDMGroupUtils {
       }
       ddmBuffer += buffer
     }
-    // subGrouping in each bounded group
-    val distribution = ddmBuffer.map{ seq =>
-      val seqSize = seq.map(_._2).sum
-      Math.round((seqSize/total) * n)
-    }
-    val finalRes = Buffer.empty[Buffer[(Path, Float)]]
-    for{
-      i <- 0 until ddmBuffer.size
-    }{
-      val seq = ddmBuffer(i)
-      val groupSize = distribution(i)
-      finalRes ++= DDMGroupUtils.orderKeepingGroup(seq, groupSize, approximation)
-    }
-    finalRes
+//    distributionGroup(ddmBuffer, total, n, approximation)
+    mergeNeighbours(ddmBuffer, total, n)
   }
 
   def groupDDMByBoundary[R](ddms:Seq[DDM[_, R]], weights:Seq[Float], n:Int, boundary:Int = 256 << 8 + 256) ={

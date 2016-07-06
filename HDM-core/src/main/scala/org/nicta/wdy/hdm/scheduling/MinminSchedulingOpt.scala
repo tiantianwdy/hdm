@@ -1,14 +1,16 @@
 package org.nicta.wdy.hdm.scheduling
 
+import java.util
+
 import org.nicta.wdy.hdm.io.Path
+import org.nicta.wdy.hdm.utils.Logging
 
 import scala.collection.mutable
 
 /**
- * Created by tiantian on 28/06/16.
+ * Created by tiantian on 6/07/16.
  */
-class HungarianScheduling extends SchedulingPolicy {
-
+class MinminSchedulingOpt extends SchedulingPolicy with  Logging{
 
   /**
    *
@@ -23,38 +25,35 @@ class HungarianScheduling extends SchedulingPolicy {
     val taskBuffer = inputs.toBuffer
     val results = mutable.Map.empty[String, String]
 
-//    while(taskBuffer.nonEmpty){
+//    while(taskBuffer.nonEmpty) {
+    if(taskBuffer.nonEmpty && resources.nonEmpty){
       val jobSize = taskBuffer.length
       val workerSize = resources.length
-      val costMatrix = Array.fill[Array[Double]](workerSize){
-        Array.fill(jobSize){
-          -1D
+      val costMatrix = Array.fill[Array[Double]](jobSize) {
+        Array.fill(workerSize) {
+          0D
         }
       }
+      val timeMatrix = new Array[Array[Double]](jobSize)
       // initiate the cost matrix
       for {
-        i <- 0 until workerSize
-        j <- 0 until jobSize
+        i <- 0 until jobSize
+        j <- 0 until workerSize
       } {
-        val task = taskBuffer(j)
-        val resource = resources(i)
+        val task = taskBuffer(i)
+        val resource = resources(j)
         val cost = SchedulingUtils.calculateExecutionTime(task, resource, computeFactor, ioFactor, networkFactor)
         costMatrix(i)(j) = cost
       }
-      val hungarianAlgo = new HungarianAlgorithm(costMatrix)
-      val taskAssigned = hungarianAlgo.execute().filter(i => i != -1)
-      val assigned = for(idx <- 0 until taskAssigned.length) yield {
-        val resOffer = resources(idx)
-        val taskIdx = taskAssigned(idx)
-        val task = taskBuffer.apply(taskIdx)
-        results += task.id -> resOffer.toString
-        task
+      System.arraycopy(costMatrix, 0, timeMatrix, 0, jobSize)
+      val minminOpt = new MinCostOptimization(costMatrix, timeMatrix)
+      val plan = minminOpt.execute()
+      plan.foreach { tup =>
+        results += (taskBuffer(tup._1).id -> resources(tup._2).toString)
+        taskBuffer.remove(tup._1)
       }
-      taskBuffer --= assigned
-
-//    }
+    }
     results
   }
-
 
 }
