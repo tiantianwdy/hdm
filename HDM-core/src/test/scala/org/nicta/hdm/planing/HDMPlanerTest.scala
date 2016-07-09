@@ -55,10 +55,11 @@ class HDMPlanerTest {
       val as = w.split(",")
       (as(0).substring(0,3), as(1).toInt)
     }
-      .groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
-//      .groupBy(_._1).findByKey(_.startsWith("a"))
+//      .groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
+      .groupBy(_._1)
+      //.findByKey(_.startsWith("a"))
       //.map(t => (t._1, t._2.map(_._2).reduce(_+_)))
-      //hdm.map(d=> (d,1)).groupBy(_._1)
+//      hdm.map(d=> (d,1)).groupBy(_._1)
       //.map(t => (t._1, t._2.map(_._2))).reduce(("", Seq(0)))((t1,t2) => (t1._1, t1._2))
 
     hDMContext.explain(wordCount, 1).physicalPlan.foreach(println(_))

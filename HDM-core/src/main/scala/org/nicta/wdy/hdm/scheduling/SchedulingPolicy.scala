@@ -65,9 +65,10 @@ object SchedulingUtils {
     val inputs = p.inputs
     val amounts =  p.inputSizes
     require(inputs.length == amounts.length)
+    val length = inputs.length
     var idx = 0
     var sum = 0D
-    while(idx < inputs.length){
+    while(idx < length){
       val in = inputs(idx)
       val size = amounts(idx)
       val dataLoadingTime = if (in.address == resources.address) {

@@ -59,8 +59,20 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hD
       val children = DataParser.explainBlocks(leafHdm.location, hDMContext, leafHdm.appContext)
       if(!hDMContext.PLANER_is_GROUP_INPUT) {
         val func = target.func.asInstanceOf[ParallelFunction[String,R]]
-        val mediator = children.map(ddm => new DFM(id = leafHdm.id + "_b" +children.indexOf(ddm), children = Seq(ddm), dependency = target.dependency, func = func, parallelism = 1, location = Path(hDMContext.clusterBlockPath), partitioner = target.partitioner, appContext = leafHdm.appContext))
-        val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), parallelism = mediator.size, location = Path(hDMContext.clusterBlockPath), appContext = leafHdm.appContext)
+        val mediator = children.map{ddm =>
+          val idx = children.indexOf(ddm)
+          val dfm = new DFM(id = leafHdm.id + "_b" + idx,
+                  children = Seq(ddm),
+                  dependency = target.dependency,
+                  func = func,
+                  parallelism = 1,
+                  location = Path(hDMContext.clusterBlockPath),
+                  partitioner = target.partitioner,
+                  appContext = leafHdm.appContext)
+          dfm.withIdx(idx)
+          dfm
+        }
+        val newParent = new DFM(id = leafHdm.id, children = mediator.toIndexedSeq, func = new ParUnionFunc[R](), dependency = target.dependency, parallelism = mediator.size, partitioner = target.partitioner, location = Path(hDMContext.clusterBlockPath), appContext = leafHdm.appContext)
         children ++ mediator :+ newParent
       } else {
         // group input by location similarity
@@ -86,7 +98,14 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hD
 
         val mediator = inputs.map{seq =>
           val index = inputs.indexOf(seq)
-          val dfm = new DFM(id = leafHdm.id + "_b" + index, children = seq, dependency = target.dependency, func = func, parallelism = 1, partitioner = target.partitioner, location = Path(hDMContext.clusterBlockPath), appContext = leafHdm.appContext)
+          val dfm = new DFM(id = leafHdm.id + "_b" + index,
+                            children = seq,
+                            dependency = target.dependency,
+                            func = func,
+                            parallelism = 1,
+                            partitioner = target.partitioner,
+                            location = Path(hDMContext.clusterBlockPath),
+                            appContext = leafHdm.appContext)
           dfm.withIdx(index)
           dfm
         }

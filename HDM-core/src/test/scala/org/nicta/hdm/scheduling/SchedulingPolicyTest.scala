@@ -1,5 +1,7 @@
 package org.nicta.hdm.scheduling
 
+import java.util.concurrent.LinkedBlockingQueue
+
 import org.junit.Test
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.Path
@@ -8,6 +10,7 @@ import org.nicta.wdy.hdm.scheduling._
 
 import scala.collection.mutable
 import scala.util.Random
+import scala.collection.JavaConversions._
 
 /**
  * Created by tiantian on 1/09/15.
@@ -17,15 +20,24 @@ class SchedulingPolicyTest extends SchedulingTestData {
   val numWorker = 8
   val pathPool = initAddressPool(numWorker)
 
-  def generateInput(n:Int, sizeRange:Int):Seq[(Path, Long)] ={
-    generateInputPath(pathPool, n).map(Path(_)) zip Seq.fill(n){Random.nextInt(sizeRange) + 1L}
+  def generateInput(n:Int, sizeRange:Long):Seq[(Path, Long)] ={
+    generateInputPath(pathPool, n).map(Path(_)) zip Seq.fill(n){(Random.nextDouble() * sizeRange).toLong + 1L}
   }
 
   def generateTasks(tNum:Int, pNum:Int):Seq[SchedulingTask] = {
-    Seq.fill(tNum) {
-      val (input, inputSize) = generateInput(pNum, 1).unzip
-      SchedulingTask(HDMContext.newLocalId(), input, inputSize,  OneToOne)
+    val queue = new LinkedBlockingQueue[SchedulingTask]
+    var i=0
+    while(i < tNum){
+      val (input, inputSize) = generateInput(pNum, 102410241024L).unzip
+      val task = SchedulingTask(HDMContext.newLocalId(), input, inputSize,  OneToOne)
+      queue.add(task)
+      i += 1
     }
+//    Seq.fill(tNum) {
+//      val (input, inputSize) = generateInput(pNum, 102410241024L).unzip
+//      SchedulingTask(HDMContext.newLocalId(), input, inputSize,  OneToOne)
+//    }
+    queue.toSeq
   }
 
   def generateResources(amount:Int = 8):Seq[Path]= {
@@ -68,17 +80,17 @@ class SchedulingPolicyTest extends SchedulingTestData {
 
   @Test
   def testSchedulingComparison: Unit ={
-    val numTask = 1067
-    val inputEachTask = 8
+    val numTask = 160
+    val inputEachTask = 1067
     val tasks = generateTasks(numTask, inputEachTask)
-    val resources = generateResources(1600)
+    val resources = generateResources(160)
 
     val cpuFactor = 1F
     val ioFactor = 5F
     val networkFactor = 10F
-    println("================ min-min scheduling =======================")
-    val schedulingPolicy = new MinMinScheduling
-    getSchedulingReport(schedulingPolicy,tasks, resources, cpuFactor, ioFactor, networkFactor)
+//    println("================ min-min scheduling =======================")
+//    val schedulingPolicy = new MinMinScheduling
+//    getSchedulingReport(schedulingPolicy,tasks, resources, cpuFactor, ioFactor, networkFactor)
 
     println("================ min-min opt scheduling =======================")
     val maxMinScheduling = new MinminSchedulingOpt
@@ -95,8 +107,8 @@ class SchedulingPolicyTest extends SchedulingTestData {
 //    println("================ Simple-scheduling =======================")
 //    getSchedulingReport(new OneByOneScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
 
-    println("================ Hungarian Scheduling =======================")
-    getSchedulingReport(new HungarianScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
+//    println("================ Hungarian Scheduling =======================")
+//    getSchedulingReport(new HungarianScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
   }
 
 }

@@ -66,38 +66,106 @@ object DDMGroupUtils {//todo optimize performance and fix bugs that cause empty 
       i <- 0 until ddmBuffer.size
     }{
       val seq = ddmBuffer(i)
-      val groupSize = distribution(i)
+      val groupSize = Math.max(distribution(i), 1)
       finalRes ++= DDMGroupUtils.orderKeepingGroup(seq, groupSize, approximation)
     }
     finalRes
   }
 
+  def cutBuffer(buf:Buffer[(Path, Float)], targetWeight:Float, total:Float):Buffer[(Path, Float)] = {
+    val cutBuffer = Buffer.empty[(Path, Float)]
+    var next = buf.last
+    var curWeight = total
+    while(curWeight > targetWeight){
+      buf -= next
+      cutBuffer += next
+      curWeight -= next._2
+      next = buf.last
+    }
+    cutBuffer
+  }
+
   def mergeNeighbours(ddmBuffer:Buffer[Buffer[(Path, Float)]], total:Float, group:Int): Buffer[Buffer[(Path, Float)]] = { //todo optimize
+
     require(ddmBuffer.length >= group)
+
     val finalRes = Buffer.empty[Buffer[(Path, Float)]]
     val avg = total / group
     val bufSize = ddmBuffer.length
     val weightsVector = ddmBuffer.map( buf => buf.map(_._2).sum)
-    var curWeight = 0
-    var curRes = Buffer.empty[(Path, Float)]
-    var curIdx = 0
-    var curBuffer = ddmBuffer(curIdx)
-    while(curIdx < bufSize && finalRes.length < group) {
-      while(curWeight < avg && curBuffer.size > 0){
-        val next = curBuffer.remove(0)
-        curRes += next
-        curWeight += next._2
+    val sortedWeights = weightsVector.zipWithIndex
+
+    // take top k = group from ddmBuffer
+    val sorting = (w1:(Float, Int), w2:(Float, Int)) => w1._1 > w2._1
+    sortedWeights.sortWith(sorting)
+    val (resIdxes, bufferIdxes) = sortedWeights.splitAt(group)
+    val resBuffer = resIdxes.map(t => ddmBuffer(t._2))
+    val resWeights = resIdxes.map(t => weightsVector(t._2))
+    val elemBuffer = bufferIdxes.map(t => ddmBuffer(t._2)).flatten
+
+    // check the top K buffer
+    var i = 0
+    while(i < resIdxes.length){
+      val bufIdx = resIdxes(i)._2
+      val buf = ddmBuffer(bufIdx)
+      val weights = weightsVector(bufIdx)
+      if(weights > avg){
+        val cutBuf = cutBuffer(buf, avg, weights)
+        if(cutBuf.nonEmpty) elemBuffer ++= cutBuf
+        // move completed group to final buffer
+        resBuffer -= buf
+        finalRes += buf
+        resWeights(i) = -1
       }
-      if(curWeight > avg){
-        finalRes += curRes
-        curRes = Buffer.empty[(Path, Float)]
-        curWeight = 0
+      i += 1
+    }
+
+    // balance non-completed groups
+    var resIdx =  resBuffer.size - 1
+    var elemIdx = 0
+    val groupWeightVec = resWeights.filter(_ >= 0)
+    while(resIdx >= 0 && elemIdx < elemBuffer.size){
+      val elem = elemBuffer(elemIdx)
+      val amount = elem._2
+      while(groupWeightVec(resIdx) + amount > avg && resIdx >= 0) {
+        resIdx -= 1
       }
-      if(curBuffer.size <= 0){
-        curIdx += 1
-        curBuffer = ddmBuffer(curIdx)
+      if( resIdx >= 0 ){
+        resBuffer(resIdx) += elem
+        groupWeightVec(resIdx) += amount
+        elemIdx += 1
       }
     }
+    finalRes ++= resBuffer
+    resIdx = 0
+    while(elemIdx < elemBuffer.size){
+      finalRes(resIdx) += elemBuffer(elemIdx)
+      resIdx = (resIdx +1) % finalRes.size
+    }
+
+//
+//
+//    var curWeight = 0
+//    var curRes = Buffer.empty[(Path, Float)]
+//    var curIdx = 0
+//    var curBuffer = ddmBuffer(curIdx)
+//    while(curIdx < bufSize && finalRes.length < group) {
+//      while(curWeight < avg && curBuffer.size > 0){
+//        val next = curBuffer.remove(0)
+//        curRes += next
+//        curWeight += next._2
+//      }
+//      if(curWeight > avg){
+//        finalRes += curRes
+//        curRes = Buffer.empty[(Path, Float)]
+//        curWeight = 0
+//      }
+//      if(curBuffer.size <= 0){
+//        curIdx += 1
+//        curBuffer = ddmBuffer(curIdx)
+//      }
+//    }
+
     finalRes
   }
 
@@ -116,7 +184,7 @@ object DDMGroupUtils {//todo optimize performance and fix bugs that cause empty 
       buffer += cur
       while (sorted.hasNext) {
         val next = sorted.next()
-        if ((Path.path2Int(next._1) - Path.path2Int(cur._1)) >= boundary ){
+        if ((Path.path2Int(next._1) - Path.path2Int(cur._1)) > boundary ){
           ddmBuffer += buffer
           buffer = Buffer.empty[(Path, Float)] += next
         } else {
@@ -126,11 +194,12 @@ object DDMGroupUtils {//todo optimize performance and fix bugs that cause empty 
       }
       ddmBuffer += buffer
     }
-//    distributionGroup(ddmBuffer, total, n, approximation)
-    mergeNeighbours(ddmBuffer, total, n)
+    println(s"${ddmBuffer.size},$total, $n ")
+    distributionGroup(ddmBuffer, total, n, approximation)
+//    mergeNeighbours(ddmBuffer, total, n)
   }
 
-  def groupDDMByBoundary[R](ddms:Seq[DDM[_, R]], weights:Seq[Float], n:Int, boundary:Int = 256 << 8 + 256) ={
+  def groupDDMByBoundary[R](ddms:Seq[DDM[_, R]], weights:Seq[Float], n:Int, boundary:Int = 0) ={
     val ddmMap = ddms.map(d => (d.preferLocation -> d)).toMap[Path, DDM[_,R]]
     val paths = ddms.map(_.preferLocation)
     val grouped = groupPathByBoundary(paths, weights, n, boundary)

@@ -1,5 +1,6 @@
 package org.nicta.wdy.hdm.scheduling
 
+import java.util
 import java.util.concurrent._
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
@@ -14,10 +15,10 @@ import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.server.provenance.ExecutionTrace
 import org.nicta.wdy.hdm.server.{PromiseManager, ProvenanceManager, ResourceManager}
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
-import org.nicta.wdy.hdm.utils.Logging
+import org.nicta.wdy.hdm.utils.{NotifyLock, Logging}
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.concurrent.{Lock, ExecutionContext, Future, Promise}
 import scala.reflect.ClassTag
 import scala.collection.JavaConversions._
@@ -39,30 +40,41 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
   protected val isRunning = new AtomicBoolean(false)
 
-  protected val nonEmptyLock = new Semaphore(0)
+  protected val nonEmptyLock = new NotifyLock
 
   protected val resAccessorlock = new Lock
 
-  protected val taskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
+  protected val taskQueue = new LinkedBlockingDeque[ParallelTask[_]]()
 
   protected val appBuffer: java.util.Map[String, CopyOnWriteArrayList[ParallelTask[_]]] = new ConcurrentHashMap[String, CopyOnWriteArrayList[ParallelTask[_]]]()
 
 
   protected def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], candidates:Seq[Path]): Unit ={
-
-    val tasks = blockingQue.map { task =>
+//    log.info("Enter scheduleOnResource...")
+    val tasks= mutable.Buffer.empty[SchedulingTask]
+    blockingQue.foreach{ task =>
       val ids = task.input.map(_.id)
-      val inputLocations = HDMBlockManager().getLocations(ids)
-      val inputSize = HDMBlockManager().getblockSizes(ids).map(_ / 1024)
-      SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
-    }.toSeq
-
+      val inputLocations = new ArrayBuffer[Path](task.input.length)
+      val inputSize = new ArrayBuffer[Long](task.input.length)
+      inputLocations ++= HDMBlockManager().getLocations(ids)
+      inputSize ++= HDMBlockManager().getblockSizes(ids).map(_ / 1024)
+      tasks += SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
+    }
+//    val tasks = blockingQue.map { task =>
+//      val ids = task.input.map(_.id)
+//      val inputLocations = HDMBlockManager().getLocations(ids)
+//      val inputSize = HDMBlockManager().getblockSizes(ids).map(_ / 1024)
+//      SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
+//    }.toSeq
+//    log.info(s"in scheduleOnResource get task with size ${tasks.size}...")
     val plans = schedulingPolicy.plan(tasks, candidates,
       HDMContext.defaultHDMContext.SCHEDULING_FACTOR_CPU,
       HDMContext.defaultHDMContext.SCHEDULING_FACTOR_IO ,
       HDMContext.defaultHDMContext.SCHEDULING_FACTOR_NETWORK)
 
+//    log.info(s"in scheduleOnResource get task with size ${tasks.size}...")
     val scheduledTasks = blockingQue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
+//    log.info(s"in scheduleOnResource get scheduledTasks with size ${scheduledTasks.size}...")
     val now = System.currentTimeMillis()
     plans.foreach(tuple => {
       scheduledTasks.get(tuple._1) match {
@@ -88,19 +100,24 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
         case None => //do nothing
       }
     })
+//    log.info(s"in scheduleOnResource exit after assigned plan with size ${plans.size}...")
   }
 
   override def startup(): Unit = {
     isRunning.set(true)
     while (isRunning.get) try {
       if(taskQueue.isEmpty) {
+        log.info("wait for non-empty tasks..")
         nonEmptyLock.acquire()
+        log.info("exit from waiting for tasks..")
       }
-      resAccessorlock.acquire()
+//      log.info(s"current waiting task size:${taskQueue.size()}")
+//      resAccessorlock.acquire()
       resourceManager.waitForNonEmpty()
       val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
+//      log.info(s"current waiting worker size:${candidates.size}")
       scheduleOnResource(taskQueue, candidates)
-      resAccessorlock.release()
+//      resAccessorlock.release()
     }
   }
 
@@ -164,7 +181,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       }
     }
     val promise = taskSeq.last
-    log.info(s"Created job promise Id: " + promise)
+//    log.info(s"Created job promise Id: " + promise)
     promise.future
   }
 
@@ -198,7 +215,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     val promise = promiseManager.removePromise(taskId).asInstanceOf[Promise[HDM[_]]]
     if (promise != null && !promise.isCompleted ){
       promise.success(serRef)
-      log.info(s"A promise [${promise}] is triggered for : [${taskId + "_" + func}}] ")
+      log.debug(s"A promise [${promise}] is triggered for : [${taskId + "_" + func}}] ")
     } else if (promise eq null) {
       log.warn(s"no matched promise found: ${taskId}")
     }
@@ -238,8 +255,8 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
             .copy(input1 = inputDDM1.asInstanceOf[Seq[ParHDM[_, twoInputTask.inTypeOne.type]]], input2 = inputDDM2.asInstanceOf[Seq[ParHDM[_, twoInputTask.inTypeTwo.type]]])
       }
 //      resourceManager.require(1)
-      resourceManager.decResource(workerPath, 1)
       log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "_" + task.func.toString}}] ")
+      resourceManager.decResource(workerPath, 1)
       val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTask(updatedTask)
       else runRemoteTask(workerPath, updatedTask)
 
@@ -290,7 +307,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
               taskSucceeded(t.appId, t.taskId, t.func.toString, blks)
             }
             if(acutalTasks.nonEmpty){
-              acutalTasks.foreach(taskQueue.put(_))
+              acutalTasks.foreach(taskQueue.add(_))
               nonEmptyLock.release()
             }
             log.info(s"New tasks have has been triggered: [${tasks.map(t => (t.taskId, t.func)) mkString (",")}}] ")

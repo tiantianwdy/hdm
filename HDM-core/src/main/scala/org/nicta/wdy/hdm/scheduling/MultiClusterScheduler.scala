@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.scheduling
 
-import java.util.concurrent.{CopyOnWriteArrayList, Semaphore, ConcurrentHashMap, LinkedBlockingQueue}
+import java.util.concurrent._
 
 import akka.actor.ActorSystem
 import org.nicta.wdy.hdm.executor.{ClusterExecutor, HDMContext, Partitioner, ParallelTask}
@@ -12,11 +12,11 @@ import org.nicta.wdy.hdm.server._
 import org.nicta.wdy.hdm.server.provenance.ExecutionTrace
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.{Lock, Future, Promise, ExecutionContext}
 import scala.reflect.ClassTag
 import scala.collection.JavaConversions._
 import scala.util.{Failure, Success}
+import scala.collection.JavaConversions._
 
 /**
  * Created by tiantian on 10/05/16.
@@ -48,7 +48,45 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
 
   private val appStateBuffer: java.util.Map[String, CopyOnWriteArrayList[JobStage]] = new ConcurrentHashMap[String, CopyOnWriteArrayList[JobStage]]()
 
+  protected override def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], candidates:Seq[Path]): Unit ={
+    val tasks = blockingQue.map { task =>
+      val ids = task.input.map(_.id)
+      val inputLocations = HDMBlockManager().getLocations(ids)
+      val inputSize = HDMBlockManager().getblockSizes(ids).map(_ / 1024)
+      SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
+    }.toSeq
+    val plans = schedulingPolicy.plan(tasks, candidates,
+      HDMContext.defaultHDMContext.SCHEDULING_FACTOR_CPU,
+      HDMContext.defaultHDMContext.SCHEDULING_FACTOR_IO ,
+      HDMContext.defaultHDMContext.SCHEDULING_FACTOR_NETWORK)
 
+    val scheduledTasks = blockingQue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
+    val now = System.currentTimeMillis()
+    plans.foreach(tuple => {
+      scheduledTasks.get(tuple._1) match {
+        case Some(task) =>
+          blockingQue.remove(task)
+          scheduleTask(task, tuple._2)
+          // trace task
+          val eTrace = ExecutionTrace(task.taskId,
+            task.appId,
+            task.version,
+            task.exeId,
+            task.func.getClass.getSimpleName,
+            task.func.toString,
+            task.input.map(_.id),
+            Seq(task.taskId),
+            tuple._2,
+            task.dep.toString,
+            task.partitioner.getClass.getCanonicalName,
+            now,
+            -1L,
+            "Running")
+          historyManager.addExecTrace(eTrace)
+        case None => //do nothing
+      }
+    })
+  }
 
 
   def initStateScheduling(): Unit ={
