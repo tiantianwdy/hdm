@@ -87,7 +87,8 @@ class PathTest extends SchedulingTestData{
       Path("akka.tcp://127.0.0.1:9001/user/smsMaster")
     )
     val target = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings")
-    src.map{p => Path.calculateDistance(p, target)} foreach( println(_))
+    src.map{p => Path.path2Int(p) - Path.path2Int(target)} foreach( println(_))
+//    src.map{p => Path.calculateDistance(p, target)} foreach( println(_))
   }
 
   @Test

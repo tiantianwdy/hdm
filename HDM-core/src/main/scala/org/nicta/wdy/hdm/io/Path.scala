@@ -162,8 +162,8 @@ object Path {
 
   def path2Int(p:Path):Long = {
     Try {
-      val ipSegs = p.address.split("\\.|:|/").take(4).map(_.toLong)
-      (ipSegs(0) << 24) + (ipSegs(1) << 16) + (ipSegs(2) << 8) + ipSegs(3)
+      val ipSegs = p.address.split("\\.|:|/").take(5).map(_.toLong)
+      (ipSegs(0) << 24) + (ipSegs(1) << 16) + (ipSegs(2) << 8) + ipSegs(3) + ipSegs(4) & 255
     } getOrElse(0)
   }
 

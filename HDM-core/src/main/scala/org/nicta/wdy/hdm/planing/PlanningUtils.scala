@@ -56,9 +56,9 @@ object PlanningUtils {
     }
   }
 
-  def groupPathByBoundary(paths:Seq[Path], n:Int) = {
+  def groupPathByBoundary(paths:Seq[Path], n:Int, boundary:Int = 1 ) = {
     val sorted = paths.sortWith( (p1,p2) => Path.path2Int(p1) < Path.path2Int(p2)).iterator
-    val boundary = 256 << 8 + 256
+//    val boundary = 256 << 8 + 256
     val ddmBuffer = Buffer.empty[Buffer[Path]]
     var buffer = Buffer.empty[Path]
     val total = paths.size.toFloat
