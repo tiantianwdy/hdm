@@ -124,7 +124,7 @@ class CacheOptimizer extends  LogicalOptimizer with Logging{
    */
   override def optimize[R: ClassTag](cur: HDM[R]): HDM[R] = {
     if (cur.isCache && HDMBlockManager().checkState(cur.id, Computed)) {
-      val cached = HDMBlockManager().getRef(cur.id).asInstanceOf[ParHDM[_, R]]
+      val cached = HDMBlockManager().getRef(cur.id).asInstanceOf[ParHDM[_, R]].copy(parallelism = cur.parallelism)
       log.info(s"Replace HDM ${cur} with cached: ${cached} .")
       cached
     } else if(cur.children == null) {
