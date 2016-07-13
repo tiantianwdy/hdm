@@ -199,7 +199,7 @@ object DDMGroupUtils {//todo optimize performance and fix bugs that cause empty 
 //    mergeNeighbours(ddmBuffer, total, n)
   }
 
-  def groupDDMByBoundary[R](ddms:Seq[DDM[_, R]], weights:Seq[Float], n:Int, boundary:Int = 0) ={
+  def groupDDMByBoundary[R](ddms:Seq[DDM[_, R]], weights:Seq[Float], n:Int, boundary:Int = (256 << 8) -1 ) ={
     val ddmMap = ddms.map(d => (d.preferLocation -> d)).toMap[Path, DDM[_,R]]
     val paths = ddms.map(_.preferLocation)
     val grouped = groupPathByBoundary(paths, weights, n, boundary)

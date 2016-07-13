@@ -86,11 +86,12 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hD
             log.warn(s"candidate size: ${candidates.size}. Default parallel: $defParallel .")
             PlanningUtils.groupDDMByMinminScheduling(children, candidates, hDMContext)
           case "weighted" =>
-            log.warn("group input data by DDM boundary.")
+            log.warn("group input data by weighted DDM boundary.")
             val weights = children.map(ddm => ddm.blockSize / 1024F)
             DDMGroupUtils.groupDDMByBoundary(children, weights, defParallel)
 
           case "boundary" =>
+            log.warn("group input data by DDM boundary.")
           PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[String, String]]]]
         }
 
