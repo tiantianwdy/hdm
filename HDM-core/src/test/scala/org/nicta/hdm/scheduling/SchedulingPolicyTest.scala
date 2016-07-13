@@ -107,8 +107,8 @@ class SchedulingPolicyTest extends SchedulingTestData {
 //    println("================ Simple-scheduling =======================")
 //    getSchedulingReport(new OneByOneScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
 
-//    println("================ Hungarian Scheduling =======================")
-//    getSchedulingReport(new HungarianScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
+    println("================ Hungarian Scheduling =======================")
+    getSchedulingReport(new HungarianScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
   }
 
 }

@@ -61,7 +61,7 @@ class FairScheduling extends SchedulingPolicy with Logging{
 object SchedulingUtils {
 
 
-  def calculateExecutionTime(p:SchedulingTask, resources: Path, computeFactor: Double, ioFactor: Double, networkFactor:Double): Double = {
+  def calculateExecutionTime(p:SchedulingTask, resources: Path, computeFactor: Double, ioFactor: Double, networkFactor:Double, computeDistance:Boolean = true): Double = {
     val inputs = p.inputs
     val amounts =  p.inputSizes
     require(inputs.length == amounts.length)
@@ -79,7 +79,8 @@ object SchedulingUtils {
         ioFactor * 2 * size
       } else {
         // normally networkFactor > ioFactor, which means loading remote data is slower than loading data locally
-        networkFactor * size
+        val distance = if(computeDistance) Path.calculateDistance(in, resources) else 1
+        (networkFactor * distance) * size
       }
       val computeTime = computeFactor * size
       sum += dataLoadingTime + computeTime

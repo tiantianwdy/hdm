@@ -4,7 +4,7 @@ import org.junit.Test
 import org.nicta.hdm.scheduling.SchedulingTestData
 import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.functions.NullFunc
-import org.nicta.wdy.hdm.io.{DataParser, Path}
+import org.nicta.wdy.hdm.io.{Path, DataParser}
 import org.nicta.wdy.hdm.model.DDM
 import org.nicta.wdy.hdm.planing.{DDMGroupUtils, PlanningUtils}
 
@@ -48,7 +48,7 @@ class PathTest extends SchedulingTestData{
 
   val appContext = new AppContext()
 
-  def generatePath(group:Int = 2, groupSize:Int = 57) = {
+  def generatePath(group:Int = 2, groupSize:Int = 530) = {
 
     val paths = ListBuffer.empty[Path]
     for{
@@ -84,11 +84,14 @@ class PathTest extends SchedulingTestData{
       Path("akka.tcp://slaveSys@127.0.0.1:10020/user/smsMaster"),
       Path("akka.tcp://slaveSys@127.0.0.100:10020/user/smsMaster"),
       Path("akka.tcp://slaveSys@127.0.10.1:10020/user/smsMaster"),
+      Path("hdfs://127.1.0.200:9001/user/spark/benchmark/1node/rankings"),
       Path("akka.tcp://127.0.0.1:9001/user/smsMaster")
     )
     val target = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings")
-    src.map{p => Path.path2Int(p) - Path.path2Int(target)} foreach( println(_))
-//    src.map{p => Path.calculateDistance(p, target)} foreach( println(_))
+//    src.map{p => Path.path2Int(p) - Path.path2Int(target)} foreach( println(_))
+//    println(Path.path2Int(target))
+//    println((256 << 8) - 1)
+    src.map{p => Path.calculateDistance(p, target)} foreach( println(_))
   }
 
   @Test
@@ -132,7 +135,7 @@ class PathTest extends SchedulingTestData{
   @Test
   def testPathGroupByBoundary = {
     val paths = generatePath().toSeq
-    val grouped = PlanningUtils.groupPathByBoundary(paths, 8)
+    val grouped = PlanningUtils.groupPathByBoundary(paths, 160)
     println(s"total group:${grouped.size}")
     grouped foreach{ seq =>
       println(s"group size:${seq.size}")

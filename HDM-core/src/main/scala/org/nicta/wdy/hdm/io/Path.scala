@@ -91,11 +91,13 @@ object Path {
     
     if(src.address == target.address) 1
     else {
-      val srcSeq = src.address.split("\\.|:|/")
-      val tarSeq = target.address.split("\\.|:|/")
-      val tarLen = tarSeq.length
+//      val srcSeq = src.address.split("\\.|:|/")
+//      val tarSeq = target.address.split("\\.|:|/")
+      val srcSeq = src.host.toCharArray
+      val tarSeq = target.host.toCharArray
+      val tarLen = Math.min(tarSeq.length, srcSeq.length)
       var cur = 0
-      while(cur < srcSeq.size && srcSeq(cur)== tarSeq(cur)){
+      while(cur < tarLen && srcSeq(cur) == tarSeq(cur)){
         cur += 1
       }
       tarLen / (cur + 0.01D)
@@ -163,7 +165,9 @@ object Path {
   def path2Int(p:Path):Long = {
     Try {
       val ipSegs = p.address.split("\\.|:|/").take(5).map(_.toLong)
-      (ipSegs(0) << 24) + (ipSegs(1) << 16) + (ipSegs(2) << 8) + ipSegs(3) + ipSegs(4) & 255
+//      println(s"${(ipSegs(0) << 24)} + ${(ipSegs(1) << 16)} + ${(ipSegs(2) << 8)} + ${ipSegs(3)} + ${ipSegs(4) & 255}")
+//      println((ipSegs(0) << 24) + (ipSegs(1) << 16) + (ipSegs(2) << 8) + ipSegs(3) + ipSegs(4) & 255)
+      (ipSegs(0) << 24) + (ipSegs(1) << 16) + (ipSegs(2) << 8) + ipSegs(3) + (ipSegs(4) & 255)
     } getOrElse(0)
   }
 
