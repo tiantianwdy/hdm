@@ -31,9 +31,9 @@ trait SchedulingTestData {
   }
 
   def generateWorkerPath(addressPool:Seq[String], factor:Int)= {
-    val res = mutable.Buffer.empty[String]
+    val res = mutable.Buffer.empty[Path]
     for(address <- addressPool; i <- 1 to factor){
-      res += s"akka.tcp://slaveSys@${address}/user/smsSlave/"
+      res += Path(s"akka.tcp://slaveSys@${address}/user/smsSlave/$i")
     }
     res
   }
