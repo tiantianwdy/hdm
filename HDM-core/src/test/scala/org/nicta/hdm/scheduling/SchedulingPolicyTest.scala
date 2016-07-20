@@ -93,9 +93,9 @@ class SchedulingPolicyTest extends SchedulingTestData {
       }.sum //sum up total execution time on one resource
     }
     val dataLocalityRate = calculateDataLocalityRate(groupedTasks, tasks)
-    exeTimeOfTasks.foreach { time =>
-      println(time)
-    }
+//    exeTimeOfTasks.foreach { time =>
+//      println(time)
+//    }
     println(s"Data locality Rates: ${dataLocalityRate * 100} %.")
   }
 
@@ -169,6 +169,10 @@ class SchedulingPolicyTest extends SchedulingTestData {
 
     println("================ Hungarian Scheduling =======================")
     getSchedulingReport(new HungarianScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
+
+    println("================ delay scheduling =======================")
+    val delayScheduling = new DelayScheduling(0, 1, 256 << 8)
+    getSchedulingReport(delayScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
   }
 
 }
