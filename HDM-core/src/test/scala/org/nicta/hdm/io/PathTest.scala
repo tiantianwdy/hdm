@@ -197,7 +197,7 @@ class PathTest extends SchedulingTestData{
     val start = System.currentTimeMillis()
     val grouped1 = PlanningUtils.groupDDMByMinminScheduling(ddms, candidates, hDMContext)
     val point1 = System.currentTimeMillis()
-    val grouped2 = PlanningUtils.groupDDMByBoundary(ddms, parallelism)
+    val grouped2 = PlanningUtils.groupDDMByBoundary(ddms, parallelism, 0)
     val point2 = System.currentTimeMillis()
     val grouped3 = DDMGroupUtils.groupDDMByBoundary(ddms, weights, parallelism)
     val point3 = System.currentTimeMillis()

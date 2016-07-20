@@ -68,7 +68,7 @@ object PlanningUtils {
       buffer += cur
       while (sorted.hasNext) {
         val next = sorted.next()
-        if ((Path.path2Int(next) - Path.path2Int(cur)) >= boundary ){
+        if ((Path.path2Int(next) - Path.path2Int(cur)) > boundary ) {
           ddmBuffer += buffer
           buffer = Buffer.empty[Path] += next
         } else {
@@ -93,10 +93,10 @@ object PlanningUtils {
     finalRes
   }
 
-  def groupDDMByBoundary[R](ddms:Seq[DDM[_, R]], n:Int) ={
+  def groupDDMByBoundary[R](ddms:Seq[DDM[_, R]], n:Int, boundary:Int) ={
     val ddmMap = ddms.map(d => (d.preferLocation -> d)).toMap[Path, DDM[_,R]]
     val paths = ddms.map(_.preferLocation)
-    val grouped = groupPathByBoundary(paths, n)
+    val grouped = groupPathByBoundary(paths, n, boundary)
     grouped.map{seq =>
       seq.map(p => ddmMap(p))
     }

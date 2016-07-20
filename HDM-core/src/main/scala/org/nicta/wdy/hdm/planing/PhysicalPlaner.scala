@@ -55,6 +55,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hD
   override def plan[I: ClassTag, R: ClassTag](input: Seq[ParHDM[_, I]], target: ParHDM[I, R], defParallel:Int): Seq[ParHDM[_,_]] = target match {
     case ddm: DDM[_,R] =>
       Seq(ddm)
+
     case leafHdm:DFM[_,String] if(input == null || input.isEmpty) =>
       val children = DataParser.explainBlocks(leafHdm.location, hDMContext, leafHdm.appContext)
       if(!hDMContext.PLANER_is_GROUP_INPUT) {
@@ -92,7 +93,8 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hD
 
           case "boundary" =>
             log.warn("group input data by DDM boundary.")
-          PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[String, String]]]]
+            val boundary = (256 << 8) - 1
+          PlanningUtils.groupDDMByBoundary(children, defParallel, boundary).asInstanceOf[Seq[Seq[DDM[String, String]]]]
         }
 
         val func = target.func.asInstanceOf[ParallelFunction[String,R]]
@@ -116,7 +118,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hD
 
     case dfm:DFM[I,R] if(dfm.children.forall(_.isInstanceOf[DDM[_, I]])) => //for computed DFM
       val children = dfm.children.map(_.asInstanceOf[DDM[_, I]])
-      val inputs = PlanningUtils.groupDDMByBoundary(children, defParallel).asInstanceOf[Seq[Seq[DDM[_,I]]]]
+      val inputs = PlanningUtils.groupDDMByBoundary(children, defParallel, 0).asInstanceOf[Seq[Seq[DDM[_,I]]]]
       val func = target.func
       val mediator = inputs.map { seq =>
         val index = inputs.indexOf(seq)
