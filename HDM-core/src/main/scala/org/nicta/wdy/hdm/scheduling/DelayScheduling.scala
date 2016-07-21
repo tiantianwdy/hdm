@@ -56,7 +56,7 @@ class DelayScheduling(processDistance:Long, nodeDistance:Long, rackDistance:Long
               taskBuffer -= task
               results += task.id -> res.toString
               assignedRes += res
-              println(s"${task.id}, ${res.toString}")
+//              println(s"${task.id}, ${res.toString}")
             case None => // do nothing
           }
         }

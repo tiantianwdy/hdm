@@ -1,8 +1,7 @@
 package org.nicta.wdy.hdm.scheduling
 
-import java.util
 import java.util.concurrent._
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.atomic.{AtomicBoolean}
 
 import akka.actor.ActorSystem
 import akka.pattern._
@@ -18,7 +17,7 @@ import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 import org.nicta.wdy.hdm.utils.{NotifyLock, Logging}
 
 import scala.collection.mutable
-import scala.collection.mutable.{ArrayBuffer, ListBuffer}
+import scala.collection.mutable.{ArrayBuffer}
 import scala.concurrent.{Lock, ExecutionContext, Future, Promise}
 import scala.reflect.ClassTag
 import scala.collection.JavaConversions._
@@ -222,7 +221,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     triggerTasks(appId)
     // update task trace
     val trace = historyManager.getExecTrace(taskId)
-    if(trace ne null){
+    if(trace ne null) {
       val newTrace = if(blks ne null) trace.copy(outputPath= blks.map(_.toURL), endTime = endTime, status = "Completed")
       else trace.copy(endTime = endTime, status = "Completed")
       historyManager.updateExecTrace(newTrace)

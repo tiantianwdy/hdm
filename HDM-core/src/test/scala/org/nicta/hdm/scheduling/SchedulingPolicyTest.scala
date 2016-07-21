@@ -1,6 +1,6 @@
 package org.nicta.hdm.scheduling
 
-import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.{CopyOnWriteArrayList, LinkedBlockingQueue}
 
 import org.junit.Test
 import org.nicta.wdy.hdm.executor.HDMContext
@@ -11,6 +11,7 @@ import org.nicta.wdy.hdm.scheduling._
 import scala.util.Random
 import scala.collection.JavaConversions._
 import scala.collection.mutable
+import scala.concurrent.{ExecutionContext, Future}
 
 /**
  * Created by tiantian on 1/09/15.
@@ -78,7 +79,12 @@ class SchedulingPolicyTest extends SchedulingTestData {
 
 
 
-  def getSchedulingReport(schedulingPolicy:SchedulingPolicy, tasks:Seq[SchedulingTask], resources:Seq[Path], computeFactor: Float, ioFactor: Float, networkFactor:Float): Unit ={
+  def getSchedulingReport(schedulingPolicy:SchedulingPolicy,
+                          tasks:Seq[SchedulingTask],
+                          resources:Seq[Path],
+                          computeFactor: Float,
+                          ioFactor: Float,
+                          networkFactor:Float): Unit ={
     val taskMap = tasks.map(t => t.id -> t).toMap
     val startTime = System.currentTimeMillis()
     val comparedJobs = schedulingPolicy.plan(tasks, resources, computeFactor, ioFactor, networkFactor)
@@ -96,6 +102,65 @@ class SchedulingPolicyTest extends SchedulingTestData {
 //    exeTimeOfTasks.foreach { time =>
 //      println(time)
 //    }
+    println(s"Data locality Rates: ${dataLocalityRate * 100} %.")
+  }
+
+  def mockSchedulingTest(schedulingPolicy:SchedulingPolicy,
+                         tasks:Seq[SchedulingTask],
+                         resources:Seq[Path],
+                         computeFactor: Float,
+                         ioFactor: Float,
+                         networkFactor:Float) {
+
+    implicit def executionContext:ExecutionContext = ExecutionContext.global
+
+    val taskMap = tasks.map(t => t.id -> t).toMap
+    val taskBuffer = tasks.toBuffer
+    val resourceBuffer = new CopyOnWriteArrayList[Path]()// needs to be type safe as multi-threading in collecting resources
+    resourceBuffer ++=  resources
+    var totalSchedulingTime = 0L
+    val scheduledTasks = mutable.Map.empty[String, String]
+
+    while(taskBuffer.nonEmpty){
+      if(resourceBuffer.nonEmpty) {
+        val startTime = System.currentTimeMillis()
+        val comparedJobs = schedulingPolicy.plan(taskBuffer, resourceBuffer, computeFactor, ioFactor, networkFactor)
+        val endTime = System.currentTimeMillis()
+        totalSchedulingTime += endTime - startTime
+//        println(s"time taken for scheduling: ${endTime - startTime} ms.")
+        scheduledTasks ++= comparedJobs
+        val assignedTasks = comparedJobs.toSeq.map(kv => taskMap.get(kv._1).get)
+        val assignedRes = comparedJobs.toSeq.map(_._2)
+        taskBuffer --= assignedTasks
+//        println(s"taskBuffer size: ${taskBuffer.size} ")
+
+        val assignedPath = mutable.Buffer.empty[Path]
+        assignedRes.foreach {
+          res =>
+            resourceBuffer.find(_.toString == res) match {
+              case Some(path) => assignedPath += path
+              case None =>
+            }
+        }
+        resourceBuffer --= assignedPath
+        if (taskBuffer.nonEmpty) {
+          //randomly collect assignedRes in a size related order in future
+          assignedPath.foreach {
+            res =>
+              Future {
+                Thread.sleep(100 * Random.nextInt(5))
+                resourceBuffer.add(res)
+              }
+          }
+        }
+      } else {
+        Thread.sleep(100)
+      }
+    }
+
+    val groupedTasks = scheduledTasks.groupBy(_._2)
+    val dataLocalityRate = calculateDataLocalityRate(groupedTasks, tasks)
+
     println(s"Data locality Rates: ${dataLocalityRate * 100} %.")
   }
 
@@ -154,7 +219,7 @@ class SchedulingPolicyTest extends SchedulingTestData {
 
     println("================ min-min opt scheduling =======================")
     val minminOpt = new MinminSchedulingOpt
-    getSchedulingReport(minminOpt, tasks, resources, cpuFactor, ioFactor, networkFactor)
+    mockSchedulingTest(minminOpt, tasks, resources, cpuFactor, ioFactor, networkFactor)
 
 //    compare with max-min scheduling
 //    println("================ max-min scheduling =======================")
@@ -167,12 +232,12 @@ class SchedulingPolicyTest extends SchedulingTestData {
 //    println("================ Simple-scheduling =======================")
 //    getSchedulingReport(new OneByOneScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
 
-    println("================ Hungarian Scheduling =======================")
-    getSchedulingReport(new HungarianScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
+//    println("================ Hungarian Scheduling =======================")
+//    getSchedulingReport(new HungarianScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
 
     println("================ delay scheduling =======================")
     val delayScheduling = new DelayScheduling(0, 1, 256 << 8)
-    getSchedulingReport(delayScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
+    mockSchedulingTest(delayScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
   }
 
 }
