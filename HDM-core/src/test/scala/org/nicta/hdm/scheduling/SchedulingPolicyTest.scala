@@ -148,7 +148,7 @@ class SchedulingPolicyTest extends SchedulingTestData {
           assignedPath.foreach {
             res =>
               Future {
-                Thread.sleep(100 * Random.nextInt(5))
+                Thread.sleep(50 * Random.nextInt(5))
                 resourceBuffer.add(res)
               }
           }
@@ -162,6 +162,7 @@ class SchedulingPolicyTest extends SchedulingTestData {
     val dataLocalityRate = calculateDataLocalityRate(groupedTasks, tasks)
 
     println(s"Data locality Rates: ${dataLocalityRate * 100} %.")
+    println(s"Total time spent on scheduling: ${totalSchedulingTime} ms.")
   }
 
   @Test
@@ -201,7 +202,7 @@ class SchedulingPolicyTest extends SchedulingTestData {
 
   @Test
   def testSchedulingComparison: Unit ={
-    val numTask = 1067
+    val numTask = 6000
     val inputEachTask = 1
     val hostNum = 20
     val workerPerHost = 8
@@ -232,8 +233,8 @@ class SchedulingPolicyTest extends SchedulingTestData {
 //    println("================ Simple-scheduling =======================")
 //    getSchedulingReport(new OneByOneScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
 
-//    println("================ Hungarian Scheduling =======================")
-//    getSchedulingReport(new HungarianScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
+    println("================ Hungarian Scheduling =======================")
+    mockSchedulingTest(new HungarianScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
 
     println("================ delay scheduling =======================")
     val delayScheduling = new DelayScheduling(0, 1, 256 << 8)
