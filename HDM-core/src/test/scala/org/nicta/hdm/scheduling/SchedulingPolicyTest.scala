@@ -12,6 +12,7 @@ import scala.util.Random
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
+import java.util.concurrent.locks.ReentrantReadWriteLock
 
 /**
  * Created by tiantian on 1/09/15.
@@ -22,7 +23,7 @@ class SchedulingPolicyTest extends SchedulingTestData {
   val defaultPathPool = initAddressPool(numWorker)
 
   def generateInput(pathPool:Seq[String], n:Int, sizeRange:Long):Seq[(Path, Long)] ={
-    generateInputPath(pathPool, n).map(Path(_)) zip Seq.fill(n){(Random.nextDouble() * sizeRange).toLong + 1L}
+    generateInputPath(pathPool, n).map(Path(_)) zip Seq.fill(n){(Random.nextDouble() * (sizeRange/2)).toLong + sizeRange/2}
   }
 
   def generateTasks(pathPool:Seq[String], tNum:Int, pNum:Int):Seq[SchedulingTask] = {
@@ -114,6 +115,8 @@ class SchedulingPolicyTest extends SchedulingTestData {
 
     implicit def executionContext:ExecutionContext = ExecutionContext.global
 
+    val resRWLock = new ReentrantReadWriteLock()
+
     val taskMap = tasks.map(t => t.id -> t).toMap
     val taskBuffer = tasks.toBuffer
     val resourceBuffer = new CopyOnWriteArrayList[Path]()// needs to be type safe as multi-threading in collecting resources
@@ -123,9 +126,11 @@ class SchedulingPolicyTest extends SchedulingTestData {
 
     while(taskBuffer.nonEmpty){
       if(resourceBuffer.nonEmpty) {
+        resRWLock.readLock().lock()
         val startTime = System.currentTimeMillis()
         val comparedJobs = schedulingPolicy.plan(taskBuffer, resourceBuffer, computeFactor, ioFactor, networkFactor)
         val endTime = System.currentTimeMillis()
+        resRWLock.readLock().unlock()
         totalSchedulingTime += endTime - startTime
 //        println(s"time taken for scheduling: ${endTime - startTime} ms.")
         scheduledTasks ++= comparedJobs
@@ -135,6 +140,7 @@ class SchedulingPolicyTest extends SchedulingTestData {
 //        println(s"taskBuffer size: ${taskBuffer.size} ")
 
         val assignedPath = mutable.Buffer.empty[Path]
+        resRWLock.readLock().lock()
         assignedRes.foreach {
           res =>
             resourceBuffer.find(_.toString == res) match {
@@ -142,27 +148,32 @@ class SchedulingPolicyTest extends SchedulingTestData {
               case None =>
             }
         }
+        resRWLock.readLock().unlock()
+        resRWLock.writeLock().lock()
         resourceBuffer --= assignedPath
+        resRWLock.writeLock().unlock()
         if (taskBuffer.nonEmpty) {
           //randomly collect assignedRes in a size related order in future
           assignedPath.foreach {
             res =>
               Future {
                 Thread.sleep(50 * Random.nextInt(5))
+                resRWLock.writeLock().lock()
                 resourceBuffer.add(res)
+                resRWLock.writeLock().unlock()
               }
           }
         }
       } else {
         Thread.sleep(100)
       }
-    }
 
+    }
     val groupedTasks = scheduledTasks.groupBy(_._2)
     val dataLocalityRate = calculateDataLocalityRate(groupedTasks, tasks)
-
-    println(s"Data locality Rates: ${dataLocalityRate * 100} %.")
+    println(s"Assigned tasks:${scheduledTasks.size}, Data locality Rates: ${dataLocalityRate * 100} %.")
     println(s"Total time spent on scheduling: ${totalSchedulingTime} ms.")
+
   }
 
   @Test
@@ -213,7 +224,7 @@ class SchedulingPolicyTest extends SchedulingTestData {
 
     val cpuFactor = 1F
     val ioFactor = 5F
-    val networkFactor = 10F
+    val networkFactor = 15F
 //    println("================ min-min scheduling =======================")
 //    val schedulingPolicy = new MinMinScheduling
 //    getSchedulingReport(schedulingPolicy,tasks, resources, cpuFactor, ioFactor, networkFactor)
@@ -226,6 +237,7 @@ class SchedulingPolicyTest extends SchedulingTestData {
 //    println("================ max-min scheduling =======================")
 //    val maxMinScheduling = new MaxMinScheduling
 //    getSchedulingReport(maxMinScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
+
 //    compare with fair-scheduling
 //    println("================ fair-scheduling =======================")
 //    getSchedulingReport(new FairScheduling, tasks, resources, cpuFactor, ioFactor, networkFactor)
