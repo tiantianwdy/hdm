@@ -58,6 +58,7 @@ class MinminSchedulingOpt extends SchedulingPolicy with  Logging{
         System.arraycopy(costMatrix, 0, timeMatrix, 0, jobSize)
         //      log.info(s" initiation takes ${end -start} ms. computeSum: $computeSum ms, other sum: $otherSum ms. taskSize: $jobSize, workerSize: $workerSize, input per task: ${inputs(0).inputs.length}")
         val minminOpt = new MinCostOptimization(costMatrix, timeMatrix)
+        minminOpt.init()
         val plan = minminOpt.execute()
         //      val end2 = System.currentTimeMillis()
         //      log.info(s" execution takes ${end2 - end} ms.")

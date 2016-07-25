@@ -10,8 +10,8 @@ import scala.collection.mutable
 
 /**
  *
- * @param computationTimeMatrix
- * @param completionTimeMatrix
+ * @param computationTimeMatrix   array[num of tasks][num of workers]
+ * @param completionTimeMatrix    array[num of tasks][num of workers]
  */
 class MinCostOptimization(var computationTimeMatrix:Array[Array[Double]], var completionTimeMatrix:Array[Array[Double]]) {
   var taskNum = computationTimeMatrix.length
@@ -22,7 +22,7 @@ class MinCostOptimization(var computationTimeMatrix:Array[Array[Double]], var co
   var workerIdx = new Array[Int](computationTimeMatrix(0).length)
   var assignedWorkerNum = 0
 
-  def init(): Unit ={
+  def init(): Unit = {
     //initiate idx vector
     var i = 0
     while(i < taskNum){
@@ -43,11 +43,14 @@ class MinCostOptimization(var computationTimeMatrix:Array[Array[Double]], var co
     var i =0
     while (i < taskNum) {
       val costArray = completionTimeMatrix(i)
+      if(costArray == null){
+        println(s"i:$i, taskNum:$taskNum")
+      }
       minTimeOnRes(i) = SchedulingUtils.minWithIndex(costArray)
       i += 1
     }
     //find the minimum value among minimum execution time vector
-    val comp = (d1: (Int, Double), d2: (Int, Double)) => d1._2 < d1._2
+    val comp = (d1: (Int, Double), d2: (Int, Double)) => d1._2 < d2._2
     val minTimeOfTask = SchedulingUtils.minObjectsWithIndex(minTimeOnRes, comp)
     //(taskIdx, assigned worker)
     (minTimeOfTask._1, minTimeOfTask._2._1)
@@ -59,13 +62,14 @@ class MinCostOptimization(var computationTimeMatrix:Array[Array[Double]], var co
    */
   def updateCostMatrix(taskIdx:Int, workerIdx:Int): Unit = {
     val cost = completionTimeMatrix(taskIdx)(workerIdx)
-    computationTimeMatrix = removeElemFromArr(computationTimeMatrix, taskIdx)
-    completionTimeMatrix= removeElemFromArr(completionTimeMatrix, taskIdx)
     var idx = 0
     while(idx < completionTimeMatrix.length){
       completionTimeMatrix(idx)(workerIdx) += cost
       idx += 1
     }
+    computationTimeMatrix = removeElemFromArr(computationTimeMatrix, taskIdx)
+    completionTimeMatrix= removeElemFromArr(completionTimeMatrix, taskIdx)
+
   }
 
   def execute(): Seq[(Int, Int)] ={
@@ -85,12 +89,13 @@ class MinCostOptimization(var computationTimeMatrix:Array[Array[Double]], var co
 
 
   def removeElemFromArr(arr:Array[Array[Double]], idx:Int): Array[Array[Double]] ={
-    val updatedCMatrix = new Array[Array[Double]](arr.length - 1)
-    if(idx >0){
-      System.arraycopy(arr, 0 , updatedCMatrix, 0, idx -1)
+    val updatedLen = arr.length - 1
+    val updatedCMatrix = new Array[Array[Double]](updatedLen)
+    if(idx > 0){
+      System.arraycopy(arr, 0 , updatedCMatrix, 0, idx)
     }
-    if(idx < arr.length - 1){
-      System.arraycopy(arr, idx + 1 , updatedCMatrix, idx, taskNum - idx -1)
+    if(idx >= 0 && idx < updatedLen){
+      System.arraycopy(arr, idx + 1 , updatedCMatrix, idx, updatedLen - idx)
     }
     updatedCMatrix
   }
