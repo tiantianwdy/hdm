@@ -99,7 +99,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
         case None => //do nothing
       }
     })
-//    log.info(s"in scheduleOnResource exit after assigned plan with size ${plans.size}...")
+    log.info(s"Assigned plan with size ${plans.size}, Task remaining: ${blockingQue.size()}")
   }
 
   override def startup(): Unit = {

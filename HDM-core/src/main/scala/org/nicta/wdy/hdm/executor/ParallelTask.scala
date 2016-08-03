@@ -36,6 +36,8 @@ abstract class ParallelTask [R : ClassTag] extends Serializable with Callable[Se
 
   val createTime: Long = System.currentTimeMillis()
 
+  val appContext: AppContext
+
   var blockContext:BlockContext
 
   @transient

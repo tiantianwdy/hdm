@@ -73,6 +73,8 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
 
   lazy val parallelismFactor = Try {defaultConf.getDouble("hdm.executor.parallelism.factor")} getOrElse (1.0D)
 
+  lazy val mockExecution = Try {defaultConf.getBoolean("hdm.executor.mockExecution")} getOrElse (false)
+
   val MAX_MEM_GC_SIZE = Try {defaultConf.getInt("hdm.memory.gc.max.byte")} getOrElse(1024 * 1024 * 1024) // about 256MB
 
   lazy val DEFAULT_BLOCK_ID_LENGTH = defaultSerializer.serialize(newLocalId()).array().length

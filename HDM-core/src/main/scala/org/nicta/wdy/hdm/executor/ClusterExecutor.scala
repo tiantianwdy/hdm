@@ -7,6 +7,7 @@ import org.nicta.wdy.hdm.model.{OneToN, OneToOne, DDM}
 import org.nicta.wdy.hdm.storage.HDMBlockManager
 import org.nicta.wdy.hdm.utils.Logging
 
+import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 
@@ -74,6 +75,27 @@ object ClusterExecutor extends Logging{
         results
       }
 
+  }
+
+  def runMockTask[R: ClassTag](task: ParallelTask[R])(implicit executionContext: ExecutionContext): Future[Seq[DDM[_,_]]] = {
+    Future {
+      val interval = 1000 + Math.random() * 5000
+      Thread.sleep(interval.toLong)
+      val ddms = if (task.partitioner == null || task.partitioner.isInstanceOf[KeepPartitioner[_]]) {
+        Seq(DDM[R](task.taskId, mutable.Buffer.empty[R], task.appContext, task.blockContext, null))
+      } else {
+        val partitionNum = task.partitioner.partitionNum
+        val outputData = Seq.fill(partitionNum){
+          mutable.Buffer.empty[R]
+        }
+        var i = -1
+        outputData.map{
+          i += 1
+          seq => DDM(task.taskId + "_p" + i, seq, task.appContext, task.blockContext, null)
+        }.toSeq
+      }
+      ddms
+    }
   }
 
 

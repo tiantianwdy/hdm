@@ -86,6 +86,7 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hD
             }
             log.warn(s"candidate size: ${candidates.size}. Default parallel: $defParallel .")
             PlanningUtils.groupDDMByMinminScheduling(children, candidates, hDMContext)
+
           case "weighted" =>
             log.warn("group input data by weighted DDM boundary.")
             val weights = children.map(ddm => ddm.blockSize / 1024F)
@@ -203,7 +204,9 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hD
         func = new ParUnionFunc[dualDFM.outType.type],
         dependency = typedDFM.dependency,
         partitioner = typedDFM.partitioner,
-        parallelism = defParallel, location = Path(hDMContext.clusterBlockPath), appContext = dualDFM.appContext)
+        parallelism = defParallel,
+        location = Path(hDMContext.clusterBlockPath),
+        appContext = dualDFM.appContext)
       pHdms :+ newParent
   }
 }
