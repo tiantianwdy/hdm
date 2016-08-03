@@ -254,7 +254,7 @@ trait MasterExtensionImpl extends MasterSlaveActorExtension with RoutingService 
       case ph if (ph != self.path) => {
         //处理slave心跳消息
         val slavePath = actor.path.parent.toString
-        log.info("receive heartbeat from " + slavePath)
+        log.debug("receive heartbeat from " + slavePath)
         heartbeatReceived(slavePath, msg)
         if (persistenceActor ne null)
           persistenceActor ! msg
