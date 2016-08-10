@@ -1,6 +1,7 @@
 package org.nicta.hdm.planing
 
 import breeze.linalg.DenseVector
+import org.nicta.wdy.hdm.examples.KVBasedPrimitiveBenchmark
 import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
@@ -60,6 +61,26 @@ class MultiClusterPlanningTest {
 
 
 
+  }
+
+  @Test
+  def testGroupBy(): Unit ={
+    val len = 3
+    implicit val parallelism = 4
+    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
+
+    val multiPlanner = new StaticMultiClusterPlanner(hDMContext.planer, hDMContext)
+    val benchmark = new KVBasedPrimitiveBenchmark(context = context, kIndex = 0, vIndex = 1)
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    hDMContext.init()
+    Thread.sleep(200)
+//    hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
+    val job = benchmark.testGroupBy(data, len, parallelism)
+    multiPlanner.planStages(job, parallelism).foreach { pl =>
+      println("===========New Stage begins:")
+      println(pl)
+    }
   }
 
 }
