@@ -30,10 +30,10 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
                         val promiseManager:PromiseManager,
                         val resourceManager: ResourceManager,
                         val historyManager: ProvenanceManager,
-                        val actorSys:ActorSystem,
-                        val schedulingPolicy:SchedulingPolicy)(implicit val executorService:ExecutionContext) extends Scheduler with Logging{
+                        val actorSys: ActorSystem,
+                        val schedulingPolicy: SchedulingPolicy)(implicit val executorService:ExecutionContext) extends Scheduler with Logging{
 
-  implicit val timeout = Timeout(5L, TimeUnit.MINUTES)
+  implicit val timeout = Timeout(20L, TimeUnit.MINUTES)
 
   //  private val workingSize = new Semaphore(0)
 
@@ -110,13 +110,13 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
         nonEmptyLock.acquire()
         log.info("exit from waiting for tasks..")
       }
-//      log.info(s"current waiting task size:${taskQueue.size()}")
-//      resAccessorlock.acquire()
+      log.trace(s"current waiting task size:${taskQueue.size()}")
+      resAccessorlock.acquire()
       resourceManager.waitForNonEmpty()
       val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
-//      log.info(s"current waiting worker size:${candidates.size}")
+      log.trace(s"current waiting worker size:${candidates.size}")
       scheduleOnResource(taskQueue, candidates)
-//      resAccessorlock.release()
+      resAccessorlock.release()
     }
   }
 
