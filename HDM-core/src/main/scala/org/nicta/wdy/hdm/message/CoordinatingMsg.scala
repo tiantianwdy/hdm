@@ -18,3 +18,5 @@ case class AskCollaborateMsg(sibling:String) extends CoordinatingMsg
 case class ResSync(msgId:String = UUID.randomUUID().toString, resId:String, change:Int) extends CoordinatingMsg
 
 case class ResSyncResp(msgId:String, state:Int) extends CoordinatingMsg
+
+case class MigrationMsg(worker:String, toMaster:String) extends CoordinatingMsg

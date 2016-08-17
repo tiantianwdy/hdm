@@ -20,7 +20,7 @@ import scala.util.{Failure, Success}
  *
  * @param leaderPath
  */
-class HDMClusterWorkerActor(leaderPath: String, slots:Int, blockContext: BlockContext) extends WorkActor {
+class HDMClusterWorkerActor(var leaderPath: String, slots:Int, blockContext: BlockContext) extends WorkActor {
 
   def this(params:HDMWorkerParams) {
     this(params.master, params.slots, params.blockContext)
@@ -47,6 +47,8 @@ class HDMClusterWorkerActor(leaderPath: String, slots:Int, blockContext: BlockCo
     case scheduleMsg: SchedulingMsg => processSchedulingMsg(scheduleMsg)
 
     case msg: DependencyMsg => processDepMsg(msg)
+
+    case msg: CoordinatingMsg => processCoordinationMsg(msg)
 
     case x => unhandled(x)
   }
@@ -106,6 +108,13 @@ class HDMClusterWorkerActor(leaderPath: String, slots:Int, blockContext: BlockCo
       log.info(s"received dependency [$depName] for application: [$appName#$version]")
   }
 
+
+  protected def processCoordinationMsg: PartialFunction[CoordinatingMsg, Unit] = {
+    case MigrationMsg(workerPath, toMaster) =>
+      leaderPath = toMaster
+      context.actorSelection(leaderPath) ! JoinMsg(self.path.toString, slots)
+      //todo reset the heartbeat actor for this worker with the new master path
+  }
 }
 
 

@@ -22,6 +22,7 @@ class TreeResourceManager extends DefResourceManager{
     siblingMap.clear()
   }
 
+
   def addChild(childId: String, value: Int) = {
     childrenMap.put(childId, new AtomicInteger(value))
   }

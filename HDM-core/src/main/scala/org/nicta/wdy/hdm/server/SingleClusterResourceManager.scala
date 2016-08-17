@@ -51,6 +51,11 @@ class SingleClusterResourceManager extends ResourceManager with Logging{
     childrenMap
   }
 
+
+  override def getResource(resId: String): (String, AtomicInteger) = {
+    (resId, childrenMap.get(resId))
+  }
+
   override def removeResource(resId: String): Unit = {
     if(childrenMap.containsKey(resId)){
       childrenRWLock.readLock().lock()

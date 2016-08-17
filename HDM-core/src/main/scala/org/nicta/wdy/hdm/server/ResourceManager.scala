@@ -22,6 +22,8 @@ trait ResourceManager {
   def decResource(resId:String, value:Int)
 
   def removeResource(resId:String)
+
+  def getResource(resId:String):(String, AtomicInteger)
   
   def getAllResources():mutable.Map[String, AtomicInteger]
 
@@ -46,6 +48,11 @@ class DefResourceManager extends ResourceManager{
 
   def init(): Unit = {
     followerMap.clear()
+  }
+
+
+  override def getResource(resId: String): (String, AtomicInteger) = {
+    (resId, followerMap.get(resId))
   }
 
   override def addResource(resId: String, defaultVal: Int): Unit = {

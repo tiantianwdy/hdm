@@ -84,7 +84,16 @@ trait MultiClusterReceiver extends ClusterMsgReceiver {
 
     case ResSyncResp(msgId, state) =>
       val senderPath = sender().path.toString
-      log.info(s"Resource synchronization to [$senderPath] is successful with a state: $state)");
+      log.info(s"Resource synchronization to [$senderPath] is successful with a state: $state)")
+
+    case MigrationMsg(workerPath, toMaster) =>
+      val res = hdmBackend.resourceManager.getResource(workerPath)
+      hdmBackend.resourceManager.removeResource(workerPath)
+      log.info(s"A node has left from [${workerPath}] ")
+      syncRes()
+      //send msg to the worker to ask it join the new master
+      context.actorSelection(workerPath) ! MigrationMsg(workerPath, toMaster)
+
   }
 }
 
@@ -96,6 +105,7 @@ trait MultiCLusterDepReceiver extends DepMsgReceiver {
   this: HDMMultiClusterLeader =>
 
   override def processDepMsg: PartialFunction[DependencyMsg, Unit] = {
+
     case AddApplication(appName, version, content, author) =>
       hdmBackend.submitApplicationBytes(appName, version, content, author)
       hdmBackend.resourceManager.getChildrenRes().map(_._1) foreach { slave =>

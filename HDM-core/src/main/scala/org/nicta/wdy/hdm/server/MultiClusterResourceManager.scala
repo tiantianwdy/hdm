@@ -38,6 +38,14 @@ class MultiClusterResourceManager extends ResourceManager{
     siblingMap.clear()
   }
 
+
+  override def getResource(resId: String): (String, AtomicInteger) = {
+    childrenRWLock.readLock().lock()
+    val res = (resId, childrenMap.get(resId))
+    childrenRWLock.readLock().unlock()
+    res
+  }
+
   override def getAllResources(): mutable.Map[String, AtomicInteger] = {
     childrenRWLock.readLock().lock()
     val res = childrenMap ++ siblingMap
