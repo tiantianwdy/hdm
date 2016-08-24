@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.scheduling
 
 import java.util.concurrent._
-import java.util.concurrent.atomic.{AtomicBoolean}
+import java.util.concurrent.atomic.{AtomicLong, AtomicBoolean}
 
 import akka.actor.ActorSystem
 import akka.pattern._
@@ -47,6 +47,8 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
   protected val appBuffer: java.util.Map[String, CopyOnWriteArrayList[ParallelTask[_]]] = new ConcurrentHashMap[String, CopyOnWriteArrayList[ParallelTask[_]]]()
 
+  protected val totalScheduleTime = new AtomicLong(0)
+
 
   protected def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], candidates:Seq[Path]): Unit ={
 //    log.info("Enter scheduleOnResource...")
@@ -66,13 +68,16 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 //      SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
 //    }.toSeq
 //    log.info(s"in scheduleOnResource get task with size ${tasks.size}...")
+    val start = System.currentTimeMillis()
     val plans = schedulingPolicy.plan(tasks, candidates,
       HDMContext.defaultHDMContext.SCHEDULING_FACTOR_CPU,
       HDMContext.defaultHDMContext.SCHEDULING_FACTOR_IO ,
       HDMContext.defaultHDMContext.SCHEDULING_FACTOR_NETWORK)
+    val end = System.currentTimeMillis() - start
+    totalScheduleTime.addAndGet(end)
 
 //    log.info(s"in scheduleOnResource get task with size ${tasks.size}...")
-    val scheduledTasks = blockingQue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
+    val scheduledTasks = blockingQue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String, ParallelTask[_]]
 //    log.info(s"in scheduleOnResource get scheduledTasks with size ${scheduledTasks.size}...")
     val now = System.currentTimeMillis()
     plans.foreach(tuple => {
@@ -96,6 +101,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
             -1L,
             "Running")
           historyManager.addExecTrace(eTrace)
+
         case None => //do nothing
       }
     })

@@ -12,6 +12,8 @@ import org.nicta.wdy.hdm.server._
 import org.nicta.wdy.hdm.server.provenance.ExecutionTrace
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}
 
+import scala.collection.mutable
+import scala.collection.mutable.ArrayBuffer
 import scala.concurrent.{Lock, Future, Promise, ExecutionContext}
 import scala.reflect.ClassTag
 import scala.collection.JavaConversions._
@@ -48,19 +50,34 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
 
   private val appStateBuffer: java.util.Map[String, CopyOnWriteArrayList[JobStage]] = new ConcurrentHashMap[String, CopyOnWriteArrayList[JobStage]]()
 
-  protected override def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], candidates:Seq[Path]): Unit ={
-    val tasks = blockingQue.map { task =>
+  protected override def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], candidates:Seq[Path]): Unit = {
+
+    val tasks= mutable.Buffer.empty[SchedulingTask]
+    blockingQue.foreach{ task =>
       val ids = task.input.map(_.id)
-      val inputLocations = HDMBlockManager().getLocations(ids)
-      val inputSize = HDMBlockManager().getblockSizes(ids).map(_ / 1024)
-      SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
-    }.toSeq
+      val inputLocations = new ArrayBuffer[Path](task.input.length)
+      val inputSize = new ArrayBuffer[Long](task.input.length)
+      inputLocations ++= HDMBlockManager().getLocations(ids)
+      inputSize ++= HDMBlockManager().getblockSizes(ids).map(_ / 1024)
+      tasks += SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
+    }
+
+//    val tasks = blockingQue.map { task =>
+//      val ids = task.input.map(_.id)
+//      val inputLocations = HDMBlockManager().getLocations(ids)
+//      val inputSize = HDMBlockManager().getblockSizes(ids).map(_ / 1024)
+//      SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
+//    }.toSeq
+
+    val start = System.currentTimeMillis()
     val plans = schedulingPolicy.plan(tasks, candidates,
       HDMContext.defaultHDMContext.SCHEDULING_FACTOR_CPU,
       HDMContext.defaultHDMContext.SCHEDULING_FACTOR_IO ,
       HDMContext.defaultHDMContext.SCHEDULING_FACTOR_NETWORK)
+    val end = System.currentTimeMillis() - start
+    totalScheduleTime.addAndGet(end)
 
-    val scheduledTasks = blockingQue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String,ParallelTask[_]]
+    val scheduledTasks = blockingQue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String, ParallelTask[_]]
     val now = System.currentTimeMillis()
     plans.foreach(tuple => {
       scheduledTasks.get(tuple._1) match {
@@ -147,7 +164,11 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
       }
       log.info(s"Completed waiting for resources...")
       // todo use scheduling policy to choose optimal candidates : scheduleOnResource(remoteTaskQueue, candidates)
+      val start = System.currentTimeMillis()
       val workerPath = Scheduler.findClosestWorker(task, candidates).toString
+      val end = System.currentTimeMillis() - start
+      totalScheduleTime.addAndGet(end)
+
       resourceManager.decResource(workerPath, 1)
       resAccessorlock.release()
       log.info(s"A remote task has been assigned to: [$workerPath] [${task.taskId + "_" + task.func.toString}}] ")
@@ -199,8 +220,14 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
       blockManager.addRef(hdm)
       val jobFuture = if(stage.isLocal){
         //if job is local
+        val start = System.currentTimeMillis()
+
         val plans = planner.plan(hdm, stage.parallelism)
         dependencyManager.addPlan(exeId, plans)
+
+        val end = System.currentTimeMillis() - start
+        totalScheduleTime.addAndGet(end)
+
         submitJob(appName, version, exeId, plans.physicalPlan)
       } else {
         // send to remote master state based on context
