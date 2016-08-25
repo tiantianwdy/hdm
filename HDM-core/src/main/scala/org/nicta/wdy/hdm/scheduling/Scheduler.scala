@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.scheduling
 
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.atomic.{AtomicLong, AtomicBoolean, AtomicInteger}
 import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue, Semaphore, TimeUnit}
 
 import akka.pattern.ask
@@ -26,6 +26,8 @@ import scala.reflect.ClassTag
 trait Scheduler {
 
   implicit val executorService:ExecutionContext
+
+  val totalScheduleTime = new AtomicLong(0)
 
   def submitJob(appId:String, version:String, exeId:String, hdms:Seq[HDM[_]]): Future[HDM[_]]
 

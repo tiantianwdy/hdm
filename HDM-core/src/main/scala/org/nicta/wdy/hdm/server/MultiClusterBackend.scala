@@ -43,7 +43,10 @@ class MultiClusterBackend (val blockManager: HDMBlockManager,
   }
 
   def jobReceived(jobId:String, version:String, hdm:HDM[_], parallelism:Int):Future[_] ={
+    val start = System.currentTimeMillis()
     val jobs = planner.planStages(hdm, parallelism)
+    val end = System.currentTimeMillis() - start
+    scheduler.totalScheduleTime.addAndGet(end)
     scheduler.addJobStages(jobId + "#" + version, jobs)
 //    val remoteFutures = for (remoteJob <- jobs.remoteJobs) yield {
 //      // create and submit a job to a remote master

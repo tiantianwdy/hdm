@@ -33,8 +33,11 @@ class HDMServerBackend(val blockManager: HDMBlockManager,
 
   def jobReceived(jobId:String, version:String, hdm:HDM[_], parallelism:Int):Future[_] ={
     val exeId = dependencyManager.addInstance(jobId, version, hdm)
+    val start = System.currentTimeMillis()
     val plans = hDMContext.explain(hdm, parallelism)
+    val end = System.currentTimeMillis() - start
     dependencyManager.addPlan(exeId, plans)
+    scheduler.totalScheduleTime.addAndGet(end)
     scheduler.submitJob(jobId, version, exeId, plans.physicalPlan)
   }
 

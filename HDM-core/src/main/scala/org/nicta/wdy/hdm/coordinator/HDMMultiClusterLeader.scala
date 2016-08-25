@@ -173,7 +173,8 @@ trait MultiClusterScheduling extends SchedulingMsgReceiver {
           }
           val resActor = context.actorSelection(resultHandler)
           resActor ! JobCompleteMsg(hdm.id, 0, res)
-          log.info(s"A job has completed successfully. result has been send to [${resultHandler}]; appId: ${appId}}; res: ${res}  ")
+          val scheduleTime = hdmBackend.scheduler.totalScheduleTime.getAndSet(0L)
+          log.info(s"A job has completed successfully with scheduling time: ${scheduleTime} ms. result has been send to [${resultHandler}}]; appId: ${appId}}.")
         case Failure(t) =>
           context.actorSelection(resultHandler) ! JobCompleteMsg(hdm.id, 1, t.toString)
           log.info(s"A job has failed. result has been send to [${resultHandler}]; appId: ${appId}} ")

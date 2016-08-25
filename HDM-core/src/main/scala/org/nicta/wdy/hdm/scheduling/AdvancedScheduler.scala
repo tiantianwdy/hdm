@@ -47,7 +47,6 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
   protected val appBuffer: java.util.Map[String, CopyOnWriteArrayList[ParallelTask[_]]] = new ConcurrentHashMap[String, CopyOnWriteArrayList[ParallelTask[_]]]()
 
-  protected val totalScheduleTime = new AtomicLong(0)
 
 
   protected def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], candidates:Seq[Path]): Unit ={

@@ -264,6 +264,7 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
       case ddm: DDM[_, _] => ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
+    log.info(s"Job succeeded with Scheduling time:${totalScheduleTime.get()} ms.")
     // trigger following jobs
     triggerStage(appId, ref)
 
