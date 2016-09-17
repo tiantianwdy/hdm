@@ -7,8 +7,8 @@ var d3swimlane = {
         , now = new Date().getTime();
 
         var margin = {top: 20, right: 15, bottom: 15, left: 120}
-          , width = 1024 - margin.left - margin.right
-          , height = 500 - margin.top - margin.bottom
+          , width = 1400 - margin.left - margin.right
+          , height = lanes.length * 48 - margin.top - margin.bottom
           , miniHeight = lanes.length * 12 + 50
           , mainHeight = height - miniHeight - 50;
 
@@ -36,17 +36,19 @@ var d3swimlane = {
         		.attr('width', width)
         		.attr('height', mainHeight);
 
-        var main = chart.append('g')
+        var mini = chart.append('g')
         	.attr('transform', 'translate(' + margin.left + ',' + margin.top + ')')
+        	.attr('width', width)
+        	.attr('height', miniHeight)
+        	.attr('class', 'mini');
+
+        var main = chart.append('g')
+        	.attr('transform', 'translate(' + margin.left + ',' + (miniHeight + 60 )+ ')')
         	.attr('width', width)
         	.attr('height', mainHeight)
         	.attr('class', 'main');
 
-        var mini = chart.append('g')
-        	.attr('transform', 'translate(' + margin.left + ',' + (mainHeight + 60) + ')')
-        	.attr('width', width)
-        	.attr('height', miniHeight)
-        	.attr('class', 'mini');
+
 
         // draw the lanes for the main chart
         main.append('g').selectAll('.laneLines')
