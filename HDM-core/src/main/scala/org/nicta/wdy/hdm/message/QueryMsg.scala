@@ -41,5 +41,7 @@ case class DependencyTraceQuery(appName:String, version:String) extends QueryMsg
 
 case class DependencyTraceResp(appName:String, version:String, results:Seq[(String, ApplicationTrace)]) extends QueryMsg
 
+case class DescendantQuery(parent:String)extends QueryMsg
+
 
 case class NodeInfo(id:String, typ:String, parent:String, address:String,  joinTime:Long,  slots:Int, state:String) extends  Serializable

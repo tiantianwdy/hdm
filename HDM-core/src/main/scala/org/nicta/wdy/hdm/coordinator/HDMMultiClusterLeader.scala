@@ -1,14 +1,20 @@
 package org.nicta.wdy.hdm.coordinator
 
 import java.nio.ByteBuffer
-import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.{TimeUnit, ConcurrentHashMap}
 
 import akka.actor.ActorPath
+import akka.util.Timeout
+import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor.{ParallelTask, HDMContext}
+import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.message._
-import org.nicta.wdy.hdm.model.HDM
+import org.nicta.wdy.hdm.model.{HDMPoJo, HDM}
 import org.nicta.wdy.hdm.server.{MultiClusterBackend, ServerBackend}
 
+import scala.collection.mutable
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 import scala.collection.JavaConversions._
 
@@ -26,7 +32,7 @@ class HDMMultiClusterLeader(override val hdmBackend:MultiClusterBackend,
                             override val cores:Int ,
                             override val hDMContext:HDMContext)
                             extends AbstractHDMLeader(hdmBackend, cores, hDMContext)
-                            with DefQueryMsgReceiver
+                            with MultiClusterQueryReceiver
                             with MultiCLusterDepReceiver
                             with MultiClusterReceiver
                             with MultiClusterScheduling {
@@ -211,4 +217,112 @@ trait MultiClusterScheduling extends SchedulingMsgReceiver {
   }
 
 
+}
+
+import akka.pattern.ask
+import concurrent.duration.{Duration, DurationInt}
+
+trait MultiClusterQueryReceiver extends QueryReceiver {
+
+  this: HDMMultiClusterLeader =>
+
+  implicit val maxWaitResponseTime = Duration(300, TimeUnit.SECONDS)
+  implicit val timeout = Timeout(300 seconds)
+
+  override def processQueries: PartialFunction[QueryMsg, Unit] = {
+    case msg:ApplicationsQuery =>
+      val apps = hdmBackend.dependencyManager.getAllApps()
+      val appMap = apps.map{ id =>
+        val (app, version) = hdmBackend.dependencyManager.unwrapAppId(id)
+        (id , hdmBackend.dependencyManager.getInstanceIds(app, version))
+      }.toSeq
+      sender() ! ApplicationsResp(appMap)
+
+    case ApplicationInsQuery(app, version) =>
+      val instances = hdmBackend.dependencyManager.getInstanceIds(app, version)
+      sender() ! ApplicationInsResp(app, version, instances)
+
+    case LogicalFLowQuery(exeId, opt) =>
+      val ins = hdmBackend.dependencyManager.getExeIns(exeId)
+      val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMPoJo(_))
+      sender() ! LogicalFLowResp(exeId, flow)
+
+    case PhysicalFlow(exeId) =>
+      val ins = hdmBackend.dependencyManager.getExeIns(exeId)
+      val flow = ins.physicalPlan.map(HDMPoJo(_))
+      sender() ! PhysicalFlowResp(exeId, flow)
+
+    case ExecutionTraceQuery(execId) =>
+      val traces = hdmBackend.dependencyManager.historyManager.getInstanceTraces(execId)
+      val resp = ExecutionTraceResp(execId, traces)
+      sender() ! resp
+
+    case AllSlavesQuery(parent) =>
+      val cur = System.currentTimeMillis()
+      val masterPath = self.path.toStringWithAddress(SmsSystem.localAddress).toString
+      val masterAddress = Path(masterPath).address
+      val nodes = hdmBackend.resourceManager.getChildrenRes()
+        .map { tup =>
+        val id = tup._1
+        val address = Path(tup._1).address
+        NodeInfo(id, "Worker", masterPath, address, cur, tup._2.get(), "Running")
+      }
+      log.info(s" cluster nodes number: ${nodes}")
+      val siblings = hdmBackend.resourceManager.getSiblingRes()
+      val siblingNodes = siblings.map{ tup =>
+        val id = tup._1
+        val address = Path(tup._1).address
+        NodeInfo(id, "Master", masterPath, address, cur, tup._2.get(), "Running")
+      }
+      log.info(s" cluster sibling nodes number: ${siblingNodes}")
+      val masterNode = NodeInfo(masterPath, "Master", null, masterAddress, cur, 0, "Running")
+      //foreach sibling send msg to get slaves
+      val siblingChildren = mutable.Buffer.empty[NodeInfo]
+      siblings.foreach{ tup =>
+        val future = context.actorSelection(tup._1) ? DescendantQuery(tup._1)
+        Await.result[Any](future, maxWaitResponseTime) match {
+          case AllSLavesResp(nodes) =>
+            siblingChildren ++= nodes
+
+          case other:Any => // do nothing
+        }
+      }
+      log.info(s" cluster sibling children number: ${siblingChildren}")
+      val resp = if(nodes ne null) nodes.toSeq ++ siblingNodes ++ siblingChildren else Seq.empty[NodeInfo]
+      sender() ! AllSLavesResp(resp :+ masterNode)
+
+    case DescendantQuery(parent) => // return only children of the master
+      val cur = System.currentTimeMillis()
+      val masterPath = self.path.toStringWithAddress(SmsSystem.localAddress).toString
+      val nodes = hdmBackend.resourceManager.getChildrenRes()
+        .map { tup =>
+        val id = tup._1
+        val address = Path(tup._1).address
+        NodeInfo(id, "Worker", masterPath, address, cur, tup._2.get(), "Running")
+      }
+      val resp = if(nodes ne null) nodes.toSeq else Seq.empty[NodeInfo]
+      sender() ! AllSLavesResp(resp)
+
+
+    case AllAppVersionsQuery() =>
+      val apps = hdmBackend.dependencyManager.historyManager.getAllAppIDs()
+      val res = mutable.HashMap.empty[String, Seq[String]]
+      apps.foreach{ id =>
+        val versions = hdmBackend.dependencyManager.historyManager.getAppTraces(id).map(_._1)
+        res += id -> versions
+        //        val (app, version) = hdmBackend.dependencyManager.unwrapAppId(id)
+        //        res.getOrElseUpdate(app, mutable.Buffer.empty[String]) += version
+      }
+      sender() ! AllAppVersionsResp(res.toSeq)
+
+    case DependencyTraceQuery(app, version) =>
+      val traces = hdmBackend.dependencyManager.historyManager.getAppTraces(app)
+      val res = if(version == null || version.isEmpty) {
+        traces
+      } else { // find the versions equal or larger then version
+      val versionCode = version.replaceAll(".", "").toInt
+        traces.filter(tup => tup._1.replaceAll(".", "").toInt >= versionCode)
+      }
+      sender() ! DependencyTraceResp(app, version, res)
+  }
 }

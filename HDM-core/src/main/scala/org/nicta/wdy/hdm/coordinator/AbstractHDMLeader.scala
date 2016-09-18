@@ -27,7 +27,9 @@ abstract class AbstractHDMLeader (val hdmBackend:ServerBackend,
     super.initParams(params)
     //initiate hdm backend server
     hdmBackend.init()
-    hdmBackend.resourceManager.addResource(self.path.toStringWithAddress(SmsSystem.localAddress).toString, cores)
+    if(cores > 0){
+      hdmBackend.resourceManager.addResource(self.path.toStringWithAddress(SmsSystem.localAddress).toString, cores)
+    }
     log.info(s"Leader has been initiated with $cores cores.")
     1
   }
