@@ -47,14 +47,14 @@ require([ "jquery",
             });
 
         //initialize slave list
-        ajaxSend("/service/nodeList/", "post", "", "admin", null, function(d){
+        ajaxSend("../service/nodeList/", "post", "", "admin", null, function(d){
             quickTree("slaveLists", d, nodeClicked);
             CollapsibleLists.apply("slaveLists");
         });
 
         utils.collapseNative('slave-cluster-collapse','Show Cluster of Nodes', 'Collapse', function(){
 //             createDAG("slave-cluster", mockClusterData)
-            ajaxSend("/service/nodeCluster/", "post", "", "admin", null, function(d){
+            ajaxSend("../service/nodeCluster/", "post", "", "admin", null, function(d){
                 createDAG("slave-cluster", d);
             });
         });
@@ -79,11 +79,11 @@ require([ "jquery",
         //load all monitor data of given node
         function loadAllData(node){
            curShowingNode = node;
-           loadData("/service/nodeMonitor/", "#highstock-cpu", "system/cpu", [node]);
-           loadData("/service/nodeMonitor/", "#highstock-mem", "system/mem", [node]);
-           loadData("/service/nodeMonitor/", "#highstock-net", "system/net", [node +"/receive", node + "/transmit"]);
+           loadData("../service/nodeMonitor/", "#highstock-cpu", "system/cpu", [node]);
+           loadData("../service/nodeMonitor/", "#highstock-mem", "system/mem", [node]);
+           loadData("../service/nodeMonitor/", "#highstock-net", "system/net", [node +"/receive", node + "/transmit"]);
            var jvmKeys = [node+"/memMax", node + "/memTotal", node + "/memUsed"]
-           loadData("/service/nodeMonitor/", "#highstock-jvm", "system/jvm", jvmKeys);
+           loadData("../service/nodeMonitor/", "#highstock-jvm", "system/jvm", jvmKeys);
         }
 
         // load mock data
