@@ -244,13 +244,17 @@ trait MultiClusterQueryReceiver extends QueryReceiver {
 
     case LogicalFLowQuery(exeId, opt) =>
       val ins = hdmBackend.dependencyManager.getExeIns(exeId)
-      val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMPoJo(_))
-      sender() ! LogicalFLowResp(exeId, flow)
+      if(ins ne null) {
+        val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMPoJo(_))
+        sender() ! LogicalFLowResp(exeId, flow)
+      }
 
     case PhysicalFlow(exeId) =>
       val ins = hdmBackend.dependencyManager.getExeIns(exeId)
-      val flow = ins.physicalPlan.map(HDMPoJo(_))
-      sender() ! PhysicalFlowResp(exeId, flow)
+      if(ins ne null) {
+        val flow = ins.physicalPlan.map(HDMPoJo(_))
+        sender() ! PhysicalFlowResp(exeId, flow)
+      }
 
     case ExecutionTraceQuery(execId) =>
       val traces = hdmBackend.dependencyManager.historyManager.getInstanceTraces(execId)
