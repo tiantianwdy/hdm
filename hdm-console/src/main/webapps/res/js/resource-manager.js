@@ -15,7 +15,7 @@ require([ "jquery",
     "../res/js/libs/highstock/theme",
     "../res/js/libs/highstock/highStockUtils"],
     function ($, Ajax) {
-        curNode = null;
+        curNode = getCookie("curNode");
         var curShowingNode;
 
         function loadData(url, container, propName, ks) {
@@ -50,6 +50,12 @@ require([ "jquery",
         ajaxSend("../service/nodeList/", "post", "", "admin", null, function(d){
             quickTree("slaveLists", d, nodeClicked);
             CollapsibleLists.apply("slaveLists");
+            if(d){
+                $('#slaveLists').trigger('click');
+                ajaxSend("../service/nodeCluster/", "post", "", "admin", null, function(d){
+                    createDAG("slave-cluster", d);
+                });
+            }
         });
 
         utils.collapseNative('slave-cluster-collapse','Show Cluster of Nodes', 'Collapse', function(){
@@ -60,19 +66,27 @@ require([ "jquery",
         });
 
         utils.collapseNative('slave-monitor-collapse','Show Resource States of nodes', 'Collapse', function(){
-             if(curShowingNode != curNode){
-               loadAllData(curNode)
+             if(curNode){
+                loadAllData(curNode);
              }
         });
 
+        if(curNode){
+           if(!$('#slave-monitor-collapse').next().is(":visible")){
+            $('#slave-monitor-collapse').trigger('click');
+           }
+           loadAllData(curNode);
+        }
 
         //
         function nodeClicked(node, depth){
             if(depth == 1){
-               if($('#monitor-main').is(":visible")){
-                loadAllData(node)
+               if(!$('#slave-monitor-collapse').next().is(":visible")){
+                $('#slave-monitor-collapse').trigger('click');
                }
-               curNode = node
+               loadAllData(node);
+               curNode = node;
+               setCookie("curNode", curNode);
             }
         }
 

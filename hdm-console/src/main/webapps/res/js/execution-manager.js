@@ -90,19 +90,21 @@
     };
 
     function showDataFlows(node){
-    var executionTag = node;
-      if($('#logical-span').next().is(":visible")){
-//         $('#logical-span').trigger('click');
-          ajaxSend("../service/logicalFlow/?executionTag=" + executionTag + "&opt=false", "get", executionTag, "admin", null, function(d){
-            d3dag.displayGraph(d, jQuery('#dag-span-logical'), '#dag-logic > svg');
-          });
+      var executionTag = node;
+      if(! $('#logical-span').next().is(":visible")){
+         $('#logical-span').trigger('click');
       }
-      if($('#logical-opt-span').next().is(":visible")){
-//         $('#logical-opt-span').trigger('click');
-          ajaxSend("../service/logicalFlow/?executionTag=" + executionTag + "&opt=true", "get", executionTag, "admin", null, function(d){
-            d3dag.displayGraph(d, jQuery('#dag-span-optimized'), '#dag-optimized > svg');
-          });
+      ajaxSend("../service/logicalFlow/?executionTag=" + executionTag + "&opt=false", "get", executionTag, "admin", null, function(d){
+        d3dag.displayGraph(d, jQuery('#dag-span-logical'), '#dag-logic > svg');
+      });
+
+      if(! $('#logical-opt-span').next().is(":visible")){
+         $('#logical-opt-span').trigger('click');
       }
+      ajaxSend("../service/logicalFlow/?executionTag=" + executionTag + "&opt=true", "get", executionTag, "admin", null, function(d){
+        d3dag.displayGraph(d, jQuery('#dag-span-optimized'), '#dag-optimized > svg');
+      });
+
       if($('#physical-span').next().is(":visible")){
 //         $('#physical-span').trigger('click');
           ajaxSend("../service/physicalFlow/?executionTag=" + executionTag, "get", executionTag, "admin", null, function(d){

@@ -15,6 +15,7 @@
     <link href="../res/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
+    <link href="../res/css/grid.css" rel="stylesheet">
     <link href="../res/css/dashboard.css" rel="stylesheet">
     <link href="../res/css/d3-force.css" rel="stylesheet">
     <link href="../res/css/d3-tree.css" rel="stylesheet">
@@ -103,19 +104,24 @@
         <div class="container">
             <div class="header" id="slave-cluster-collapse">
                 <span>Show Cluster of nodes</span></div>
-            <div class="content">
+            <div class="cluster-content">
                 <div id="slave-cluster"></div>
             </div>
         </div>
         <div class="container">
             <div class="header" id="slave-monitor-collapse">
-                <span>Show Resource States of nodes</span></div>
+                <span>Show Resource States of nodes</span>
+            </div>
             <div class="content" id="monitor-main">
-                <div id="highstock-search" style="height: 300px; display:None "></div>
-                <div id="highstock-cpu" style="height: 300px; width:100%"></div>
-                <div id="highstock-mem" style="height: 300px"></div>
-                <div id="highstock-net" style="height: 300px"></div>
-                <div id="highstock-jvm" style="height: 300px"></div>
+                <div class="row">
+                    <div id="highstock-search" style="height: 300px; display:None "></div>
+                    <div id="highstock-cpu" class="col-md-3" style="height: 300px; width: 650px"></div>
+                    <div id="highstock-mem" class="col-md-3" style="height: 300px; width: 650px"></div>
+                </div>
+                <div class="row">
+                    <div id="highstock-net" class="col-md-3" style="height: 300px; width: 650px"></div>
+                    <div id="highstock-jvm" class="col-md-3" style="height: 300px; width: 650px"></div>
+                </div>
             </div>
         </div>
     </div>

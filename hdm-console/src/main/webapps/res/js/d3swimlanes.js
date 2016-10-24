@@ -8,7 +8,7 @@ var d3swimlane = {
 
         var margin = {top: 20, right: 15, bottom: 15, left: 120}
           , width = 1400 - margin.left - margin.right
-          , height = lanes.length * 48 - margin.top - margin.bottom
+          , height = lanes.length * 100 - margin.top - margin.bottom
           , miniHeight = lanes.length * 12 + 50
           , mainHeight = height - miniHeight - 50;
 
@@ -43,11 +43,10 @@ var d3swimlane = {
         	.attr('class', 'mini');
 
         var main = chart.append('g')
-        	.attr('transform', 'translate(' + margin.left + ',' + (miniHeight + 60 )+ ')')
+        	.attr('transform', 'translate(' + margin.left + ',' + (miniHeight + 60) + ')')
         	.attr('width', width)
         	.attr('height', mainHeight)
         	.attr('class', 'main');
-
 
 
         // draw the lanes for the main chart
