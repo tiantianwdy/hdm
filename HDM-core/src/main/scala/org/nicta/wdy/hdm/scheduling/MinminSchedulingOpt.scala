@@ -21,9 +21,9 @@ class MinminSchedulingOpt extends SchedulingPolicy with  Logging{
    * @param networkFactor reflects the time factor of loading a unit of data from remote node through network
    * @return              pairs of planed tasks: (taskID -> workerPath)
    */
-  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, String] = {
+  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, Path] = {
     val taskBuffer = inputs.toBuffer
-    val results = mutable.Map.empty[String, String]
+    val results = mutable.Map.empty[String, Path]
 
 //    while(taskBuffer.nonEmpty) {
       if (taskBuffer.nonEmpty && resources.nonEmpty) {
@@ -63,7 +63,7 @@ class MinminSchedulingOpt extends SchedulingPolicy with  Logging{
         //      val end2 = System.currentTimeMillis()
         //      log.info(s" execution takes ${end2 - end} ms.")
         plan.foreach { tup =>
-          results += (taskBuffer(tup._1).id -> resources(tup._2).toString)
+          results += (taskBuffer(tup._1).id -> resources(tup._2))
           taskBuffer.remove(tup._1)
         }
 //      }

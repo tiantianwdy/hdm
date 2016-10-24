@@ -18,8 +18,8 @@ class OneByOneScheduling extends SchedulingPolicy with Logging{
    * @param networkFactor reflects the time factor of loading a unit of data from remote node through network
    * @return
    */
-  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, String] = {
-    val results = mutable.Map.empty[String, String]
+  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, Path] = {
+    val results = mutable.Map.empty[String, Path]
     inputs.map{ task =>
       task.id -> findPreferredWorker(task, resources)
     }.foreach { tuple =>
@@ -28,16 +28,16 @@ class OneByOneScheduling extends SchedulingPolicy with Logging{
     results
   }
 
-  private def findPreferredWorker(task: SchedulingTask, candidates:Seq[Path]): String = try {
+  private def findPreferredWorker(task: SchedulingTask, candidates:Seq[Path]): Path = try {
 
     log.debug(s"Block prefered input locations:${task.inputs.mkString(",")}")
 
     //find closest worker from candidates
     if (candidates.size > 0) {
-      val workerPath = Path.findClosestLocation(candidates, task.inputs).toString
+      val workerPath = Path.findClosestLocation(candidates, task.inputs)
       workerPath
-    } else ""
+    } else Path("")
   } catch {
-    case e: Throwable => log.error(s"failed to find worker for task:${task.id}"); ""
+    case e: Throwable => log.error(s"failed to find worker for task:${task.id}"); Path("")
   }
 }

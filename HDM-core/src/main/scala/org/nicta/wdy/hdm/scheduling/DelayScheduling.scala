@@ -39,10 +39,10 @@ class DelayScheduling(processDistance:Long, nodeDistance:Long, rackDistance:Long
    * @param networkFactor reflects the time factor of loading a unit of data from remote node through network
    * @return              pairs of planed tasks: (taskID -> workerPath)
    */
-  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, String] = {
+  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, Path] = {
     val taskBuffer = inputs.toBuffer
     val resBuffer = resources.toBuffer
-    val results = mutable.Map.empty[String, String]
+    val results = mutable.Map.empty[String, Path]
 
 
     for(curLocality <- DelayScheduling.PROCESS_LOCAL to DelayScheduling.ANY){
@@ -54,7 +54,7 @@ class DelayScheduling(processDistance:Long, nodeDistance:Long, rackDistance:Long
           }) match {
             case Some(task) =>
               taskBuffer -= task
-              results += task.id -> res.toString
+              results += task.id -> res
               assignedRes += res
 //              println(s"${task.id}, ${res.toString}")
             case None => // do nothing

@@ -350,9 +350,19 @@ object Scheduler extends Logging{
   }
   
   def getAllAvailableWorkers(candidateMap: mutable.Map[String, AtomicInteger]): Seq[Path] = {
-
     candidateMap.filter(t => t._2.get() > 0).map(s => Seq.fill(s._2.get()){Path(s._1)}).flatten.toSeq
+
   }
+
+
+  def getAllAvailableWorkersWithIdx(candidateMap: mutable.Map[String, AtomicInteger]): Seq[(Path, Int)] = {
+        candidateMap.filter(t => t._2.get() > 0).map{ s =>
+          for (idx <- 0 until s._2.get()) yield {
+            (Path(s._1),  idx)
+          }
+        }.flatten.toSeq
+  }
+
 
   def getFreestWorkers(candidateMap: mutable.Map[String, AtomicInteger]): Seq[Path] = {
     val workers = mutable.Buffer.empty[Path]

@@ -50,9 +50,12 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
 
   private val appStateBuffer: java.util.Map[String, CopyOnWriteArrayList[JobStage]] = new ConcurrentHashMap[String, CopyOnWriteArrayList[JobStage]]()
 
-  protected override def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], candidates:Seq[Path]): Unit = {
+  protected override def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], candidatesWithIdx:Seq[(Path, Int)]): Unit = {
 
     val tasks= mutable.Buffer.empty[SchedulingTask]
+    val candidates = candidatesWithIdx.map(_._1)
+    val coreIdxMap = mutable.HashMap.empty[Path, Int] ++= candidatesWithIdx
+
     blockingQue.foreach{ task =>
       val ids = task.input.map(_.id)
       val inputLocations = new ArrayBuffer[Path](task.input.length)
@@ -61,13 +64,6 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
       inputSize ++= HDMBlockManager().getblockSizes(ids).map(_ / 1024)
       tasks += SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
     }
-
-//    val tasks = blockingQue.map { task =>
-//      val ids = task.input.map(_.id)
-//      val inputLocations = HDMBlockManager().getLocations(ids)
-//      val inputSize = HDMBlockManager().getblockSizes(ids).map(_ / 1024)
-//      SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
-//    }.toSeq
 
     val start = System.currentTimeMillis()
     val plans = schedulingPolicy.plan(tasks, candidates,
@@ -83,7 +79,12 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
       scheduledTasks.get(tuple._1) match {
         case Some(task) =>
           blockingQue.remove(task)
-          scheduleTask(task, tuple._2)
+          scheduleTask(task, tuple._2.toString)
+          val coreIdx = if (coreIdxMap.contains(tuple._2)) {
+            coreIdxMap.get(tuple._2).get
+          } else {
+            0
+          }
           // trace task
           val eTrace = ExecutionTrace(task.taskId,
             task.appId,
@@ -93,7 +94,8 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
             task.func.toString,
             task.input.map(_.id),
             Seq(task.taskId),
-            tuple._2,
+            tuple._2.toString,
+            coreIdx,
             task.dep.toString,
             task.partitioner.getClass.getCanonicalName,
             now,
@@ -121,7 +123,7 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
       resAccessorlock.acquire()
       resourceManager.waitForNonEmpty()
       resourceManager.childrenRWLock.readLock().lock()
-      val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
+      val candidates = Scheduler.getAllAvailableWorkersWithIdx(resourceManager.getAllResources())
       resourceManager.childrenRWLock.readLock().unlock()
       scheduleOnResource(taskQueue, candidates)
       resAccessorlock.release()
@@ -139,7 +141,7 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
       resAccessorlock.acquire()
       resourceManager.waitForChildrenNonEmpty()
       resourceManager.childrenRWLock.readLock().lock()
-      val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getChildrenRes())
+      val candidates = Scheduler.getAllAvailableWorkersWithIdx(resourceManager.getChildrenRes())
       resourceManager.childrenRWLock.readLock().unlock()
       scheduleOnResource(localTaskQueue, candidates)
       resAccessorlock.release()

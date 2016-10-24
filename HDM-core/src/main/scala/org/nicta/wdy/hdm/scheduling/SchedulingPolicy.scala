@@ -20,7 +20,7 @@ trait SchedulingPolicy {
    * @param networkFactor reflects the time factor of loading a unit of data from remote node through network
    * @return              pairs of planed tasks: (taskID -> workerPath)
    */
-  def plan(inputs:Seq[SchedulingTask], resources:Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor:Double):mutable.Map[String, String]
+  def plan(inputs:Seq[SchedulingTask], resources:Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor:Double):mutable.Map[String, Path]
 
 }
 
@@ -41,15 +41,15 @@ class FairScheduling extends SchedulingPolicy with Logging{
    * @param networkFactor reflects the time factor of loading a unit of data from remote node through network
    * @return              pairs of planed tasks: (taskID -> workerPath)
    */
-  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, String] = {
-    val results = mutable.Map.empty[String, String]
+  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, Path] = {
+    val results = mutable.Map.empty[String, Path]
     val taskIter = inputs.iterator
     var idx = 0
     while(taskIter.hasNext){
       idx = (idx + 1) % resources.size
       val task = taskIter.next()
       val r = resources(idx)
-      results += (task.id -> r.toString)
+      results += (task.id -> r)
     }
     results
   }

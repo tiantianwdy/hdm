@@ -19,9 +19,9 @@ class HungarianScheduling extends SchedulingPolicy {
    * @param networkFactor reflects the time factor of loading a unit of data from remote node through network
    * @return              pairs of planed tasks: (taskID -> workerPath)
    */
-  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, String] = {
+  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, Path] = {
     val taskBuffer = inputs.toBuffer
-    val results = mutable.Map.empty[String, String]
+    val results = mutable.Map.empty[String, Path]
 
 //    while(taskBuffer.nonEmpty){
       val jobSize = taskBuffer.length
@@ -47,7 +47,7 @@ class HungarianScheduling extends SchedulingPolicy {
         val resOffer = resources(idx)
         val taskIdx = taskAssigned(idx)
         val task = taskBuffer.apply(taskIdx)
-        results += task.id -> resOffer.toString
+        results += task.id -> resOffer
         task
       }
       taskBuffer --= assigned

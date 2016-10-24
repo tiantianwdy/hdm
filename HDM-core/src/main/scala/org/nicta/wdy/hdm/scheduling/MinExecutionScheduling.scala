@@ -30,10 +30,10 @@ class MinExecutionScheduling(val comparison:(Double, Double) => Boolean) extends
    * @param networkFactor reflects the time factor of loading a unit of data from remote node through network
    * @return
    */
-  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, String] = {
+  override def plan(inputs: Seq[SchedulingTask], resources: Seq[Path], computeFactor: Double, ioFactor: Double, networkFactor: Double): mutable.Map[String, Path] = {
     require(resources != null && resources.nonEmpty)
 
-    val results = mutable.Map.empty[String, String]
+    val results = mutable.Map.empty[String, Path]
 //    initialize time matrices
     val start = System.currentTimeMillis()
     inputs foreach { task =>
@@ -52,7 +52,7 @@ class MinExecutionScheduling(val comparison:(Double, Double) => Boolean) extends
 //      val time2 = System.currentTimeMillis()
       val selected = findNextMatching(jobCompletionTimeMatrix) // return (taskId, resourceIdx)
 //      val time3 = System.currentTimeMillis()
-      val candidate = selected._1 -> resources.apply(selected._2).toString //transform to (taskId, resource)
+      val candidate = selected._1 -> resources.apply(selected._2)//transform to (taskId, resource)
 //      log.debug(s"find next candidate: $candidate in ${time3 - time2} ms.")
       results += candidate
 //    update time matrices and remove selected jobs

@@ -49,9 +49,11 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
 
 
-  protected def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], candidates:Seq[Path]): Unit ={
+  protected def scheduleOnResource(blockingQue:BlockingQueue[ParallelTask[_]], candidatesWithIdx:Seq[(Path, Int)]): Unit ={
 //    log.info("Enter scheduleOnResource...")
     val tasks= mutable.Buffer.empty[SchedulingTask]
+    val candidates = candidatesWithIdx.map(_._1)
+    val coreIdxMap = mutable.HashMap.empty[Path, Int] ++= candidatesWithIdx
     blockingQue.foreach{ task =>
       val ids = task.input.map(_.id)
       val inputLocations = new ArrayBuffer[Path](task.input.length)
@@ -83,7 +85,12 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       scheduledTasks.get(tuple._1) match {
         case Some(task) =>
           blockingQue.remove(task)
-          scheduleTask(task, tuple._2)
+          scheduleTask(task, tuple._2.toString)
+          val coreIdx = if (coreIdxMap.contains(tuple._2)) {
+            coreIdxMap.get(tuple._2).get
+          } else {
+            0
+          }
           // trace task
           val eTrace = ExecutionTrace(task.taskId,
             task.appId,
@@ -93,7 +100,8 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
             task.func.toString,
             task.input.map(_.id),
             Seq(task.taskId),
-            tuple._2,
+            tuple._2.toString,
+            coreIdx,
             task.dep.toString,
             task.partitioner.getClass.getCanonicalName,
             now,
@@ -118,7 +126,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       log.trace(s"current waiting task size:${taskQueue.size()}")
       resAccessorlock.acquire()
       resourceManager.waitForNonEmpty()
-      val candidates = Scheduler.getAllAvailableWorkers(resourceManager.getAllResources())
+      val candidates = Scheduler.getAllAvailableWorkersWithIdx(resourceManager.getAllResources())
       log.trace(s"current waiting worker size:${candidates.size}")
       scheduleOnResource(taskQueue, candidates)
       resAccessorlock.release()
