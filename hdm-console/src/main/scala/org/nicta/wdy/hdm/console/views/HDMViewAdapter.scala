@@ -164,11 +164,12 @@ object HDMViewAdapter {
     val idxParttern = "_b"
     if (data ne null) {
       data.foreach { exe =>
-        val coreIdx = if (!exe.taskId.containsSlice(idxParttern)) "0"
-        else {
-          val seq = exe.taskId.split(idxParttern)
-          if (seq.length > 0) seq(1) else "0"
-        }
+//        val coreIdx = if (!exe.taskId.containsSlice(idxParttern)) "0"
+//        else {
+//          val seq = exe.taskId.split(idxParttern)
+//          if (seq.length > 0) seq(1) else "0"
+//        }
+        val coreIdx = exe.coreIdx
         if (exe.location ne null) {
           val workerId = Path(exe.location).address + "-" + coreIdx
           taskWorkerMap.getOrElseUpdate(workerId, mutable.Buffer.empty[ExecutionTrace]) += exe
