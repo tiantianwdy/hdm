@@ -102,10 +102,8 @@ require([ "jquery",
 
         // load mock data
         function loadAllMockData() {
-
             var key = "";
-            var keys = ["127.0.0.1:10001","127.0.0.1:10002"];
-
+            var keys = ["127.0.0.1:10001", "127.0.0.1:10002"];
             loadCpuMockData()
             loadJvmMockData()
             loadMemMockData()

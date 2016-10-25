@@ -1,6 +1,7 @@
 
     var data = "";
-    curExeId = null;
+    curExeId = getCookie("curExeId");
+
     ajaxSend("../service/listApplications/", "post", data, "admin", null, function(d){
         quickTree("applicationTrees", d, treeNodeClicked);
         CollapsibleLists.apply("applicationTrees");
@@ -71,6 +72,10 @@
       });
     });
 
+    if(curExeId){
+      showDataFlows(curExeId);
+    };
+
     function treeNodeClicked(node, depth){
         if(depth == 1){
             clearText("dag-span-logical");
@@ -80,7 +85,7 @@
           if(node != curExeId){
           }
           curExeId = node;
-
+          setCookie("curExeId", curExeId);
 
 //          d3dag.displayGraph(hdmMockLogicalPlan, jQuery('#dag-span-logical'), '#dag-logic > svg');
 //          d3dag.displayGraph(hdmMockLogicalPlanOpt, jQuery('#dag-span-optimized'), '#dag-optimized > svg');
