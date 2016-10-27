@@ -25,7 +25,7 @@ public class PhysicalFlowController extends HttpServlet {
         try {
             msgResp = SmsSystem.askSync(actor, msg).get();
             PhysicalFlowResp res = (PhysicalFlowResp) msgResp;
-            DagGraph vo = HDMViewAdapter.HDMPojoSeqToGraph(res.results());
+            DagGraph vo = HDMViewAdapter.HDMPojoSeqToGraphAggregated(res.results());
             String json = ObjectUtils.objectToJson(vo);
             resp.setContentType("application/json");
             resp.getWriter().write(json);

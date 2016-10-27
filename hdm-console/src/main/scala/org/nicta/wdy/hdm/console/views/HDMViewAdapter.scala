@@ -72,19 +72,57 @@ object HDMViewAdapter {
   }
 
   def HDMPojoSeqToGraph(data: Seq[HDMPoJo]): DagGraph = {
+      val graph = new DagGraph()
+      val nodes = mutable.Buffer.empty[HDMNode]
+      val nodeIdxes = mutable.HashMap.empty[String, HDMNode]
+      val links = mutable.Buffer.empty[DagLink]
+
+      data.foreach { hdm =>
+        val input = if(hdm.children != null) hdm.children.toArray else Array.empty[String]
+        val output = if(hdm.blocks != null) hdm.blocks.toArray else null
+        val node = new HDMNode (hdm.id, hdm.name, "version", hdm.func, hdm.hdmType , hdm.location,
+          hdm.dependency, hdm.parallelism.toString, hdm.partitioner, input, output, hdm.isCache,
+          0L, 0L, hdm.state, statusToGroup(hdm.state))
+        nodeIdxes += (node.getId -> node)
+        nodes += node
+      }
+
+      data.foreach { hdm => if (hdm.children ne null) {
+        hdm.children.foreach { child =>
+          val id = validId(child)
+          if (nodeIdxes.contains(id)) {
+            val parent = nodeIdxes(id)
+            links += (new DagLink(parent.getId, hdm.id, ""))
+          }
+        }
+      }
+      }
+
+      graph.setLinks(links)
+      graph.setNodes(nodes)
+      graph
+  }
+
+  def HDMPojoSeqToGraphAggregated(data: Seq[HDMPoJo]): DagGraph = {
+    // todo aggregate same input (DDM) for each HDM into one node to avoid performance problem and filter out DDMs group the ddms based on their output
     val graph = new DagGraph()
     val nodes = mutable.Buffer.empty[HDMNode]
-    val nodeIdxes = mutable.HashMap.empty[String, HDMNode]
     val links = mutable.Buffer.empty[DagLink]
+
+    val nodeIdxes = mutable.HashMap.empty[String, HDMNode]
+    val ddmGroups = mutable.HashMap.empty[String, mutable.Buffer[String]]
+
 
     data.foreach { hdm =>
       val input = if(hdm.children != null) hdm.children.toArray else Array.empty[String]
       val output = if(hdm.blocks != null) hdm.blocks.toArray else null
-      val node = new HDMNode(hdm.id, hdm.name, "version", hdm.func, hdm.hdmType , hdm.location,
+      val node = new HDMNode (hdm.id, hdm.name, "version", hdm.func, hdm.hdmType , hdm.location,
         hdm.dependency, hdm.parallelism.toString, hdm.partitioner, input, output, hdm.isCache,
         0L, 0L, hdm.state, statusToGroup(hdm.state))
       nodeIdxes += (node.getId -> node)
-      nodes += node
+      if(node.getType != "DDM"){
+        nodes += node
+      }
     }
 
     data.foreach { hdm => if (hdm.children ne null) {
@@ -92,16 +130,32 @@ object HDMViewAdapter {
         val id = validId(child)
         if (nodeIdxes.contains(id)) {
           val parent = nodeIdxes(id)
-          links += (new DagLink(parent.getId, hdm.id, ""))
+          if(parent.getType == "DDM") {
+            val groupId = s"Grouped_${hdm.id}"
+            val buff = if (ddmGroups.contains(groupId)) {
+              ddmGroups.get(groupId).get
+            } else {
+              // add grouped DDM node when create the group first time
+              parent.setId(groupId)
+              nodes += parent
+              mutable.Buffer.empty[String]
+            }
+            buff += parent.getId
+            links += (new DagLink(groupId, hdm.id, ""))
+          } else {
+            links += (new DagLink(parent.getId, hdm.id, ""))
+          }
         }
       }
     }
     }
 
+
     graph.setLinks(links)
     graph.setNodes(nodes)
     graph
   }
+
 
   def executionTraceToGraph(resp: ExecutionTraceResp): DagGraph = {
     val data = resp.results

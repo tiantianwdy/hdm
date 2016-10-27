@@ -40,7 +40,7 @@
                 <akka.port>10010</akka.port>
                 <log.appender>STDOUT</log.appender>
                 <log.error.appender>STDOUT</log.error.appender>
-                <log.filePattern>../logs/hdm-server.%d{yyyy-MM-dd}</log.filePattern>
+                <log.filePattern>./logs/hdm-server.%d{yyyy-MM-dd}</log.filePattern>
             </properties>
         </profile>
 
@@ -52,7 +52,7 @@
                 <akka.port>10010</akka.port>
                 <log.appender>FILE</log.appender>
                 <log.error.appender>FILE-ERROR</log.error.appender>
-                <log.filePattern>../logs/hdm-server.%d{yyyy-MM-dd}</log.filePattern>
+                <log.filePattern>./logs/hdm-server.%d{yyyy-MM-dd}</log.filePattern>
             </properties>
         </profile>
     </profiles>
