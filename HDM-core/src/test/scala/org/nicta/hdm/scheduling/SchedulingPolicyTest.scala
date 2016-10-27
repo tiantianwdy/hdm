@@ -53,10 +53,10 @@ class SchedulingPolicyTest extends SchedulingTestData {
   }
 
 
-  def calculateDataLocalityRate(assignedTasks:Map[String, mutable.Map[String, String]], tasks:Seq[SchedulingTask]): Double ={
+  def calculateDataLocalityRate(assignedTasks:Map[Path, mutable.Map[String, Path]], tasks:Seq[SchedulingTask]): Double ={
     val taskMap = tasks.map(t => t.id -> t).toMap
     val dataLocalityIter = assignedTasks.map { kSeq =>
-      val host = Path(kSeq._1).address
+      val host = kSeq._1.address
       val tasks = kSeq._2.map { kv =>
         taskMap.get(kv._1).get
       }
@@ -96,7 +96,7 @@ class SchedulingPolicyTest extends SchedulingTestData {
     val exeTimeOfTasks = groupedTasks.map { kSeq => // (resourceId, taskList)
       kSeq._1 -> kSeq._2.map { kv => // (taskId, resourceId)
         val t = taskMap.get(kv._1).get
-        SchedulingUtils.calculateExecutionTime(t, Path(kSeq._1), computeFactor, ioFactor, networkFactor)
+        SchedulingUtils.calculateExecutionTime(t, kSeq._1, computeFactor, ioFactor, networkFactor)
       }.sum //sum up total execution time on one resource
     }
     val dataLocalityRate = calculateDataLocalityRate(groupedTasks, tasks)
@@ -122,7 +122,7 @@ class SchedulingPolicyTest extends SchedulingTestData {
     val resourceBuffer = new CopyOnWriteArrayList[Path]()// needs to be type safe as multi-threading in collecting resources
     resourceBuffer ++=  resources
     var totalSchedulingTime = 0L
-    val scheduledTasks = mutable.Map.empty[String, String]
+    val scheduledTasks = mutable.Map.empty[String, Path]
 
     while(taskBuffer.nonEmpty){
       if(resourceBuffer.nonEmpty) {
@@ -189,8 +189,8 @@ class SchedulingPolicyTest extends SchedulingTestData {
       SchedulingTask(idx.toString, Seq(kv._1), Seq(kv._2),  OneToOne)
     }
     val assigns = Map(
-          "akka.tcp://masterSys@127.10.1.1:8999/user/" -> mutable.Map("0" -> "", "1" -> ""),
-          "akka.tcp://masterSys@127.20.1.2:8999/user/" -> mutable.Map("2" -> "", "3" -> "")
+          Path("akka.tcp://masterSys@127.10.1.1:8999/user/") -> mutable.Map("0" -> Path(""), "1" -> Path("")),
+          Path("akka.tcp://masterSys@127.20.1.2:8999/user/") -> mutable.Map("2" -> Path(""), "3" -> Path(""))
     )
     println(calculateDataLocalityRate(assigns, tasks))
   }
