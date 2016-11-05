@@ -5,6 +5,7 @@ import org.nicta.wdy.hdm.console.models.DagGraph;
 import org.nicta.wdy.hdm.console.views.HDMViewAdapter;
 import org.nicta.wdy.hdm.message.LogicalFLowQuery;
 import org.nicta.wdy.hdm.message.LogicalFLowResp;
+import scala.Option;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -23,11 +24,19 @@ public class LogicalFlowController extends HttpServlet {
         Boolean opt = Boolean.parseBoolean(req.getParameter("opt"));
         LogicalFLowQuery msg = new LogicalFLowQuery(exeId, opt);
         String actor = AbstractController.masterExecutor;
-        LogicalFLowResp res = (LogicalFLowResp) SmsSystem.askSync(actor, msg).get();
-        DagGraph vo = HDMViewAdapter.HDMPojoSeqToGraph(res.results());
-        String json = ObjectUtils.objectToJson(vo);
-        resp.setContentType("application/json");
-        resp.getWriter().write(json);
+        Option objRes = SmsSystem.askSync(actor, msg);
+        if(objRes != null) {
+            LogicalFLowResp res = (LogicalFLowResp) objRes.get();
+            DagGraph vo = HDMViewAdapter.HDMPojoSeqToGraph(res.results());
+            String json = ObjectUtils.objectToJson(vo);
+            resp.setContentType("application/json");
+            resp.getWriter().write(json);
+        } else {
+            System.err.println("Obtain null response from HDM server.");
+            String json = "Msg:Error";
+            resp.setContentType("application/json");
+            resp.getWriter().write(json);
+        }
     }
 
     @Override
