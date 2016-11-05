@@ -37,7 +37,6 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
      val kOffset = kIndex
      val vOffset = vIndex
 
-     val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
        val as = w.split(",")
        as(vOffset).toFloat
@@ -52,7 +51,6 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
      val kOffset = kIndex
      val vOffset = vIndex
 
-     val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
        val as = w.split(",")
        if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
@@ -67,7 +65,6 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
     val kOffset = kIndex
     val vOffset = vIndex
 
-    val start = System.currentTimeMillis()
     val wordCount = hdm.map{ w =>
       val as = w.split(",")
       (as(kOffset), as(vOffset).toFloat)
@@ -85,7 +82,6 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
      val kOffset = kIndex
      val vOffset = vIndex
 
-     val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
        val as = w.split(",")
        (as(kOffset), as(vOffset).toFloat)
@@ -104,7 +100,6 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
      val kOffset = kIndex
      val vOffset = vIndex
 
-     val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
        val as = w.split(",")
        (as(kOffset), as(vOffset).toFloat)
@@ -123,7 +118,6 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
      val kOffset = kIndex
      val vOffset = vIndex
 
-     val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
        val as = w.split(",")
        if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
@@ -138,7 +132,6 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
      val kOffset = kIndex
      val vOffset = vIndex
 
-     val start = System.currentTimeMillis()
      val wordCount = hdm.map{ w =>
        val as = w.split(",")
        if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
@@ -155,7 +148,6 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
     val kOffset = kIndex
     val vOffset = vIndex
 
-    val start = System.currentTimeMillis()
     val wordCount = hdm.map{ w =>
       val as = w.split(",")
       if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
@@ -173,16 +165,11 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
     val kOffset = kIndex
     val vOffset = vIndex
 
-    val start = System.currentTimeMillis()
     val wordCount = hdm.map{ w =>
       val as = w.split(",")
       if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
       else (as(kOffset), as(vOffset).toFloat)
-    }
-    .groupBy(_._1).findByKey(_.startsWith(key))
-      //.filter(t => t._1.startsWith("a")).groupBy(_._1)
-
-
+    }.groupBy(_._1).findByKey(_.startsWith(key))
 
     wordCount
 
@@ -194,8 +181,7 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
     val kOffset = kIndex
     val vOffset = vIndex
 
-    val start = System.currentTimeMillis()
-    val wordCount = hdm.map{ w =>
+    val wordCount = hdm.map {w =>
       val as = w.split(",")
       if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
       else (as(kOffset), as(vOffset).toFloat)
