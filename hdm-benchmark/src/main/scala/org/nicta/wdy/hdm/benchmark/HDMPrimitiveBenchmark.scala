@@ -40,6 +40,11 @@ object HDMBenchmark {
     val iterativeBenchmark = new IterationBenchmark()
     val sqlBenchmark = new RankingSQLBenchmark()
     val uservisitsSQL = new UservisitsSQLBenchmark()
+    val tweetsBenchmark = dataTag match {
+      case "userVisits" => new TweetsAnalysisBenchmark(context, 1, 3)
+      case "ranking" => new TweetsAnalysisBenchmark(context)
+      case x => new TweetsAnalysisBenchmark(context)
+    }
 
     val endInit = System.currentTimeMillis()
 
@@ -103,12 +108,19 @@ object HDMBenchmark {
           uservisitsSQL.testAggregation(data, parallelism, len)
         else
           sqlBenchmark.testAggregation(data, parallelism, len)
+
+        //tests for Tweets
+      case "findTweets" =>
+        tweetsBenchmark.testFindingTweets(data, 3, parallelism, "a")
+      case "analyzeTweets" =>
+        tweetsBenchmark.testAnalysisTweets(data, 3, parallelism)
     }
 
     res match {
       case hdm:ParHDM[_,_] =>
         onEvent(hdm, "compute", start, endInit)(parallelism)
-      case other:Any => //do nothing
+      case other:Any =>
+        println(other)
     }
 
 
