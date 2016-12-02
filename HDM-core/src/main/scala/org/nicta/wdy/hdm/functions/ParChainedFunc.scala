@@ -42,7 +42,7 @@ class ParChainedFunc[T: ClassTag, U: ClassTag, R: ClassTag](val preFunc: Paralle
   override def setTaskContext(context: TaskContext): Unit = {
     preFunc.setTaskContext(context)
     postFunc.setTaskContext(context)
-    if(runTimeContext == null) runTimeContext = new  AtomicReference[TaskContext]()
+    if(runTimeContext == null) runTimeContext = new  ThreadLocal[TaskContext]()
     runTimeContext.set(context)
   }
 

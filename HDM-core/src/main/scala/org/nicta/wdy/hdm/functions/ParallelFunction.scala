@@ -33,11 +33,13 @@ abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFu
   val dependency:FuncDependency
 
   @transient
-  protected var runTimeContext:AtomicReference[TaskContext] = new  AtomicReference[TaskContext]()
+  protected var runTimeContext:ThreadLocal[TaskContext] = new  ThreadLocal[TaskContext]()
 
   def setTaskContext(context:TaskContext) = {
-    if(runTimeContext == null) runTimeContext = new  AtomicReference[TaskContext]()
-    runTimeContext.set(context)
+    synchronized {
+      if(runTimeContext == null) runTimeContext = new  ThreadLocal[TaskContext]()
+      runTimeContext.set(context)
+    }
   }
 
   def removeTaskContext() = runTimeContext.set(null)

@@ -28,7 +28,7 @@ class ParCombinedFunc [T:ClassTag,U:ClassTag,R:ClassTag](val dependency:FuncDepe
   override def setTaskContext(context: TaskContext): Unit = {
     parentFunc.setTaskContext(context)
     curFUnc.setTaskContext(context)
-    if(runTimeContext == null) runTimeContext = new  AtomicReference[TaskContext]()
+    if(runTimeContext == null) runTimeContext = new  ThreadLocal[TaskContext]()
     runTimeContext.set(context)
   }
 
