@@ -32,8 +32,11 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
     super.initParams(params)
     //initiate hdm backend server
     hdmBackend.init()
-    hdmBackend.resourceManager.addResource(self.path.toStringWithAddress(SmsSystem.localAddress).toString, cores)
-    log.info(s"Leader has been initiated with $cores cores.")
+    if(cores > 0){
+      hdmBackend.resourceManager.addResource(self.path.toStringWithAddress(SmsSystem.localAddress).toString, cores)
+      log.info(s"Leader has been initiated with $cores cores.")
+    }
+    log.info(s"Leader has been initiated as master only.")
     1
   }
 

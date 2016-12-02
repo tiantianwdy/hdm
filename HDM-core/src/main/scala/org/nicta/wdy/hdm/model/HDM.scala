@@ -396,7 +396,10 @@ object HDM{
     DDM(elems, HDMContext.defaultHDMContext,  appContext)
   }
 
-  def apply(path: Path,  appContext: AppContext = AppContext.defaultAppContext, hdmContext:HDMContext= HDMContext.defaultHDMContext,  keepPartition: Boolean = true): DFM[_, String] = {
+  def apply(path: Path,
+            appContext: AppContext = AppContext.defaultAppContext,
+            hdmContext:HDMContext = HDMContext.defaultHDMContext,
+            keepPartition: Boolean = true): DFM[_, String] = {
     new DFM(children = null, location = path, keepPartition = keepPartition, func = new NullFunc[String], appContext = appContext)
   }
 
@@ -405,9 +408,12 @@ object HDM{
     new DFM(children = inputs, func = new ParUnionFunc[T], distribution = Horizontal, parallelism = 1, location = Path(hdmContext.clusterBlockPath), appContext = appContext)
   }
 
-  def parallel[T:ClassTag](elems: Seq[T], hdmContext:HDMContext, appContext: AppContext, split: Int = ClusterExecutor.CORES): HDM[T] = {
-    val ddms = new RandomPartitioner[T](split).split(elems).map(d => DDM(d._2, hdmContext, appContext))
-    new DFM(children= ddms.toSeq, func = new ParUnionFunc[T], distribution = Horizontal, location = Path(hdmContext.clusterBlockPath), appContext = appContext)
+  def parallelize[T:ClassTag](elems: Seq[T],
+                              hdmContext:HDMContext = HDMContext.defaultHDMContext,
+                              appContext: AppContext = AppContext.defaultAppContext,
+                              numOfPartitions: Int = ClusterExecutor.CORES): HDM[T] = {
+    val ddms = new RandomPartitioner[T](numOfPartitions).split(elems).map(d => DDM(d._2, hdmContext, appContext))
+    new DFM(children= ddms.toSeq, func = new NullFunc[T], distribution = Horizontal, location = Path(hdmContext.clusterBlockPath), appContext = appContext)
   }
 
   def horizontal[T:ClassTag](paths: Array[Path], func: String => T) : HDM[T] = ???

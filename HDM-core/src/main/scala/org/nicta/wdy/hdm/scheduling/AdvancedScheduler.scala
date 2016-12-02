@@ -3,13 +3,14 @@ package org.nicta.wdy.hdm.scheduling
 import java.util.concurrent._
 import java.util.concurrent.atomic.{AtomicLong, AtomicBoolean}
 
-import akka.actor.ActorSystem
+import akka.actor.{ActorPath, ActorSystem}
 import akka.pattern._
 import akka.util.Timeout
+import com.baidu.bpit.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions.{DualInputFunction, ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path
-import org.nicta.wdy.hdm.message.SerializedTaskMsg
+import org.nicta.wdy.hdm.message.{TaskCompleteMsg, SerializedTaskMsg}
 import org.nicta.wdy.hdm.model._
 import org.nicta.wdy.hdm.server.provenance.ExecutionTrace
 import org.nicta.wdy.hdm.server.{PromiseManager, ProvenanceManager, ResourceManager}
@@ -21,6 +22,7 @@ import scala.collection.mutable.{ArrayBuffer}
 import scala.concurrent.{Lock, ExecutionContext, Future, Promise}
 import scala.reflect.ClassTag
 import scala.collection.JavaConversions._
+import scala.util.{Failure, Success}
 
 
 /**
@@ -217,6 +219,25 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           dfm.parallelism, dfm.keepPartition,
           dfm.partitioner.asInstanceOf[Partitioner[dfm.outType.type]],
           dfm.appContext)
+
+      case dfm:DualDFM[_,_,_] =>
+        val blkSeq = blks.flatMap(_.blocks)
+        val children1 = blks.asInstanceOf[Seq[ParHDM[_, dfm.inType1.type]]]
+        val children2 = blks.asInstanceOf[Seq[ParHDM[_, dfm.inType2.type]]]
+        new DualDFM(taskId,
+          children1,
+          children2,
+          dfm.dependency,
+          dfm.func.asInstanceOf[DualInputFunction[dfm.inType1.type, dfm.inType2.type, dfm.outType.type]],
+          blkSeq,
+          dfm.distribution,
+          dfm.location,
+          dfm.preferLocation,
+          dfm.blockSize, dfm.isCache, Computed,
+          dfm.parallelism, dfm.keepPartition,
+          dfm.partitioner.asInstanceOf[Partitioner[dfm.outType.type]],
+          dfm.appContext)
+
       case ddm: DDM[_, _] => ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
@@ -269,7 +290,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 //      resourceManager.require(1)
       log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "_" + task.func.toString}}] ")
       resourceManager.decResource(workerPath, 1)
-      val future = if (Path.isLocal(workerPath)) ClusterExecutor.runTask(updatedTask)
+      val future = if (Path.isLocal(workerPath)) runLocalTask(updatedTask)
       else runRemoteTask(workerPath, updatedTask)
 
     }
@@ -283,6 +304,28 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     val msg = SerializedTaskMsg(task.appId, task.version, task.taskId, taskBytes)
 //    val msg = AddTaskMsg(task)
     val future = (actorSys.actorSelection(workerPath) ? msg).mapTo[Seq[String]]
+    future
+  }
+
+
+  protected def runLocalTask[ R: ClassTag](task: ParallelTask[R]) = {
+    val leaderPath = HDMContext.defaultHDMContext.leaderPath.get()
+    val workerPath = ActorPath.fromString(s"$leaderPath/${HDMContext.CLUSTER_EXECUTOR_NAME}").toStringWithAddress(SmsSystem.localAddress)
+    val startTime = System.currentTimeMillis()
+    val future  = ClusterExecutor.runTask(task)
+    future onComplete {
+      case Success(results) =>
+        blockManager.addAllRef(results)
+        resourceManager.incResource(workerPath, 1)
+        taskSucceeded(task.appId, task.taskId, task.func.toString, results)
+        log.info(s"A task [${task.taskId + "_" + task.func}] has been completed in ${System.currentTimeMillis() - startTime} ms.")
+        log.info(s"TaskCompleteMsg has been sent to ${leaderPath}.")
+        log.info(s"Memory remanding: ${HDMBlockManager.freeMemMB} MB.")
+
+      case Failure(t) =>
+        t.printStackTrace()
+        actorSys.actorSelection(leaderPath) ! Seq.empty[Seq[String]]
+    }
     future
   }
 
