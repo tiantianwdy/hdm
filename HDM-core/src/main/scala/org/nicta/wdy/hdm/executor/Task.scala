@@ -219,20 +219,28 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
     val start = System.currentTimeMillis()
     val classLoader = DependencyManager().getClassLoader(appId, version)
     val data =
-    input.map{ in =>
-      log.info(s"Input data preparing finished, task running: [${(taskId, func)}] ")
-      val inputData = DataParser.readBlock(in, false,
-                                           (in : Arr[Any]) => func.apply(in.asInstanceOf[Arr[I]]),
-                                           classLoader)
+    if(func.dependency != FullDep) {
+      input.map{ in =>
+        log.info(s"Input data preparing finished, task running: [${(taskId, func)}] ")
+        val inputData = DataParser.readBlock(in, false,
+          (in : Arr[Any]) => func.apply(in.asInstanceOf[Arr[I]]),
+          classLoader)
 
-      val end = System.currentTimeMillis() - start
-      log.info(s"time consumed for function: $end ms.")
-      inputData
-//      val inputData = DataParser.readBlock(in, false)
-//      log.info(s"Input data size ${inputData.data.size} ")
-//      val res = func.apply(inputData.asInstanceOf[Block[I]].data.toIterator).toBuffer
-//      res
-    }.flatten
+        val end = System.currentTimeMillis() - start
+        log.info(s"time consumed for function: $end ms.")
+        inputData
+
+      }.flatten
+    } else { // full depdency functions require input data have been fully loaded.
+      val inputs = input.map { in =>
+        val inputData = DataParser.readBlock(in, false).asInstanceOf[Block[I]]
+        log.info(s"Input data size ${inputData.data.size} ")
+        inputData.data
+      }.flatten
+      val res = func.apply(inputs.toIterator).toBuffer
+      res
+    }
+
 
     val end2 = System.currentTimeMillis() - start
     log.info(s"time consumed for all inputs: $end2 ms.")
@@ -244,7 +252,7 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
       log.trace(s"Partitioning results with ${data.size} with partitioner: [${partitioner}] and partition number ${partitioner.partitionNum} .")
       partitioner.split(data).map(seq => DDM(taskId + "_p" + seq._1, seq._2, appContext, blockContext, hdmContext)).toSeq
     }
-    log.trace(s"Obtain results of blocks: ${ddms.length} .")
+    log.info(s"Obtain results of blocks: ${ddms.length} .")
     ddms
   }
 
