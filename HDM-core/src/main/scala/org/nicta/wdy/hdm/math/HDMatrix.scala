@@ -1,9 +1,11 @@
 package org.nicta.wdy.hdm.math
 
 import breeze.linalg.DenseVector
+import breeze.linalg.operators.OpAdd
 import breeze.math.Semiring
 import org.nicta.wdy.hdm.executor.HDMContext._
 import HDMatrix._
+import org.nicta.wdy.hdm.math.HDVector
 import org.nicta.wdy.hdm.model.HDM
 
 import scala.reflect.ClassTag
@@ -12,13 +14,13 @@ import scala.{specialized => types}
 /**
  * Created by tiantian on 4/05/16.
  */
-class HDMatrix[@types(Double, Int, Float, Long) T:ClassTag](self:HDM[(Long, DenseVector[T])]) (implicit e:Numeric[T], l:Semiring[T])extends Serializable with MatrixLike{
+class HDMatrix[@types(Double, Int, Float, Long) T:ClassTag](self:HDM[(Long, DenseVector[T])]) (implicit val e:Numeric[T], val l:Semiring[T], val parallelism:Int)extends Serializable with MatrixLike{
 
- def mapRow[@types(Double, Int, Float, Long) U:ClassTag](f:DenseVector[T] => DenseVector[U]) (implicit e:Numeric[U]):HDM[(Long, DenseVector[U])] = {
+ def mapRow[@types(Double, Int, Float, Long) U:ClassTag](f:DenseVector[T] => DenseVector[U]) (implicit eu:Numeric[U]):HDM[(Long, DenseVector[U])] = {
    self.mapValues(f)
  }
 
-  def map[@types(Double, Int, Float, Long) U:ClassTag](f: T => U)(implicit e:Numeric[U]):HDM[(Long, DenseVector[U])] = {
+  def mapElem[@types(Double, Int, Float, Long) U:ClassTag](f: T => U)(implicit eu:Numeric[U], lu:Semiring[U]):HDM[(Long, DenseVector[U])] = {
     self.mapValues(v => v.map(f))
   }
 
@@ -41,8 +43,14 @@ class HDMatrix[@types(Double, Int, Float, Long) T:ClassTag](self:HDM[(Long, Dens
   }
 
   def norm(implicit parallelism:Int) = {
-    val sqrtVector = this.map(v => e.times(v, v)).reduceRow( (v1, v2) => v1 + v2).map(d => 1/Math.sqrt(e.toDouble(d)))
-    val meanVector = this.reduceRow((v1, v2) => v1 + v2).map( d => e.toDouble(d) / self.count().collect().next())
+    val eu = e
+    val reduceFunc = (v1:DenseVector[T], v2:DenseVector[T]) => (v1.asInstanceOf[DenseVector[Double]] + v2.asInstanceOf[DenseVector[Double]]).asInstanceOf[DenseVector[T]]
+
+    val sqrtVector = this.mapElem(v => eu.times(v, v))
+      .reduceRow(reduceFunc)
+      .map(d => 1/Math.sqrt(eu.toDouble(d)))
+    val meanVector = this.reduceRow(reduceFunc)
+      .map(d => e.toDouble(d) / self.count().collect().next())
     this.mapRow(v =>
       (v.map(e.toDouble(_)) - meanVector) :*  sqrtVector
     )
@@ -60,12 +68,35 @@ class HDMatrix[@types(Double, Int, Float, Long) T:ClassTag](self:HDM[(Long, Dens
     this.sumColumn().sum
   }
 
+  // operations for N1Analysis
+
+  def numRows(implicit parallelism:Int) :Int = {
+    self.count().collect().next()
+  }
+
+
+  def numColumns():Int = ???
+
+  def column(idx:Int):DenseVector[T] = {
+    self.filter(_._1 == idx).collect().next()._2
+  }
+
+  //todo check the correctness and optimize the performance
+  def mapColumn[@types(Double, Int, Float, Long) U:ClassTag](f: HDVector[T] => HDVector[U])(implicit eu:Numeric[U]) = {
+    self.cache()
+    val vLen = numRows
+    for(i <- 0 until vLen) yield {
+      val nHDM = self.mapValues(dv => dv(i))
+      f(new HDVector(nHDM))
+    }
+  }
+
 
 }
 
 object HDMatrix {
 
-  implicit def hdmToMatrix[@types(Double, Int, Float, Long) T:ClassTag](hdm:HDM[(Long, DenseVector[T])])(implicit e:Numeric[T], l:Semiring[T]):HDMatrix[T] = {
+  implicit def hdmToMatrix[@types(Double, Int, Float, Long) T:ClassTag](hdm:HDM[(Long, DenseVector[T])])(implicit e:Numeric[T], l:Semiring[T], parallelism:Int):HDMatrix[T] = {
     new HDMatrix(hdm)
   }
 
