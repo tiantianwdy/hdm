@@ -1,11 +1,9 @@
 package org.nicta.wdy.hdm.math
 
 import breeze.linalg.DenseVector
-import breeze.linalg.operators.OpAdd
 import breeze.math.Semiring
 import org.nicta.wdy.hdm.executor.HDMContext._
 import HDMatrix._
-import org.nicta.wdy.hdm.math.HDVector
 import org.nicta.wdy.hdm.model.HDM
 
 import scala.reflect.ClassTag
@@ -24,11 +22,9 @@ class HDMatrix[@types(Double, Int, Float, Long) T:ClassTag](self:HDM[(Long, Dens
     self.mapValues(v => v.map(f))
   }
 
-
   def zipMap(hdv:HDM[(Long, T)], f:(DenseVector[T], T) => DenseVector[T])= {
     self.joinByKey(hdv).mapValues(tup => f(tup._1, tup._2))
   }
-
 
   def dot(nv:DenseVector[T]):HDM[(Long, T)] = {
     self.mapValues(v => v.dot(nv))
