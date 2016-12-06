@@ -7,6 +7,8 @@ import org.nicta.wdy.hdm.model.HDM
 import scala.reflect.ClassTag
 import scala.{specialized => types}
 
+import java.lang.{Double => JDouble}
+
 /**
  * A distributed vector implementation of HDM.
  * The elements of the vector might be distributed among multiple nodes in a HDM cluster.
@@ -18,14 +20,20 @@ class HDVector[@types(Double, Int, Float, Long) T:ClassTag]
               (val self:HDM[(Long, T)])(implicit e:Numeric[T])
               extends Serializable with VectorLike {
 
-  def times(another:HDM[(Long, T)]) = {
+  def times(another:HDM[(Long, T)]):HDM[(Long, T)] = {
 //    self.joinBy(another, _._1, (v:(Long, T)) => v._1).mapValues( tup => implicitly[Numeric[T]].times(tup._1._2, tup._2._2))
    val numeric = e
    val fk = (d:(Long, T)) => d._1
     self.cogroup(another, fk, fk).mapValues(tup => numeric.times(tup._1.map(_._2).sum, tup._2.map(_._2).sum))
   }
 
-  def add(another:HDM[(Long, T)]) = {
+
+  def times(another: Iterator[T]):HDM[(Long, T)] = {
+    val localVector = another.zipWithIndex.map(e => (e._2.toLong, e._1)).toSeq
+    this.times(HDM.parallelize(localVector))
+  }
+
+  def add(another:HDM[(Long, T)]):HDM[(Long, T)] = {
     val numeric = e
     val fk = (d:(Long, T)) => d._1
     self.cogroup(another, fk, fk).mapValues(tup => numeric.plus(tup._1.map(_._2).sum, tup._2.map(_._2).sum))
@@ -33,9 +41,19 @@ class HDVector[@types(Double, Int, Float, Long) T:ClassTag]
     //    self.cogroupByKey(another).map(tri => (tri._1, numeric.plus(tri._2.sum, tri._3.sum)))
   }
 
+  def add(another: Iterator[T]):HDM[(Long, T)] = {
+    val localVector = another.zipWithIndex.map(e => (e._2.toLong, e._1)).toSeq
+    this.add(HDM.parallelize(localVector))
+  }
 
-  def minus(another: HDVector[T]) = {
+
+  def minus(another: HDVector[T]):HDM[(Long, T)] = {
     self.joinByKey(another.self).mapValues(tup => e.minus(tup._1, tup._2))
+  }
+
+  def minus(another: Iterator[T]):HDM[(Long, T)] = {
+    val localVector = another.zipWithIndex.map(e => (e._2.toLong, e._1)).toSeq
+    this.minus(HDM.parallelize(localVector))
   }
 
   def mapElem(f: T => T ) = {
@@ -76,6 +94,7 @@ class HDVector[@types(Double, Int, Float, Long) T:ClassTag]
     this.times(another.self).sum(parallelism)
   }
 
+
   def concat[A <: T](another: HDVector[A])(implicit parallelism:Int) = {
     val startIdx = this.size()
     //todo check the correctness of union
@@ -104,5 +123,7 @@ class HDVector[@types(Double, Int, Float, Long) T:ClassTag]
   def * (another:HDM[(Long, T)]) = times(another)
 
   def * (d:T) = multiply(d)
+
+  def toHDM() = self
 
 }
