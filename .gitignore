@@ -1,10 +1,14 @@
+# Intellj IDEA
+*.iml
+.idea/
+
 *.class
 *.log
-*.iml
-.idea
-.tmp
 
 # sbt specific
+.cache
+.history
+.lib/
 dist/*
 target/
 lib_managed/
@@ -14,3 +18,11 @@ project/plugins/project/
 
 # Scala-IDE specific
 .scala_dependencies
+.worksheet
+
+# other editor cache
+*~
+.*.swp
+
+# misc
+.tmp
