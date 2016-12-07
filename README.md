@@ -1,6 +1,8 @@
 HDM
 ==============
 
+[![Build Status](https://travis-ci.org/tiantianwdy/hdm.svg?branch=hdm-mc-dev)](https://travis-ci.org/tiantianwdy/hdm)
+
 HDM (Hierarchy Distributed Matrix) is a light-weight, optimized, functional framework for data processing and analytics on large scale data sets.
 
 
