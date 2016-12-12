@@ -1,23 +1,16 @@
 package org.nicta.wdy.hdm.io
 
 import java.io._
-import java.nio.charset.Charset
 
-import akka.serialization.Serializer
 import org.codehaus.jackson.map.{SerializationConfig, ObjectMapper}
 import org.codehaus.jackson.util.DefaultPrettyPrinter
 import org.codehaus.jackson.{JsonEncoding, JsonFactory}
 import org.codehaus.jackson.JsonParser.Feature
-import org.nicta.wdy.hdm.Arr
-import sun.org.mozilla.javascript.json.JsonParser
 
 import scala.collection.mutable.{ArrayBuffer, ListBuffer}
 import scala.reflect.ClassTag
 import scala.reflect._
 
-/**
- * Created by tiantian on 25/12/14.
- */
 trait BlockSerializer[T] extends  Serializable {
 
   def identifier: Int
