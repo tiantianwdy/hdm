@@ -7,6 +7,9 @@ case class AppContext(var appName: String = "defaultApp",
                  var version: String = "0.0.1",
                  var masterPath: String = "") extends Serializable {
 
+  def setMasterPath(path:String): Unit ={
+    masterPath = path
+  }
 
 }
 

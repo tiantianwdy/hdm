@@ -3,10 +3,8 @@ package org.nicta.hdm.math
 import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.model.HDM
 
-import HDMContext._
 import org.nicta.wdy.hdm.math.HDMatrix._
 
-import scala.util.Random
 
 import org.junit.{Before, Test}
 
@@ -50,7 +48,20 @@ class HDVectorTest extends HDMathTestSuite{
   def testVectorTimes(): Unit ={
     val vector = HDM.parallelize(elems = data, numOfPartitions = 8).zipWithIndex.cache()
     val another = vector.add(5D)
-
     printData (vector.times(another))
+  }
+
+  @Test
+  def testAddLocalVector(): Unit ={
+    val vector = HDM.parallelize(elems = data, numOfPartitions = 8).zipWithIndex.cache()
+    val another = data.toIterator
+    printData(vector.add(another))
+  }
+
+  @Test
+  def testTimesLocalVector(): Unit ={
+    val vector = HDM.parallelize(elems = data, numOfPartitions = 8).zipWithIndex.cache()
+    val another = data.toIterator
+    printData(vector.times(another))
   }
 }

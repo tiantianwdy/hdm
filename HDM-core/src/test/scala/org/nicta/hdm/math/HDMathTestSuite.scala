@@ -16,6 +16,7 @@ class HDMathTestSuite {
   }
 
   val hdmContext = HDMContext.defaultHDMContext
+//  val appContext = AppContext(masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
   AppContext.defaultAppContext.masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
   implicit val parallelism = 1
 
