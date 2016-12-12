@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.executor
 
-import java.util.concurrent.{BlockingQueue, TimeUnit, LinkedBlockingDeque}
+import java.util.concurrent.{ConcurrentHashMap, BlockingQueue, TimeUnit, LinkedBlockingDeque}
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
 import org.nicta.wdy.hdm._
@@ -68,7 +68,7 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
     val aggregationCounter = new AtomicInteger(0)
     val fetchingWatcher = new AtomicBoolean(false)
     val inputQueue = new LinkedBlockingDeque[AnyRef]
-    val inputIdxMap = new mutable.HashMap[String, Int]()
+    val inputIdxMap = new ConcurrentHashMap[String, Int]()
 
     // save the indexes mapping from block Id to their input position
     input1.foreach(in => inputIdxMap.put(in.id, 1))
@@ -77,7 +77,7 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
 
     // aggregator semantic
     def readAndAggregate[T: ClassTag, U: ClassTag](aggregator: Aggregator[(Arr[T], Arr[U]), Buf[R]], queue:BlockingQueue[AnyRef]): Unit = {
-      val received = queue.poll(60, TimeUnit.SECONDS)
+      val received = queue.take()
       val emptyInput1 = Seq.empty[T].toIterator
       val emptyInput2 = Seq.empty[U].toIterator
       log.info(s"start processing FetchResponse: ${received}.")
@@ -86,10 +86,10 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
         case blk: Block[_] => blk.asInstanceOf[Block[_]]
       }
       inputIdxMap.get(block.id) match {
-        case Some(1) =>
+        case 1 =>
           val data = (block.asInstanceOf[Block[T]].data.toIterator, emptyInput2)
           aggregator.aggregate(data)
-        case Some(2) =>
+        case 2 =>
           val data = (emptyInput1, block.asInstanceOf[Block[U]].data.toIterator)
           aggregator.aggregate(data)
       }
