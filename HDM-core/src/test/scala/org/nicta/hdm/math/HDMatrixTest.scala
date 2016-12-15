@@ -13,7 +13,7 @@ import scala.util.Random
 class HDMatrixTest extends HDMathTestSuite {
 
   val numColumn = 100
-  val numRows = 100
+  val numRows = 1000
   val matrixData = Seq.fill[DenseVector[Double]](numRows) {
     val vec = Array.fill[Double](numColumn) {
       Random.nextDouble()
@@ -50,7 +50,14 @@ class HDMatrixTest extends HDMathTestSuite {
   }
 
   @Test
-  def testMatrixOps(): Unit = {
+  def testMatrixZipMap(): Unit = { //todo to be fixed
+    val matrix = HDM.parallelize(elems = matrixData, numOfPartitions = 8).zipWithIndex.cache()
+    val vector = HDM.parallelize(elems = vecData, numOfPartitions = 8).zipWithIndex
+
+    val res = matrix.zipMap(vector, (t1, t2) => t1 * t2).reduceRow((v1, v2) => v1 + v2)
+
+//    printData(res)
+    println(res)
 
   }
 

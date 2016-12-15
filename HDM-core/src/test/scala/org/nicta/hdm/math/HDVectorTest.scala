@@ -19,7 +19,7 @@ class HDVectorTest extends HDMathTestSuite{
   @Test
   def testPrimitives(): Unit ={
 
-    val vector = HDM.parallelize(elems = data, numOfPartitions = 4).zipWithIndex.cache()
+    val vector = HDM.parallelize(elems = vecData, numOfPartitions = 4).zipWithIndex.cache()
 
     println("Sum of vector: " + vector.sum)
     //test add one double value
@@ -38,7 +38,7 @@ class HDVectorTest extends HDMathTestSuite{
 
   @Test
   def testVectorAdd(): Unit ={
-    val vector = HDM.parallelize(elems = data, numOfPartitions = 8).zipWithIndex.cache()
+    val vector = HDM.parallelize(elems = vecData, numOfPartitions = 8).zipWithIndex.cache()
     val another = vector.add(5D)
 
     printData (vector.add(another))
@@ -46,22 +46,22 @@ class HDVectorTest extends HDMathTestSuite{
 
   @Test
   def testVectorTimes(): Unit ={
-    val vector = HDM.parallelize(elems = data, numOfPartitions = 8).zipWithIndex.cache()
+    val vector = HDM.parallelize(elems = vecData, numOfPartitions = 8).zipWithIndex.cache()
     val another = vector.add(5D)
     printData (vector.times(another))
   }
 
   @Test
   def testAddLocalVector(): Unit ={
-    val vector = HDM.parallelize(elems = data, numOfPartitions = 8).zipWithIndex.cache()
-    val another = data.toIterator
+    val vector = HDM.parallelize(elems = vecData, numOfPartitions = 8).zipWithIndex.cache()
+    val another = vecData.toIterator
     printData(vector.add(another))
   }
 
   @Test
   def testTimesLocalVector(): Unit ={
-    val vector = HDM.parallelize(elems = data, numOfPartitions = 8).zipWithIndex.cache()
-    val another = data.toIterator
+    val vector = HDM.parallelize(elems = vecData, numOfPartitions = 8).zipWithIndex.cache()
+    val another = vecData.toIterator
     printData(vector.times(another))
   }
 }
