@@ -197,7 +197,11 @@ class ParReduceFunc[T:ClassTag ,R >:T :ClassTag](val f: (R, R) => R)  extends Pa
   val dependency = FullDep
 
   override def apply(params: Arr[T]): Arr[R] = {
-    Arr(params.reduce(f))
+    if(params.nonEmpty){
+      Arr(params.reduce(f))
+    } else {
+      Arr.empty[R]
+    }
   }
 
   override def aggregate(params: Arr[T], res: Buffer[R]): Buffer[R] = {
