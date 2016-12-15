@@ -12,10 +12,6 @@ import scala.reflect.ClassTag
  * a composed function object used for combining dual input functions (functions with dual input types) with a subsequent parallel function (functions with only one input type)
  * @param dualFunc
  * @param pFunc
- * @param ev1
- * @param ev2
- * @param ev3
- * @param ev4
  * @tparam T
  * @tparam U
  * @tparam V
@@ -26,7 +22,7 @@ class ComposedDualInputFunction[T: ClassTag, U: ClassTag, V: ClassTag, R: ClassT
   extends DualInputFunction[T, U, R] with Aggregator[(Arr[T], Arr[U]), Buf[R]] {
 
   @transient
-  private var tempBuffer:Buf[V] = _
+  private val tempBuffer:ThreadLocal[Buf[V]] = new ThreadLocal[Buf[V]]
 
   override def apply(params: (Arr[T], Arr[U])): Arr[R] = {
     pFunc(dualFunc.apply(params))
@@ -35,9 +31,9 @@ class ComposedDualInputFunction[T: ClassTag, U: ClassTag, V: ClassTag, R: ClassT
   override def aggregate(params: (Arr[T], Arr[U]), res: Buf[R]): Buf[R] = ???
 
   override def init(zero: Buf[R]): Unit = {
-    tempBuffer = Buf.empty[V]
+    tempBuffer.set(Buf.empty[V])
     dualFunc match {
-      case agg: Aggregator[(Arr[T], Arr[U]), Buf[V]] => agg.init(tempBuffer)
+      case agg: Aggregator[(Arr[T], Arr[U]), Buf[V]] => agg.init(tempBuffer.get())
       case other =>
     }
   }
@@ -47,7 +43,7 @@ class ComposedDualInputFunction[T: ClassTag, U: ClassTag, V: ClassTag, R: ClassT
       case agg:Aggregator[(Arr[T], Arr[U]),Buf[V]] =>
         agg.aggregate(params)
       case other =>
-        tempBuffer = dualFunc.aggregate(params , tempBuffer)
+        tempBuffer.set(dualFunc.aggregate(params , tempBuffer.get()))
     }
 
   }
@@ -57,7 +53,7 @@ class ComposedDualInputFunction[T: ClassTag, U: ClassTag, V: ClassTag, R: ClassT
       case agg: Aggregator[(Arr[T], Arr[U]), Buf[V]] =>
         pFunc(agg.result.toIterator).toBuffer
       case other =>
-        pFunc(tempBuffer.toIterator).toBuffer
+        pFunc(tempBuffer.get().toIterator).toBuffer
     }
   }
 

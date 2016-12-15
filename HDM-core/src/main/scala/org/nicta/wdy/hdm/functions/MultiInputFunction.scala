@@ -5,6 +5,7 @@ import java.util.concurrent.atomic.AtomicReference
 import org.nicta.wdy.hdm._
 import org.nicta.wdy.hdm.executor.TaskContext
 
+import scala.collection.mutable
 import scala.collection.mutable.{Buffer, HashMap}
 import scala.reflect.ClassTag
 
@@ -46,7 +47,7 @@ trait ThreeInputFunction[T, U, I, R] extends SerializableFunction[(Arr[T], Arr[U
 class CoGroupFunc[T: ClassTag, U: ClassTag, K: ClassTag](f1:T => K, f2: U => K ) extends DualInputFunction[T, U, (K, (Iterable[T], Iterable[U]))]
                                                    with Aggregator[(Arr[T],Arr[U]), Buf[(K, (Iterable[T], Iterable[U]))]]{
   @transient
-  private var tempBuffer = HashMap.empty[K,(Iterable[T], Iterable[U])]
+  private var tempBuffer:ThreadLocal[HashMap[K,(Iterable[T], Iterable[U])]] = new ThreadLocal[HashMap[K,(Iterable[T], Iterable[U])]]()
 
   override def apply(params: (Arr[T], Arr[U])): Arr[(K, (Iterable[T], Iterable[U]))] = {
     val res = HashMap.empty[K, (Iterable[T], Iterable[U])]
@@ -81,26 +82,29 @@ class CoGroupFunc[T: ClassTag, U: ClassTag, K: ClassTag](f1:T => K, f2: U => K )
   }
 
   override def init(zero: Buf[(K, (Iterable[T], Iterable[U]))]): Unit = {
+    if(tempBuffer eq null) tempBuffer = new ThreadLocal[mutable.HashMap[K, (Iterable[T], Iterable[U])]]()
     if(zero ne null)
-    tempBuffer = HashMap.empty[K,(Iterable[T], Iterable[U])] ++= zero
+      tempBuffer.set(HashMap.empty[K,(Iterable[T], Iterable[U])] ++= zero)
+    else
+      tempBuffer.set(HashMap.empty[K,(Iterable[T], Iterable[U])])
   }
 
   override def aggregate(params: (Arr[T], Arr[U])): Unit = {
     params._1.foreach{ elem =>
       val key = f1(elem)
-      val buffer = tempBuffer.getOrElseUpdate(key, (Buf.empty[T], Buf.empty[U]))
+      val buffer = tempBuffer.get().getOrElseUpdate(key, (Buf.empty[T], Buf.empty[U]))
       buffer._1.asInstanceOf[Buf[T]] += elem
     }
     params._2.foreach{
       elem =>
         val key = f2(elem)
-        val buffer = tempBuffer.getOrElseUpdate(key, (Buf.empty[T], Buf.empty[U]))
+        val buffer = tempBuffer.get().getOrElseUpdate(key, (Buf.empty[T], Buf.empty[U]))
         buffer._2.asInstanceOf[Buf[U]] += elem
     }
   }
 
   override def result: Buf[(K, (Iterable[T], Iterable[U]))] = {
-    tempBuffer.toBuffer
+    tempBuffer.get().toBuffer
   }
 
 
