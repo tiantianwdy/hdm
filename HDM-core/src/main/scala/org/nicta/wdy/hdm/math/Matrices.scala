@@ -1,9 +1,9 @@
-package org.nicta.wdy.hdm
+package org.nicta.wdy.hdm.math
 
 /**
  * Created by Tiantian on 2014/5/23.
  */
-trait Matrices[+T] extends Serializable{
+trait Matrices[+T] extends Serializable {
 
   def rlength() : Long
 
