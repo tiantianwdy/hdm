@@ -1,6 +1,6 @@
 package org.nicta.hdm.executor
 
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.server.SmsSystem
 import org.junit.Test
 import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions.ParallelFunction

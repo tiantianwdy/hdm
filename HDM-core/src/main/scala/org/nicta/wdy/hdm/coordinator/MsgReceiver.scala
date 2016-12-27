@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.coordinator
 
-import com.baidu.bpit.akka.actors.worker.WorkActor
+import org.hdm.akka.actors.worker.WorkActor
 import org.nicta.wdy.hdm.message.{SchedulingMsg, DependencyMsg, CoordinatingMsg, QueryMsg}
 
 /**

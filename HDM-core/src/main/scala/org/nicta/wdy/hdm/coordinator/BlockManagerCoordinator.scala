@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.coordinator
 import akka.actor.ActorPath
 import akka.pattern._
 
-import com.baidu.bpit.akka.actors.worker.WorkActor
+import org.hdm.akka.actors.worker.WorkActor
 import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.io.{HDMIOManager, Path}
 import org.nicta.wdy.hdm.storage.{Computed, HDMBlockManager}

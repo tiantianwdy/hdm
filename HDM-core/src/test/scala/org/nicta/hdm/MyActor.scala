@@ -2,7 +2,7 @@ package org.nicta.hdm
 
 import akka.actor.Actor
 import akka.event.Logging
-import com.baidu.bpit.akka.actors.worker.WorkActor
+import org.hdm.akka.actors.worker.WorkActor
 
 class MyActor extends Actor{
   val log = Logging(context.system,this)

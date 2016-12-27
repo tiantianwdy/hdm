@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.storage
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
-import com.baidu.bpit.akka.monitor.SystemMonitorService
+import org.hdm.akka.monitor.SystemMonitorService
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.io.netty.{NettyBlockServer, NettyConnectionManager, NettyBlockFetcher}
 import org.nicta.wdy.hdm.io.{DataParser, Path}

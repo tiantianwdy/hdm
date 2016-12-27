@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.model
 
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions.{NullFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path

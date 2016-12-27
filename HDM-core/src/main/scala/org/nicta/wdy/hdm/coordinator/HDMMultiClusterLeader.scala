@@ -5,7 +5,7 @@ import java.util.concurrent.{TimeUnit, ConcurrentHashMap}
 
 import akka.actor.ActorPath
 import akka.util.Timeout
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor.{ParallelTask, HDMContext}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.message._

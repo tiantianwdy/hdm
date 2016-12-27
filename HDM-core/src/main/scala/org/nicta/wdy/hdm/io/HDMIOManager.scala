@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.io
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.storage.{HDMBlockManager, Block, BlockRef}
 import scala.concurrent.{Promise, Future}
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.server.SmsSystem
 import java.util.concurrent.ConcurrentHashMap
 
 /**

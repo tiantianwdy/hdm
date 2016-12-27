@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.executor
 
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.server.SmsSystem
 import org.nicta.wdy.hdm.io.netty.NettyConnectionManager
 
 /**

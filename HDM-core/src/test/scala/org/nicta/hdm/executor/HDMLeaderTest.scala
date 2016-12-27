@@ -2,8 +2,8 @@ package org.nicta.hdm.executor
 
 import org.junit.{After, Test}
 import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
-import com.baidu.bpit.akka.server.SmsSystem
-import com.baidu.bpit.akka.messages.{AddMsg, Query}
+import org.hdm.akka.server.SmsSystem
+import org.hdm.akka.messages.{AddMsg, Query}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.HDM
 import org.nicta.wdy.hdm.planing.FunctionFusion

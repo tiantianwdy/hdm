@@ -11,13 +11,6 @@ class TweetsAnalysisBenchmark (val context:String, val kIndex:Int = 0, val vInde
 
   import org.nicta.wdy.hdm.executor.HDMContext._
 
-  def init(context:String, localCores:Int = 0): Unit ={
-    val hDMContext = HDMContext.defaultHDMContext
-    hDMContext.init(leader = context, slots = localCores)
-    Thread.sleep(100)
-    hDMContext
-  }
-
 
   def testFindingTweets(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, key:String):HDM[_] = {
     val path = Path(dataPath)
@@ -27,9 +20,9 @@ class TweetsAnalysisBenchmark (val context:String, val kIndex:Int = 0, val vInde
       val seq = line.split(",")
       new Tweets(seq)
     }
-
     val grouped = tweets.groupBy(_.hashTag)
     val results = grouped.findByKey(_.startsWith(key))
+
     results
   }
 
@@ -44,12 +37,12 @@ class TweetsAnalysisBenchmark (val context:String, val kIndex:Int = 0, val vInde
       val seq = line.split(",")
       new Tweets(seq)
     }.cache()
-
     val grouped = tweets.groupBy(_.hashTag)
     val trumpN = grouped.findByKey(_.startsWith("t")).count().collect().next()
     val hillaryN = grouped.findByKey(_.startsWith("h")).count().collect().next()
 
     val result = trumpN / hillaryN.toFloat
+
     val end = System.currentTimeMillis()
     println(s"Job completed in ${end - start} ms. \nObtained analysis result: ${result}")
   }
@@ -57,6 +50,14 @@ class TweetsAnalysisBenchmark (val context:String, val kIndex:Int = 0, val vInde
 
 }
 
+
+/**
+ * Tweet entity for each record
+ * @param author
+ * @param contents
+ * @param hashTag
+ * @param time
+ */
 case class Tweets(author:String,
              contents:String,
              hashTag:String,

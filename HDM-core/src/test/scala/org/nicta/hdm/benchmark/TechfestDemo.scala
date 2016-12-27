@@ -4,7 +4,7 @@ import org.junit.{After, Test}
 import org.nicta.wdy.hdm.examples.{UservisitsSQLBenchmark, IterationBenchmark, KVBasedPrimitiveBenchmark}
 import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.executor.HDMContext._
-import com.baidu.bpit.akka.messages.{AddMsg, Query}
+import org.hdm.akka.messages.{AddMsg, Query}
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.model.{HDM}
 import scala.concurrent._

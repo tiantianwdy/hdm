@@ -2,7 +2,7 @@ package org.nicta.hdm.server
 
 import java.io.File
 
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.server.SmsSystem
 import org.junit.Test
 import org.nicta.wdy.hdm.executor.{AppContext, HDMContext, DynamicDependencyThreadFactory}
 import org.nicta.wdy.hdm.message.SerializedJobMsg

@@ -1,6 +1,6 @@
 package org.nicta.wdy.hdm.io
 
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.server.SmsSystem
 import org.nicta.wdy.hdm.model.DDM
 import org.nicta.wdy.hdm.planing.PlanningUtils
 

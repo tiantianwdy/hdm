@@ -1,7 +1,7 @@
 package org.nicta.wdy.hdm.coordinator
 
-import com.baidu.bpit.akka.actors.worker.WorkActor
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.actors.worker.WorkActor
+import org.hdm.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor.HDMContext
 import org.nicta.wdy.hdm.message.{QueryMsg, DependencyMsg, CoordinatingMsg, SchedulingMsg}
 import org.nicta.wdy.hdm.server.ServerBackend

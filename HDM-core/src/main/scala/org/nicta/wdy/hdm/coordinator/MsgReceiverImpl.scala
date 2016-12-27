@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.coordinator
 import java.nio.ByteBuffer
 
 import akka.actor.ActorPath
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.server.SmsSystem
 import org.nicta.wdy.hdm.io.Path
 import org.nicta.wdy.hdm.message._
 import org.nicta.wdy.hdm.model.{HDM, HDMPoJo}

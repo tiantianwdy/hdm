@@ -4,8 +4,8 @@
 //import java.util.concurrent.{Semaphore, TimeUnit, LinkedBlockingQueue, ConcurrentHashMap}
 //
 //import akka.actor.ActorPath
-//import com.baidu.bpit.akka.monitor.SystemMonitorService
-//import com.baidu.bpit.akka.server.SmsSystem
+//import org.hdm.akka.monitor.SystemMonitorService
+//import org.hdm.akka.server.SmsSystem
 //import org.apache.commons.logging.LogFactory
 //import org.nicta.wdy.hdm.Arr
 //import org.nicta.wdy.hdm.scheduling.Scheduler
@@ -22,7 +22,7 @@
 //import akka.pattern.{ask, pipe}
 //import akka.util.Timeout
 //
-//import com.baidu.bpit.akka.actors.worker.WorkActor
+//import org.hdm.akka.actors.worker.WorkActor
 //
 //import org.nicta.wdy.hdm.executor._
 //import org.nicta.wdy.hdm.model._

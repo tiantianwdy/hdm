@@ -1,6 +1,6 @@
 package org.nicta.hdm.coordinator
 
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.server.SmsSystem
 import org.junit.Test
 import org.nicta.wdy.hdm.message.AskCollaborateMsg
 

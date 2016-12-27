@@ -5,7 +5,7 @@ import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingQueue, Semaphore, 
 
 import akka.pattern.ask
 import akka.util.Timeout
-import com.baidu.bpit.akka.actors.worker.WorkActor
+import org.hdm.akka.actors.worker.WorkActor
 import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions.{ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.{AkkaIOManager, Path}

@@ -1,13 +1,13 @@
-package com.baidu.bpit.akka.actor
+package org.hdm.akka.actor
 
 import akka.actor.Props
-import com.baidu.bpit.akka.actors.worker.ProxyActor
-import com.baidu.bpit.akka.configuration.ProxyConfig
-import com.baidu.bpit.akka.configuration.SMPPConfig
-import com.baidu.bpit.akka.configuration.QueConfig
-import com.baidu.bpit.akka.actors.worker.QueActor
-import com.baidu.bpit.akka.messages.InitMsg
-import com.baidu.bpit.akka.messages.SmsMessage
+import org.hdm.akka.actors.worker.ProxyActor
+import org.hdm.akka.configuration.ProxyConfig
+import org.hdm.akka.configuration.SMPPConfig
+import org.hdm.akka.configuration.QueConfig
+import org.hdm.akka.actors.worker.QueActor
+import org.hdm.akka.messages.InitMsg
+import org.hdm.akka.messages.SmsMessage
 
 class QueActorTest extends AbstractActorSuite{
 

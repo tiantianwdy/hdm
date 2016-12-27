@@ -4,7 +4,7 @@ import java.net.URLClassLoader
 import java.nio.charset.Charset
 import java.util.concurrent.{ConcurrentHashMap, Executors}
 
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor.{HDMContext, DynamicDependencyThreadFactory}
 import org.nicta.wdy.hdm.message.{AddDependency, AddApplication}
 import org.nicta.wdy.hdm.model.HDM

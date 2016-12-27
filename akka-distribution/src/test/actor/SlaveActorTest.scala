@@ -1,14 +1,14 @@
-package com.baidu.bpit.akka.actor
+package org.hdm.akka.actor
 
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
 import akka.actor.Props
-import com.baidu.bpit.akka.actors.SlaveActor
+import org.hdm.akka.actors.SlaveActor
 import junit.framework.TestCase
-import com.baidu.bpit.akka.configuration.ProxyConfig
-import com.baidu.bpit.akka.messages.AddMsg
-import com.baidu.bpit.akka.configuration.QueConfig
-import com.baidu.bpit.akka.configuration.DispatchConfig
+import org.hdm.akka.configuration.ProxyConfig
+import org.hdm.akka.messages.AddMsg
+import org.hdm.akka.configuration.QueConfig
+import org.hdm.akka.configuration.DispatchConfig
 
 class SlaveActorTest extends TestCase{
 

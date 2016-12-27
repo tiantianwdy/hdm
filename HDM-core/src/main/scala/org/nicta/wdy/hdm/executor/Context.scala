@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.executor
 import java.util.UUID
 import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.server.SmsSystem
 import com.typesafe.config.{Config, ConfigFactory}
 import org.nicta.wdy.hdm.coordinator.HDMWorkerParams
 import org.nicta.wdy.hdm.functions.SerializableFunction

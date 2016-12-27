@@ -1,8 +1,8 @@
 package org.nicta.hdm.server
 
-import com.baidu.bpit.akka.configuration.ActorConfig
-import com.baidu.bpit.akka.messages.{Reply, Query}
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.configuration.ActorConfig
+import org.hdm.akka.messages.{Reply, Query}
+import org.hdm.akka.server.SmsSystem
 import org.junit.Test
 import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.io.Path

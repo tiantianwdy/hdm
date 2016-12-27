@@ -1,7 +1,7 @@
 package org.nicta.hdm.executor
 
-import com.baidu.bpit.akka.messages.Query
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.messages.Query
+import org.hdm.akka.server.SmsSystem
 import org.junit.Test
 import org.nicta.wdy.hdm.executor.{HDMContext, AppContext}
 import org.nicta.wdy.hdm.model.DDM

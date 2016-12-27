@@ -1,6 +1,6 @@
 package org.nicta.hdm.io
 
-import com.baidu.bpit.akka.monitor.SystemMonitorService
+import org.hdm.akka.monitor.SystemMonitorService
 import org.junit.{Before, After, Test}
 import org.nicta.wdy.hdm.executor.{AppContext, HDMContext}
 import org.nicta.wdy.hdm.io.hdfs.HDFSUtils

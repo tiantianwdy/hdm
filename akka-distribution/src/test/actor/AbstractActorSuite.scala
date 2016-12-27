@@ -1,4 +1,4 @@
-package com.baidu.bpit.akka.actor
+package org.hdm.akka.actor
 
 import junit.framework.TestCase
 import com.typesafe.config.ConfigFactory

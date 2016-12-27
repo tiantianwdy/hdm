@@ -3,7 +3,7 @@ package org.nicta.wdy.hdm.coordinator
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicInteger
 
-import com.baidu.bpit.akka.actors.worker.WorkActor
+import org.hdm.akka.actors.worker.WorkActor
 import org.nicta.wdy.hdm.executor.{BlockContext, ParallelTask, ClusterExecutor, HDMContext}
 import org.nicta.wdy.hdm.message._
 import org.nicta.wdy.hdm.server.DependencyManager

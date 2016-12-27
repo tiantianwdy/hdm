@@ -6,7 +6,7 @@ import java.util.concurrent.atomic.{AtomicLong, AtomicBoolean}
 import akka.actor.{ActorPath, ActorSystem}
 import akka.pattern._
 import akka.util.Timeout
-import com.baidu.bpit.akka.server.SmsSystem
+import org.hdm.akka.server.SmsSystem
 import org.nicta.wdy.hdm.executor._
 import org.nicta.wdy.hdm.functions.{DualInputFunction, ParUnionFunc, ParallelFunction}
 import org.nicta.wdy.hdm.io.Path

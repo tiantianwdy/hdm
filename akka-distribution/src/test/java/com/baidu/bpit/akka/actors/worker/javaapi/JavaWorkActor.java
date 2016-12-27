@@ -1,4 +1,4 @@
-package com.baidu.bpit.akka.actors.worker.javaapi;
+package org.hdm.akka.actors.worker.javaapi;
 
 
 public class JavaWorkActor extends JWorkActor {
