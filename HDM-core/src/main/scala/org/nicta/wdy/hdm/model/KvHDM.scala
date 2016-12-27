@@ -91,11 +91,14 @@ class KvHDM[K:ClassTag,V:ClassTag](self:HDM[(K,V)]) extends Serializable {
 
 
 
-class GroupedSeqHDM[K:ClassTag,V:ClassTag](self:ParHDM[_,(K, Iterable[V])]) extends Serializable{
+class GroupedSeqHDM[K:ClassTag,V:ClassTag](self:ParHDM[_,(K, Iterable[V])]) extends Serializable {
   
   def mapValuesByKey[R:ClassTag](f: V => R):ParHDM[(K, Iterable[V]), (K, Iterable[R])] = {
     val func = (v: Iterable[V]) => v.map(f)
-    new DFM[(K, Iterable[V]),(K, Iterable[R])](children = Seq(self), dependency = OneToOne, func = new MapValues[Iterable[V],K,Iterable[R]](func), distribution = self.distribution, location = self.location, keepPartition = true, partitioner = new KeepPartitioner[(K, Iterable[R])](1), appContext = self.appContext)
+    new DFM[(K, Iterable[V]),(K, Iterable[R])](children = Seq(self), dependency = OneToOne,
+      func = new MapValues[Iterable[V],K,Iterable[R]](func),
+      distribution = self.distribution, location = self.location, keepPartition = true,
+      partitioner = new KeepPartitioner[(K, Iterable[R])](1), appContext = self.appContext)
 
   }
 

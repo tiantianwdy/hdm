@@ -36,8 +36,7 @@ trait Context {
   def runTask[T,R](target:ParHDM[_, T], func:SerializableFunction[T,R]): Future[ParHDM[T,R]] = ???
 }
 
-class HDMContext(defaultConf:Config) extends  Serializable with Logging{
-
+class HDMContext(defaultConf:Config) extends  Serializable with Logging {
 
   lazy val PLANER_PARALLEL_CPU_FACTOR = Try {defaultConf.getInt("hdm.planner.parallelism.cpu.factor")} getOrElse (HDMContext.CORES)
 
@@ -190,7 +189,6 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
         val scheduler = new MultiClusterScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, DependencyManager(), multiPlanner, schedulingPolicy, this)
         hdmBackEnd = new MultiClusterBackend(blockManager, scheduler, multiPlanner, resourceManager, promiseManager, DependencyManager(), this)
         log.info(s"created new MultiClusterBackend with scheduling: ${SCHEDULING_POLICY_CLASS}")
-
     }
     hdmBackEnd
   }
@@ -198,13 +196,13 @@ class HDMContext(defaultConf:Config) extends  Serializable with Logging{
   def submitJob(master:String, appName:String, version:String, hdm:HDM[_], parallel:Int): Future[HDM[_]] = {
     val rootPath =  SmsSystem.physicalRootPath
     //    HDMContext.declareHdm(Seq(hdm))
-    val promise = SmsSystem.askLocalMsg(HDMContext.JOB_RESULT_DISPATCHER, RegisterPromiseMsg(appName, version, hdm.id, rootPath + "/"+ HDMContext.JOB_RESULT_DISPATCHER)) match {
+    val promise = SmsSystem.askLocalMsg(HDMContext.JOB_RESULT_DISPATCHER, RegisterPromiseMsg(appName, version, hdm.id, rootPath + "/" + HDMContext.JOB_RESULT_DISPATCHER)) match {
       case Some(promise) => promise.asInstanceOf[Promise[HDM[_]]]
       case none => null
     }
     //    val jobMsg = SubmitJobMsg(appId, hdm, rootPath + "/"+JOB_RESULT_DISPATCHER, parallel)
     val jobBytes = this.defaultSerializer.serialize(hdm).array
-    val jobMsg = new SerializedJobMsg(appName, version, jobBytes, rootPath + "/"+ HDMContext.JOB_RESULT_DISPATCHER, rootPath + "/" + HDMContext.CLUSTER_EXECUTOR_NAME, parallel)
+    val jobMsg = new SerializedJobMsg(appName, version, jobBytes, rootPath + "/" + HDMContext.JOB_RESULT_DISPATCHER, rootPath + "/" + HDMContext.CLUSTER_EXECUTOR_NAME, parallel)
     SmsSystem.askAsync(master+ "/"+ HDMContext.CLUSTER_EXECUTOR_NAME, jobMsg)
     if(promise ne null) promise.future
     else throw new Exception("add job dispatcher failed.")

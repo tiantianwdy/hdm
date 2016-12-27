@@ -266,11 +266,20 @@ abstract class HDM[R: ClassTag] extends Serializable {
 
   // double input functions
 
-  def cogroup[K:ClassTag, U:ClassTag](other:HDM[U], f1: R=>K, f2: U => K): HDM[(K,(Iterable[R], Iterable[U]))] = {
+  def cogroup[K:ClassTag, U:ClassTag](other:HDM[U],
+                                      f1: R=>K,
+                                      f2: U => K): HDM[(K,(Iterable[R], Iterable[U]))] = {
     val inputThis = this.partitionBy(f1(_).hashCode())
     val inputThat = other.partitionBy(f2(_).hashCode())
     val groupFunc = new CoGroupFunc[R,U,K](f1, f2)
-    new DualDFM[R, U, (K,(Iterable[R], Iterable[U]))](input1 = Seq(inputThis), input2 = Seq(inputThat), dependency = NToOne, func = groupFunc, distribution = distribution, location = location, keepPartition = true, appContext = this.appContext)
+    new DualDFM[R, U, (K,(Iterable[R], Iterable[U]))](input1 = Seq(inputThis),
+      input2 = Seq(inputThat),
+      dependency = NToOne,
+      func = groupFunc,
+      distribution = distribution,
+      location = location,
+      keepPartition = true,
+      appContext = this.appContext)
   }
 
   def joinBy[K:ClassTag, U:ClassTag](other:HDM[U], f1: R => K, f2: U => K): HDM[(K, (R, U))] = {
@@ -291,7 +300,7 @@ abstract class HDM[R: ClassTag] extends Serializable {
 
   def intersection[A <: R](h:HDM[A]): HDM[R]   = ???
 
-  // end of doulbe input functions
+  // end of double input functions
 
 
   def withPartitioner(partitioner: Partitioner[R]):HDM[R] = ???
@@ -414,6 +423,15 @@ object HDM{
                               numOfPartitions: Int = ClusterExecutor.CORES): HDM[T] = {
     val ddms = new RandomPartitioner[T](numOfPartitions).split(elems).map(d => DDM(d._2, hdmContext, appContext))
     new DFM(children= ddms.toSeq, func = new NullFunc[T], distribution = Horizontal, location = Path(hdmContext.clusterBlockPath), appContext = appContext)
+  }
+
+  def jParallelize[T](elems: Array[T],
+                         hdmContext:HDMContext = HDMContext.defaultHDMContext,
+                         appContext: AppContext = AppContext.defaultAppContext,
+                         numOfPartitions: Int = ClusterExecutor.CORES): HDM[T] = {
+    val c = elems.head.getClass
+    val ct = ClassTag.apply(c)
+    parallelize[ct.type](elems.toSeq.asInstanceOf[Seq[ct.type]], hdmContext, appContext, numOfPartitions).asInstanceOf[HDM[T]]
   }
 
   def horizontal[T:ClassTag](paths: Array[Path], func: String => T) : HDM[T] = ???
