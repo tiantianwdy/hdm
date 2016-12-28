@@ -79,7 +79,7 @@ lazy val logbackDep: Seq[ModuleID] =
     yield groupids("logback") % ("logback-" + n) % revisions("logback")
 
 lazy val commonSettings = Seq(
-  organization := "org.nicta",
+  organization := "org.hdm",
   version := "0.0.1",
   scalaVersion := "2.10.2",
   publishArtifact in(Compile, packageBin) := true,
@@ -139,17 +139,17 @@ lazy val root = (project in file("."))
   .aggregate(akkaDist, console, core)
   .settings(commonSettings: _*)
   .settings(
-    name := "HDM-cluster",
+    name := "hdm-cluster",
     resolvers += Resolver.sonatypeRepo("public"),
     javacOptions ++= javacSeq,
     mainClass in assembly := Some("Main"),
     assemblyJarName in assembly := ""
   )
 
-lazy val core = (project in file("./HDM-core"))
+lazy val core = (project in file("./hdm-core"))
   .settings(commonSettings: _*)
   .settings(
-    name := "HDM-core",
+    name := "hdm-core",
     libraryDependencies ++= coreDep ++ akkaDep ++ logbackDep ++ asmDep
   )
   .dependsOn(akkaDist)
