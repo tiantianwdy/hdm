@@ -66,7 +66,11 @@ case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[T]],
            keepPartition: Boolean = this.keepPartition,
            partitioner: Partitioner[R] = this.partitioner):ParHDM[T,R] = {
 
-    new DFM(children, id, dependency, func, blocks, distribution, location, preferLocation, blockSize, isCache, state, parallelism, keepPartition, partitioner, this.appContext)
+    new DFM(children, id,
+      dependency,
+      func,
+      blocks, distribution, location, preferLocation, blockSize,
+      isCache, state, parallelism, keepPartition, partitioner, this.appContext)
   }
 
 

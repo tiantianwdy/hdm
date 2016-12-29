@@ -52,8 +52,9 @@ trait Aggregator[T, R] extends  Serializable {
   def aggregate(params:T): Unit
 
   /**
-   * get the final result from this aggregator, this may trigger some delayed aggregation processes due to performance consideration in previous aggregation steps
-   * @return
+    * get the final result from this aggregator, this may trigger some delayed aggregation processes due to performance
+    * consideration in previous aggregation steps
+    * @return
    */
   def result: R
 

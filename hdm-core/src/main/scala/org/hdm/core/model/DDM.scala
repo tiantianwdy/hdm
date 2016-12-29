@@ -69,7 +69,11 @@ class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
            keepPartition: Boolean = this.keepPartition,
            partitioner: Partitioner[R] = this.partitioner):ParHDM[T, R] = {
 
-    val ddm = new DDM(id, null, dependency, func, blocks.toBuffer, distribution, location, preferLocation, blockSize, isCache, state, parallelism, keepPartition, partitioner, appContext)
+    val ddm = new DDM(id, null,
+      dependency,
+      func,
+      blocks.toBuffer, distribution, location, preferLocation, blockSize,
+      isCache, state, parallelism, keepPartition, partitioner, appContext)
     ddm.blocks.clear()
     ddm.blocks ++= this.blocks
     ddm
