@@ -47,7 +47,9 @@ trait ThreeInputFunction[T, U, I, R] extends SerializableFunction[(Arr[T], Arr[U
 class CoGroupFunc[T: ClassTag, U: ClassTag, K: ClassTag](f1:T => K, f2: U => K ) extends DualInputFunction[T, U, (K, (Iterable[T], Iterable[U]))]
                                                    with Aggregator[(Arr[T],Arr[U]), Buf[(K, (Iterable[T], Iterable[U]))]]{
   @transient
-  private var tempBuffer:ThreadLocal[HashMap[K,(Iterable[T], Iterable[U])]] = new ThreadLocal[HashMap[K,(Iterable[T], Iterable[U])]]()
+  private var tempBuffer:ThreadLocal[HashMap[K,(Iterable[T], Iterable[U])]] = _
+
+  tempBuffer = new ThreadLocal[HashMap[K,(Iterable[T], Iterable[U])]]()
 
   override def apply(params: (Arr[T], Arr[U])): Arr[(K, (Iterable[T], Iterable[U]))] = {
     val res = HashMap.empty[K, (Iterable[T], Iterable[U])]
