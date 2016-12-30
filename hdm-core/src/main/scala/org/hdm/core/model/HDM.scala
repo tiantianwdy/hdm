@@ -243,9 +243,9 @@ abstract class HDM[R: ClassTag] extends Serializable {
   }
 
   def count(): ParHDM[_, Int] = {
-    val countFunc = (elems: Arr[R]) => Arr(elems.size)
+    val countFunc : Arr[R] => Arr[Int] = (elems: Arr[R]) => Arr(elems.size)
     //    val parallel = new DFM[R,Int](children = Seq(this), dependency = OneToOne, func = new ParMapAllFunc(countFunc), distribution = distribution, location = location, keepPartition = false, partitioner = new KeepPartitioner[Int](1))
-    val parallel = this.mapPartitions(countFunc)
+    val parallel: HDM[Int] = this.mapPartitions(countFunc)
     val reduceFunc = (l1: Int, l2: Int) => l1 + l2
     new DFM[Int, Int](children = Seq(parallel),
       dependency = NToOne,

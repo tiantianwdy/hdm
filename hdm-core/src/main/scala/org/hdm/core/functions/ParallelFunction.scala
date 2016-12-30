@@ -1,8 +1,6 @@
 package org.hdm.core.functions
 
 
-import java.util.concurrent.atomic.AtomicReference
-
 import org.hdm.core.collections.BufUtils
 import org.hdm.core.executor.TaskContext
 import org.hdm.core.model._
@@ -18,26 +16,26 @@ import scala.util.Sorting
 
 
 /**
- * Created by Tiantian on 2014/12/4.
- */
+  * Created by Tiantian on 2014/12/4.
+  */
 
 
 /**
- *
- * @tparam T input type
- * @tparam R return type
- */
-abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFunction[Arr[T], Arr[R]] with Aggregatable[Arr[T], Buffer[R]]{
+  *
+  * @tparam T input type
+  * @tparam R return type
+  */
+abstract class ParallelFunction[T: ClassTag, R: ClassTag] extends SerializableFunction[Arr[T], Arr[R]] with Aggregatable[Arr[T], Buffer[R]] {
 
 
-  val dependency:FuncDependency
+  val dependency: FuncDependency
 
   @transient
-  protected var runTimeContext:ThreadLocal[TaskContext] = new  ThreadLocal[TaskContext]()
+  protected var runTimeContext: ThreadLocal[TaskContext] = new ThreadLocal[TaskContext]()
 
-  def setTaskContext(context:TaskContext) = {
+  def setTaskContext(context: TaskContext) = {
     synchronized {
-      if(runTimeContext == null) runTimeContext = new  ThreadLocal[TaskContext]()
+      if (runTimeContext == null) runTimeContext = new ThreadLocal[TaskContext]()
       runTimeContext.set(context)
     }
   }
@@ -46,75 +44,34 @@ abstract class ParallelFunction [T:ClassTag, R :ClassTag] extends SerializableFu
 
   def getTaskContext() = runTimeContext.get()
 
-  def has(feature:FunctionFeature):Boolean = ParallelFunction.hasFeature(this, feature)
+  def has(feature: FunctionFeature): Boolean = ParallelFunction.hasFeature(this, feature)
 
-  def none(feature:FunctionFeature):Boolean = !has(feature)
+  def none(feature: FunctionFeature): Boolean = !has(feature)
 
-  def andThen[U:ClassTag](func: ParallelFunction[R, U]): ParallelFunction[T, U] = {
+  def andThen[U: ClassTag](func: ParallelFunction[R, U]): ParallelFunction[T, U] = {
     ParCombinedFunc(this, func)
   }
 
-  def compose[I:ClassTag](func: ParallelFunction[I, T]): ParallelFunction[I, R] = {
+  def compose[I: ClassTag](func: ParallelFunction[I, T]): ParallelFunction[I, R] = {
     ParCombinedFunc(func, this)
   }
-
-//  def andThen[U:ClassTag](func: ParallelFunction[R, U]): ParallelFunction[T, U] = {
-//    val f = (seq:Arr[T]) => func(this.apply(seq))
-//    val combinedDep = if(this.dependency == FullDep || func.dependency == FullDep) FullDep else PartialDep
-//    if(this.dependency == PartialDep) {
-//      val a = (seq: Arr[T], res: Buf[U]) => {
-//        func.aggregate(this.apply(seq), res)
-//      }
-//      val post = (b:Arr[U]) => b
-//      new ParCombinedFunc[T,U,U](dependency= combinedDep, parallel = f, preF = f, aggregation = a, postF = post, parentFunc = this, curFUnc = func)
-//    } else {//if(this.dependency == FullDep)
-//      val a = (seq: Arr[T], res: Buf[R]) => {
-//        this.aggregate(seq, res)
-//      }
-//      val post = (b:Arr[R]) => func.apply(b)
-//      new ParCombinedFunc[T,R,U](dependency= combinedDep, parallel = f, preF = this.apply(_), aggregation = a, postF = post, parentFunc = this, curFUnc = func)
-//    }
-//  }
-
-//  def compose[I:ClassTag](func: ParallelFunction[I, T]): ParallelFunction[I, R] = {
-//    val f = (seq:Arr[I]) => this.apply(func.apply(seq))
-//    val combinedDep = if(func.dependency == FullDep || this.dependency == FullDep) FullDep else PartialDep
-//    if(func.dependency == PartialDep) {
-//      val a = (seq: Arr[I], res: Buf[R]) => {
-//        this.aggregate(func.apply(seq), res)
-//      }
-//      val post = (b:Arr[R]) => b
-//      new ParCombinedFunc[I,R,R](dependency= combinedDep, parallel = f, preF = f, aggregation = a, postF = post, parentFunc = func, curFUnc = this)
-//    } else {//if(func.dependency == FullDep)
-//    val a = (seq: Arr[I], res: Buf[T]) => {
-//        func.aggregate(seq, res)
-//      }
-//      val post = (b:Arr[T]) => this.apply(b)
-//      new ParCombinedFunc[I,T,R](dependency= combinedDep, parallel = f, preF = func.apply(_), aggregation = a, postF = post, parentFunc = func, curFUnc = this)
-//    }
-//  }
-
-//  def getAggregator():Aggregator[Seq[T],Seq[R]]
-
-
-//  def aggregate(params:Arr[T], res:mutable.Buffer[R]): mutable.Buffer[R]
 
 }
 
 
-class ParMapFunc [T:ClassTag,R:ClassTag](val f: T=>R)  extends ParallelFunction[T,R] {
+class ParMapFunc[T: ClassTag, R: ClassTag](val f: T => R) extends ParallelFunction[T, R] {
 
   val dependency = PartialDep
 
 
   override def andThen[U: ClassTag](func: ParallelFunction[R, U]): ParallelFunction[T, U] = {
-    if(func.isInstanceOf[ParMapFunc[_,_]]){
-      val nf = func.asInstanceOf[ParMapFunc[R,U]]
+    if (func.isInstanceOf[ParMapFunc[_, _]]) {
+      val nf = func.asInstanceOf[ParMapFunc[R, U]]
       new ParMapFunc(f.andThen(nf.f))
-//      super.andThen(func)
-    } else if(func.isInstanceOf[ParFindByFunc[_]]){
+      //      super.andThen(func)
+    } else if (func.isInstanceOf[ParFindByFunc[_]]) {
       val nf = func.asInstanceOf[ParFindByFunc[R]]
-      val mapAll = (seq:Arr[T]) => {
+      val mapAll = (seq: Arr[T]) => {
         seq.filter(f.andThen(nf.f)).map(f)
       }
       new ParMapAllFunc(mapAll).asInstanceOf[ParallelFunction[T, U]]
@@ -128,13 +85,13 @@ class ParMapFunc [T:ClassTag,R:ClassTag](val f: T=>R)  extends ParallelFunction[
   }
 
   override def aggregate(params: Arr[T], res: Buffer[R]): Buffer[R] = {
-//    res ++= params.map(f)
+    //    res ++= params.map(f)
     BufUtils.combine(res, params.map(f))
   }
 
 }
 
-class ParMapAllFunc [T:ClassTag,R:ClassTag](val f: Arr[T]=>Arr[R])  extends ParallelFunction[T,R] {
+class ParMapAllFunc[T: ClassTag, R: ClassTag](val f: Arr[T] => Arr[R]) extends ParallelFunction[T, R] {
 
 
   val dependency = FullDep
@@ -145,19 +102,20 @@ class ParMapAllFunc [T:ClassTag,R:ClassTag](val f: Arr[T]=>Arr[R])  extends Para
   }
 
   override def aggregate(params: Arr[T], res: Buffer[R]): Buffer[R] = {
-//    res ++= f(params)
+    //    res ++= f(params)
     BufUtils.combine(res, f(params))
   }
 }
 
 
 /**
- * function apply on each partition of data with awareness of the global index
- * @param f
- * @tparam T input type
- * @tparam R return type
- */
-class ParMapWithIndexFunc [T:ClassTag,R:ClassTag](val f: (Long, Arr[T]) => Arr[R])  extends ParallelFunction[T,R] {
+  * function apply on each partition of data with awareness of the global index
+  *
+  * @param f
+  * @tparam T input type
+  * @tparam R return type
+  */
+class ParMapWithIndexFunc[T: ClassTag, R: ClassTag](val f: (Long, Arr[T]) => Arr[R]) extends ParallelFunction[T, R] {
 
 
   val dependency = FullDep
@@ -176,12 +134,12 @@ class ParMapWithIndexFunc [T:ClassTag,R:ClassTag](val f: (Long, Arr[T]) => Arr[R
 }
 
 
-class ParFindByFunc[T:ClassTag](val f: T=> Boolean)  extends ParallelFunction[T,T] {
+class ParFindByFunc[T: ClassTag](val f: T => Boolean) extends ParallelFunction[T, T] {
 
   override val dependency: FuncDependency = PartialDep
 
   override def aggregate(params: Arr[T], res: Buffer[T]): Buffer[T] = {
-//    res ++= this.apply(params)
+    //    res ++= this.apply(params)
     BufUtils.combine(res, apply(params))
   }
 
@@ -191,13 +149,12 @@ class ParFindByFunc[T:ClassTag](val f: T=> Boolean)  extends ParallelFunction[T,
 }
 
 
-
-class ParReduceFunc[T:ClassTag ,R >:T :ClassTag](val f: (R, R) => R)  extends ParallelFunction[T, R]{
+class ParReduceFunc[T: ClassTag, R >: T : ClassTag](val f: (R, R) => R) extends ParallelFunction[T, R] {
 
   val dependency = FullDep
 
   override def apply(params: Arr[T]): Arr[R] = {
-    if(params.nonEmpty){
+    if (params.nonEmpty) {
       Arr(params.reduce(f))
     } else {
       Arr.empty[R]
@@ -205,13 +162,13 @@ class ParReduceFunc[T:ClassTag ,R >:T :ClassTag](val f: (R, R) => R)  extends Pa
   }
 
   override def aggregate(params: Arr[T], res: Buffer[R]): Buffer[R] = {
-    val elems = if(res.isEmpty) params.reduce(f)
-     else params.fold(res.head)(f)
+    val elems = if (res.isEmpty) params.reduce(f)
+    else params.fold(res.head)(f)
     Buf(elems)
   }
 }
 
-class ParFoldFunc[T:ClassTag, R:ClassTag](z:R)(val f: (R, T) => R)  extends ParallelFunction[T, R] {
+class ParFoldFunc[T: ClassTag, R: ClassTag](z: R)(val f: (R, T) => R) extends ParallelFunction[T, R] {
 
   val dependency = FullDep
 
@@ -226,7 +183,7 @@ class ParFoldFunc[T:ClassTag, R:ClassTag](z:R)(val f: (R, T) => R)  extends Para
 }
 
 
-class ParGroupByFunc[T: ClassTag, K: ClassTag](val f: T => K) extends ParallelFunction[T,(K, Iterable[T])]  {
+class ParGroupByFunc[T: ClassTag, K: ClassTag](val f: T => K) extends ParallelFunction[T, (K, Iterable[T])] {
 
   val dependency = FullDep
 
@@ -235,15 +192,16 @@ class ParGroupByFunc[T: ClassTag, K: ClassTag](val f: T => K) extends ParallelFu
   }
 
 
-  override def aggregate(params: Arr[T], res: Buffer[(K, Iterable[T])]): Buffer[(K, Iterable[T])] = { // 40% faster than non-optimized one
-//    val tempMap = res
+  override def aggregate(params: Arr[T], res: Buffer[(K, Iterable[T])]): Buffer[(K, Iterable[T])] = {
+    // 40% faster than non-optimized one
+    //    val tempMap = res
     val tempMap = HashMap.empty[K, Iterable[T]] ++= res
-    params foreach {elem =>
+    params foreach { elem =>
       val k = f(elem)
-      if(tempMap.contains(k)){
+      if (tempMap.contains(k)) {
         val v = tempMap.apply(k)
-//        tempMap.update(k, v += elem)
-        tempMap.update(k, BufUtils.add(v.asInstanceOf[Buf[T]],elem))
+        //        tempMap.update(k, v += elem)
+        tempMap.update(k, BufUtils.add(v.asInstanceOf[Buf[T]], elem))
       } else {
         tempMap += k -> Buf(elem)
       }
@@ -259,12 +217,12 @@ class ParGroupByFunc[T: ClassTag, K: ClassTag](val f: T => K) extends ParallelFu
     res foreach { e =>
       tempMap += e._1 -> e._2
     }
-    params foreach {elem =>
+    params foreach { elem =>
       val k = f(elem)
-      if(tempMap.contains(k)){
+      if (tempMap.contains(k)) {
         val v = tempMap.apply(k)
         //        tempMap.update(k, v += elem)
-        tempMap.update(k, BufUtils.add(v.asInstanceOf[Buf[T]],elem))
+        tempMap.update(k, BufUtils.add(v.asInstanceOf[Buf[T]], elem))
       } else {
         tempMap += k -> Buf(elem)
       }
@@ -274,17 +232,17 @@ class ParGroupByFunc[T: ClassTag, K: ClassTag](val f: T => K) extends ParallelFu
 
 }
 
-class ParReduceBy[T:ClassTag, K :ClassTag](fk: T=> K, fr: (T, T) => T) extends ParallelFunction[T,(K,T)] {
+class ParReduceBy[T: ClassTag, K: ClassTag](fk: T => K, fr: (T, T) => T) extends ParallelFunction[T, (K, T)] {
 
 
   val dependency = FullDep
 
   override def apply(params: Arr[T]): Arr[(K, T)] = {
-//    params.groupBy(fk).toSeq.map(d => (d._1, d._2.reduce(fr))) // 30% slower than new implementation
-    val tempMap = HashMap.empty[K,T]
-    params foreach{ elem =>
+    //    params.groupBy(fk).toSeq.map(d => (d._1, d._2.reduce(fr))) // 30% slower than new implementation
+    val tempMap = HashMap.empty[K, T]
+    params foreach { elem =>
       val k = fk(elem)
-      if(tempMap.contains(k)){
+      if (tempMap.contains(k)) {
         val v = tempMap.apply(k)
         tempMap.update(k, fr(v, elem))
       } else {
@@ -295,7 +253,7 @@ class ParReduceBy[T:ClassTag, K :ClassTag](fk: T=> K, fr: (T, T) => T) extends P
   }
 
   override def aggregate(params: Arr[T], res: Buffer[(K, T)]): Buffer[(K, T)] = {
-    val tempMap = HashMap.empty[K,T] ++= res
+    val tempMap = HashMap.empty[K, T] ++= res
     params foreach { elem =>
       val k = fk(elem)
       if (tempMap.contains(k)) {
@@ -310,9 +268,7 @@ class ParReduceBy[T:ClassTag, K :ClassTag](fk: T=> K, fr: (T, T) => T) extends P
 }
 
 
-
-
-class ParGroupByAggregation[T:ClassTag, K:ClassTag, R : ClassTag] (fk: T=> K, t: T=> R, fr: (R, R) => R) extends ParallelFunction[T,(K,R)] {
+class ParGroupByAggregation[T: ClassTag, K: ClassTag, R: ClassTag](fk: T => K, t: T => R, fr: (R, R) => R) extends ParallelFunction[T, (K, R)] {
 
   val dependency = FullDep
 
@@ -322,9 +278,9 @@ class ParGroupByAggregation[T:ClassTag, K:ClassTag, R : ClassTag] (fk: T=> K, t:
 
   override def aggregate(params: Arr[T], res: Buffer[(K, R)]): Buffer[(K, R)] = {
     val mapRes = params.toSeq.groupBy(fk).mapValues(_.map(t).reduce(fr))
-    val tempMap = HashMap.empty[K,R] ++= res
+    val tempMap = HashMap.empty[K, R] ++= res
     mapRes.toSeq foreach { tup =>
-      if(tempMap.contains(tup._1)){
+      if (tempMap.contains(tup._1)) {
         val v = tempMap.apply(tup._1)
         tempMap.update(tup._1, fr(v, tup._2))
       } else {
@@ -335,7 +291,7 @@ class ParGroupByAggregation[T:ClassTag, K:ClassTag, R : ClassTag] (fk: T=> K, t:
   }
 }
 
-class ParUnionFunc[T: ClassTag]()  extends ParallelFunction[T,T] {
+class ParUnionFunc[T: ClassTag]() extends ParallelFunction[T, T] {
 
   val dependency = PartialDep
 
@@ -344,12 +300,12 @@ class ParUnionFunc[T: ClassTag]()  extends ParallelFunction[T,T] {
   }
 
   override def aggregate(params: Arr[T], res: Buffer[T]): Buffer[T] = {
-//    res ++= params
+    //    res ++= params
     BufUtils.combine(res, params)
   }
 }
 
-class FlattenFunc[T: ClassTag] extends ParallelFunction[T,T] {
+class FlattenFunc[T: ClassTag] extends ParallelFunction[T, T] {
 
   val dependency = PartialDep
 
@@ -358,21 +314,23 @@ class FlattenFunc[T: ClassTag] extends ParallelFunction[T,T] {
   }
 
   override def aggregate(params: Arr[T], res: Buffer[T]): Buffer[T] = {
-//    res ++= params
+    //    res ++= params
     BufUtils.combine(res, params)
   }
 
 }
 
-class NullFunc[T: ClassTag] extends ParallelFunction[T,T] {
+class NullFunc[T: ClassTag] extends ParallelFunction[T, T] {
 
   val dependency = PartialDep
+
   /**
-   * any function combined with null function would get itself.
-   * @param func
-   * @tparam U
-   * @return
-   */
+    * any function combined with null function would get itself.
+    *
+    * @param func
+    * @tparam U
+    * @return
+    */
   override def andThen[U: ClassTag](func: ParallelFunction[T, U]): ParallelFunction[T, U] = {
     func
   }
@@ -387,7 +345,7 @@ class NullFunc[T: ClassTag] extends ParallelFunction[T,T] {
   }
 
   override def aggregate(params: Arr[T], res: Buffer[T]): Buffer[T] = {
-//    res ++= params
+    //    res ++= params
     BufUtils.combine(res, params)
   }
 
@@ -412,9 +370,9 @@ class NullParFunc[T: ClassTag, R: ClassTag] extends ParallelFunction[T, R] {
 }
 
 
-class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)
-                            (implicit ordering: Ordering[T])
-  extends ParallelFunction[T,T] with Aggregator[Arr[T], Buf[T]]{
+class SortFunc[T: ClassTag](val sortInMerge: Boolean = false)
+                           (implicit ordering: Ordering[T])
+  extends ParallelFunction[T, T] with Aggregator[Arr[T], Buf[T]] {
 
   override val dependency: FuncDependency = FullDep
 
@@ -422,13 +380,13 @@ class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)
   private var buffer: Array[T] = Array.empty[T]
 
   override def apply(params: Arr[T]): Arr[T] = {
-    if(classTag[T] == classTag[Int]){
+    if (classTag[T] == classTag[Int]) {
       val array = params.toArray.asInstanceOf[Array[Int]]
       Sorting.quickSort(array)
       array.toIterator.asInstanceOf[Arr[T]]
     } else {
       val array = params.toArray
-//      Sorting.quickSort(array)
+      //      Sorting.quickSort(array)
       Sorting.stableSort(array)
       array.toIterator
     }
@@ -438,19 +396,19 @@ class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)
     //todo change to support AnyVal
     classTag[T] match {
       case ClassTag.Int =>
-//        println("sorting array of Int")
+        //        println("sorting array of Int")
         val array = params.toArray.asInstanceOf[Array[Int]]
         //if params has not been sorted
-        if(sortInMerge)
+        if (sortInMerge)
           Sorting.quickSort(array)
         val resArray = sorted.toArray.asInstanceOf[Array[Int]]
         //merge sorted sequences
         SortingUtils.mergeSorted(resArray, array).toBuffer.asInstanceOf[Buffer[T]]
-      case other:Any =>
-//        println("sorting array of Any")
+      case other: Any =>
+        //        println("sorting array of Any")
         val array = params.toArray
         //if params has not been sorted
-        if(sortInMerge)
+        if (sortInMerge)
           Sorting.quickSort(array)
         val resArray = sorted.toArray
         //merge sorted sequences
@@ -462,14 +420,14 @@ class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)
     //assume both res and params have not been sorted
     //todo change to support AnyVal
     classTag[T] match {
-      case ct:ClassTag[Int] =>
+      case ct: ClassTag[Int] =>
         val array = params.toArray.asInstanceOf[Array[Int]]
         //        Sorting.quickSort(array)
         val resArray = res.toArray.asInstanceOf[Array[Int]]
         val newRes = Array.concat(resArray, array)
         Sorting.quickSort(newRes)
         newRes.toBuffer.asInstanceOf[Buffer[T]]
-      case other:Any =>
+      case other: Any =>
         val array = params.toArray
         //        Sorting.quickSort(array)
         val resArray = res.toArray
@@ -492,15 +450,17 @@ class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)
         Sorting.stableSort(bufArray)
       }
       bufArray.toBuffer
-    } else{
+    } else {
       buffer.toBuffer
     }
   }
 
   override def aggregate(params: Arr[T]): Unit = {
-    if (sortInMerge) { // leave sorting to merge stage
+    if (sortInMerge) {
+      // leave sorting to merge stage
       buffer ++= params
-    } else { // if input are sorted, accumulatively combine them
+    } else {
+      // if input are sorted, accumulatively combine them
       buffer = SortingUtils.mergeSorted(params.toArray, buffer)
     }
   }
@@ -508,24 +468,22 @@ class SortFunc[T : ClassTag](val sortInMerge:Boolean = false)
 }
 
 
-
 object ParallelFunction {
 
-  val featureMapping:Map[Class[_ <: ParallelFunction[_,_]], Seq[FunctionFeature]] = Map(
+  val featureMapping: Map[Class[_ <: ParallelFunction[_, _]], Seq[FunctionFeature]] = Map(
     classOf[ParFindByFunc[_]] -> Seq(Pruning),
-    classOf[ParGroupByFunc[_,_]] -> Seq(Aggregation),
-    classOf[ParFoldFunc[_,_]] -> Seq(Aggregation, Pruning),
-    classOf[ParReduceFunc[_,_]] -> Seq(Aggregation, Pruning),
-    classOf[ParReduceBy[_,_]] -> Seq(Aggregation, Pruning),
-    classOf[ParMapFunc[_,_]] -> Seq(PureParallel),
-    classOf[ParMapAllFunc[_,_]] -> Seq(PureParallel)
+    classOf[ParGroupByFunc[_, _]] -> Seq(Aggregation),
+    classOf[ParFoldFunc[_, _]] -> Seq(Aggregation, Pruning),
+    classOf[ParReduceFunc[_, _]] -> Seq(Aggregation, Pruning),
+    classOf[ParReduceBy[_, _]] -> Seq(Aggregation, Pruning),
+    classOf[ParMapFunc[_, _]] -> Seq(PureParallel),
+    classOf[ParMapAllFunc[_, _]] -> Seq(PureParallel)
   )
 
-  def hasFeature(func:ParallelFunction[_,_], feature:FunctionFeature): Boolean = {
+  def hasFeature(func: ParallelFunction[_, _], feature: FunctionFeature): Boolean = {
     featureMapping.contains(func.getClass) &&
       featureMapping(func.getClass).contains(feature)
   }
-
 
 
 }

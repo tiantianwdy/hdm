@@ -6,15 +6,15 @@ import scala.collection.mutable.ArrayBuffer
 import scala.reflect._
 
 /**
- * Created by tiantian on 26/10/15.
- *
- * Partitioning algorithm with sampling to decide the upper and lower bound
- *
- * @tparam K
- */
-class RangePartitioning[K : Ordering : ClassTag](val boundaries:Array[K]) extends PartitioningFunc[K] {
+  * Created by tiantian on 26/10/15.
+  *
+  * Partitioning algorithm with sampling to decide the upper and lower bound
+  *
+  * @tparam K
+  */
+class RangePartitioning[K: Ordering : ClassTag](val boundaries: Array[K]) extends PartitioningFunc[K] {
 
-  val numOfPartitions:Int = boundaries.length + 1
+  val numOfPartitions: Int = boundaries.length + 1
 
   private val ordering = implicitly[Ordering[K]]
 
@@ -28,7 +28,7 @@ class RangePartitioning[K : Ordering : ClassTag](val boundaries:Array[K]) extend
 
 object RangePartitioning {
 
-  def binarySearch[K : Ordering : ClassTag] : (Array[K], K) => Int = {
+  def binarySearch[K: Ordering : ClassTag]: (Array[K], K) => Int = {
     classTag[K] match {
       case ClassTag.Float =>
         (l, x) => util.Arrays.binarySearch(l.asInstanceOf[Array[Float]], x.asInstanceOf[Float])
@@ -50,13 +50,13 @@ object RangePartitioning {
     }
   }
 
-  def decideBoundary[K : Ordering : ClassTag](input:Seq[K], numOfBoundary:Int):Array[K] = {
+  def decideBoundary[K: Ordering : ClassTag](input: Seq[K], numOfBoundary: Int): Array[K] = {
     import scala.collection.JavaConversions._
     val ordering = implicitly[Ordering[K]]
     val valMap = new util.HashMap[K, Int]()
     val sampledSize = input.length
-    input foreach{ in =>
-      if(!valMap.containsKey(in)) valMap.put(in, 1)
+    input foreach { in =>
+      if (!valMap.containsKey(in)) valMap.put(in, 1)
       else {
         val v = valMap.get(in)
         valMap.put(in, v + 1)
@@ -64,7 +64,7 @@ object RangePartitioning {
     }
     val ordered = valMap.toSeq.map(d => d._1 -> (d._2.toDouble / sampledSize)).sortBy(_._1)
     val numCandidates = ordered.size
-//    val sumWeights = ordered.map(_._2.toDouble / sampledSize).sum
+    //    val sumWeights = ordered.map(_._2.toDouble / sampledSize).sum
     val step = 1D / numOfBoundary
     var cumWeight = 0.0
     var target = step
