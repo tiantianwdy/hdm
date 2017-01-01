@@ -31,9 +31,11 @@ class RandomPartitioner[T:ClassTag](var partitionNum:Int) extends  Partitioner[T
 
   val pFunc: T => Int = null
 
+  private val r = scala.util.Random
+
   override def split(data: Seq[T]): Map[Int,Seq[T]] = {
 
-    val pData = data.groupBy(d => Math.abs(d.hashCode()) % partitionNum)
+    val pData = data.groupBy(d => Math.abs(r.nextInt()) % partitionNum)
     pData
     //    mutable.Map.empty[Int,Seq[T]] ++= pData.map(seq => pData.indexOf(seq) -> seq)
   }
