@@ -1,7 +1,7 @@
 import sbt._
 
 lazy val javacSeq = Seq(
-  "-XX:MaxPermSize=1024M"
+  "-J-XX:MaxPermSize=256m"
 )
 
 lazy val groupids: Map[String, String] = Map(
