@@ -74,9 +74,9 @@ extends DeserializationStream {
 }
 
 
-private[hdm] class JavaSerializerInstance(
+private[hdm] class JavaSerializerInstance (
     counterReset: Int, extraDebugInfo: Boolean, defaultClassLoader: ClassLoader)
-  extends SerializerInstance {
+  extends SerializerInstance with Serializable {
 
   override def serialize[T: ClassTag](t: T): ByteBuffer = {
     val bos = new ByteArrayOutputStream()

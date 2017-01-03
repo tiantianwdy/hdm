@@ -5,7 +5,7 @@ import org.hdm.core.executor._
 import org.hdm.core.functions._
 import org.hdm.core.io.Path
 import org.hdm.core.storage.BlockState
-import org.hdm.core.utils.{ClosureCleaner, SampleUtils}
+import org.hdm.core.utils.{ClosureCleaner, Logging, SampleUtils}
 
 import scala.concurrent.{Await, Future}
 import scala.reflect.{ClassTag, classTag}
@@ -16,7 +16,7 @@ import scala.util.{Left, Random}
   *
   * HDM : Hierarchically Distributed Matrices
   */
-abstract class HDM[R: ClassTag] extends Serializable {
+abstract class HDM[R: ClassTag] extends Serializable{
 
   @transient
   var hdmContext: HDMContext = HDMContext.defaultHDMContext
@@ -378,8 +378,7 @@ abstract class HDM[R: ClassTag] extends Serializable {
         indices += (idx + 1) -> (indices(idx) + lengthOfPartitions(idx))
       }
     }
-
-    indices.foreach(println(_))
+//    log.info(s"partition index:[${indices.mkString(",")}]")
 
     // zip elements with global indices
     this.mapPartitionsWithIdx { (idx, arr) =>
