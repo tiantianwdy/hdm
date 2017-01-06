@@ -153,7 +153,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>org.nicta.wdy.hdm.server.HDMServer</mainClass>
+                            <mainClass>org.hdm.core.server.HDMServer</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
