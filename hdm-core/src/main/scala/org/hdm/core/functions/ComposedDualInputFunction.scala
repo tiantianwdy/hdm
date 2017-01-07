@@ -24,7 +24,9 @@ class ComposedDualInputFunction[T: ClassTag, U: ClassTag, V: ClassTag, R: ClassT
   extends DualInputFunction[T, U, R] with Aggregator[(Arr[T], Arr[U]), Buf[R]] {
 
   @transient
-  private val tempBuffer: ThreadLocal[Buf[V]] = new ThreadLocal[Buf[V]]
+  private var tempBuffer: ThreadLocal[Buf[V]] = _
+
+  tempBuffer = new ThreadLocal[Buf[V]]
 
   override def apply(params: (Arr[T], Arr[U])): Arr[R] = {
     pFunc(dualFunc.apply(params))
@@ -33,6 +35,9 @@ class ComposedDualInputFunction[T: ClassTag, U: ClassTag, V: ClassTag, R: ClassT
   override def aggregate(params: (Arr[T], Arr[U]), res: Buf[R]): Buf[R] = ???
 
   override def init(zero: Buf[R]): Unit = {
+    if(tempBuffer eq null) {
+      tempBuffer = new ThreadLocal[Buf[V]]
+    }
     tempBuffer.set(Buf.empty[V])
     dualFunc match {
       case agg: Aggregator[(Arr[T], Arr[U]), Buf[V]] => agg.init(tempBuffer.get())
