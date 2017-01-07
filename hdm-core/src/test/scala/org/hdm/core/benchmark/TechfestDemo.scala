@@ -39,7 +39,8 @@ class TechfestDemo {
 
   @Test
   def testStartSlave(): Unit = {
-    hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
+//    hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
+    hDMContext.startAsSlave(masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(50000000)
   }
 
