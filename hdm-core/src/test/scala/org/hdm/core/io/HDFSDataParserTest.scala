@@ -67,7 +67,7 @@ class HDFSDataParserTest {
     while (!locs.isEmpty){
       val start = System.currentTimeMillis()
       val  blocks = locs.take(step) map { ddm =>
-        val data = new HdfsParser().readBlock(ddm.location)
+        val data = new HdfsParser().readBlock(ddm.location, ClassLoader.getSystemClassLoader)
         data
       }
       locs = locs.drop(step)
