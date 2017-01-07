@@ -229,7 +229,7 @@ object HDMBlockManager extends Logging{
   def loadBlock[T: ClassTag](url:String):Block[T] ={
     val path = Path(url)
 //    val bl = defaultManager.getBlock(id)*/
-    val bl = DataParser.readBlock(path)
+    val bl = DataParser.readBlock(path, ClassLoader.getSystemClassLoader)
     if(bl ne null) bl.asInstanceOf[Block[T]]
     else {
       //compute the block

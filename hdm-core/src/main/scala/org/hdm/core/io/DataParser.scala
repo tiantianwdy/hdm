@@ -29,7 +29,8 @@ trait DataParser {
 
   def protocol:String
 
-  def readBlock[T: ClassTag](path:Path)(implicit serializer:BlockSerializer[T]):Block[T]
+  def readBlock[T: ClassTag](path:Path,
+                             classLoader: ClassLoader)(implicit serializer:BlockSerializer[T]):Block[T]
 
   def readBlock[T: ClassTag, R:ClassTag](path:Path,
                                          func:Iterator[T] => Iterator[R],
@@ -47,7 +48,7 @@ class HdfsParser extends DataParser{
 
   override def writeBlock[String: ClassTag](path: Path, bl: Block[String])(implicit serializer: BlockSerializer[String]): Unit = ???
 
-  override def readBlock[String: ClassTag](path: Path)(implicit serializer: BlockSerializer[String] = new StringSerializer): Block[String] = {
+  override def readBlock[String: ClassTag](path: Path,  classLoader: ClassLoader)(implicit serializer: BlockSerializer[String] = new StringSerializer): Block[String] = {
     val conf = new Configuration()
     conf.set("fs.default.name", path.protocol + path.address)
     val filePath = new HPath(path.relativePath)
@@ -105,7 +106,7 @@ class FileParser extends DataParser{
                                                    func: (Iterator[T]) => Iterator[R],
                                                    classLoader: ClassLoader)(implicit serializer: BlockSerializer[T]): Buf[R] = ???
 
-  override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T]): Block[T] = ???
+  override def readBlock[T: ClassTag](path: Path, classLoader: ClassLoader)(implicit serializer: BlockSerializer[T]): Block[T] = ???
 
   override def protocol: String = "file://"
 
@@ -120,7 +121,7 @@ class MysqlParser extends DataParser{
                                                    func: (Iterator[T]) => Iterator[R],
                                                    classLoader: ClassLoader)(implicit serializer: BlockSerializer[T]): Buf[R] = ???
 
-  override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T]): Block[T] = ???
+  override def readBlock[T: ClassTag](path: Path, classLoader: ClassLoader)(implicit serializer: BlockSerializer[T]): Block[T] = ???
 
   override def protocol: String = "mysql://"
 }
@@ -139,7 +140,7 @@ class HDMParser extends DataParser {
                                                    func: (Iterator[T]) => Iterator[R],
                                                    classLoader: ClassLoader)(implicit serializer: BlockSerializer[T] = null): Buf[R] = ???
 
-  override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T] = null): Block[T] = {
+  override def readBlock[T: ClassTag](path: Path, classLoader: ClassLoader)(implicit serializer: BlockSerializer[T] = null): Block[T] = {
     blockManager.getBlock(path.name).asInstanceOf[Block[T]]
   }
 
@@ -151,8 +152,10 @@ class NettyParser extends DataParser {
 
   override def protocol: String = "netty://"
 
-  override def readBlock[T: ClassTag](path: Path)(implicit serializer: BlockSerializer[T] = null): Block[T] = {
-    val iterator = new BufferedBlockIterator[T](Seq(path))
+  override def readBlock[T: ClassTag](path: Path,
+                                      classLoader: ClassLoader)
+                                     (implicit serializer: BlockSerializer[T] = null): Block[T] = {
+    val iterator = new BufferedBlockIterator[T](blockRefs = Seq(path), classLoader = classLoader)
     val data = iterator.toSeq
     val id = path.name
     Block(id, data)
@@ -198,12 +201,12 @@ object DataParser extends Logging{
     }
   }
 
-  def readBlock(path:String):Block[_] = readBlock(Path(path))
+  def readBlock(path:String, classLoader: ClassLoader):Block[_] = readBlock(Path(path), classLoader)
 
-  def readBlock(path:Path):Block[_] = path.protocol.toLowerCase match {
-    case "hdm://" => new HDMParser().readBlock(path)
-    case "hdfs://" => new HdfsParser().readBlock(path)
-    case "netty://" => new NettyParser().readBlock(path)
+  def readBlock(path:Path, classLoader: ClassLoader):Block[_] = path.protocol.toLowerCase match {
+    case "hdm://" => new HDMParser().readBlock(path, classLoader)
+    case "hdfs://" => new HdfsParser().readBlock(path, classLoader)
+    case "netty://" => new NettyParser().readBlock(path, classLoader)
 //    case "file://" => new FileParser().readBlock(path)
 //    case "mysql://" => new MysqlParser().readBlock(path)
     case _ => throw new IOException("Unsupported data protocol:" + path.protocol)
@@ -220,7 +223,9 @@ object DataParser extends Logging{
     case _ => throw new IOException("Unsupported data protocol:" + path.protocol)
   }
   
-  def readBlock(in:ParHDM[_,_], removeFromCache:Boolean):Block[_] = {
+  def readBlock(in:ParHDM[_,_],
+                removeFromCache:Boolean,
+                classLoader: ClassLoader):Block[_] = {
     if (!HDMBlockManager().isCached(in.id)) {
       in.location.protocol match {
         case Path.AKKA =>
@@ -236,12 +241,13 @@ object DataParser extends Logging{
           }
 
         case Path.HDFS =>
-          val bl = DataParser.readBlock(in.location)
+          val bl = DataParser.readBlock(in.location, classLoader: ClassLoader)
           log.info(s"finished reading block with size: ${Block.byteSize(bl)/ (1024*1024F)} MB. ")
           bl
 
         case Path.NETTY=>
-          val bl = DataParser.readBlock(in.location)
+          log.info(s"reading Netty block from ${in.location} with class loader ${classLoader}")
+          val bl = DataParser.readBlock(in.location, classLoader)
           log.info(s"finished reading block with size: ${Block.byteSize(bl)/ (1024*1024F)} MB. ")
           bl
       }

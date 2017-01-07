@@ -57,7 +57,7 @@ object ClusterExecutor extends Logging{
             log.info(s"Asking block ${ddm.location.name} from ${ddm.location.parent}")
             ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
           case Path.HDFS => Future {
-            val bl = DataParser.readBlock(ddm.location)
+            val bl = DataParser.readBlock(ddm.location, ClassLoader.getSystemClassLoader)
             //          blockManager.add(ddm.id, bl)
             //          ddm.id
             bl

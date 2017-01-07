@@ -171,7 +171,10 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
     val id = appId(appName, version)
     if(classLoaderMap.contains(id)){
       classLoaderMap(id)
-    } else DynamicDependencyThreadFactory.defaultClassLoader()
+    } else {
+      log.warn(s"Cannot find class loader for ${appName}, ${version}")
+      DynamicDependencyThreadFactory.defaultClassLoader()
+    }
   }
 
   def getAllDepFiles(appName:String, version:String):Array[File] = {
@@ -218,7 +221,7 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
   }
 
   /**
-   * subtmi a job dependency from local files
+   * submit a job dependency from local files
    * @param appName
    * @param version
    * @param srcFile

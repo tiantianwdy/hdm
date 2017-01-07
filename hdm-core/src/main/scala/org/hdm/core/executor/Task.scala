@@ -55,15 +55,16 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
 
 
     def runShuffleTask():Seq[DDM[_,R]]  = {
-      val blocks = input.map(ddm => DataParser.readBlock(ddm, true))
+      val classLoader = DependencyManager().getClassLoader(appId, version)
+      val blocks = input.map(ddm => DataParser.readBlock(ddm, true, classLoader))
 
       val inputData = blocks.map(_.data.toIterator.asInstanceOf[Arr[I]]).flatten.toIterator
-      val ouputData = func.apply(inputData)
-      log.debug(s"non-iterative shuffle results: ${ouputData.take(10)}")
+      val outputData = func.apply(inputData)
+      log.debug(s"non-iterative shuffle results: ${outputData.take(10)}")
       val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
-        Seq(DDM[R](taskId, ouputData.toBuffer, appContext, blockContext, hdmContext))
+        Seq(DDM[R](taskId, outputData.toBuffer, appContext, blockContext, hdmContext))
       } else {
-        partitioner.split(ouputData).map(seq => DDM(taskId + "_p" + seq._1, seq._2, appContext, blockContext, hdmContext)).toSeq
+        partitioner.split(outputData).map(seq => DDM(taskId + "_p" + seq._1, seq._2, appContext, blockContext, hdmContext)).toSeq
       }
       ddms
 
@@ -73,7 +74,8 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
     val blockByAddress = input.map(_.location)
     //randomize the request to avoid IO contense
     val remoteBlocks = Utils.randomize(blockByAddress.toSeq)
-    val iterator = new BufferedBlockIterator[I](remoteBlocks)
+    val classLoader = DependencyManager().getClassLoader(appId, version)
+    val iterator = new BufferedBlockIterator[I](blockRefs = remoteBlocks, classLoader = classLoader)
     val res = func.apply(iterator)
     val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
       Seq(DDM[R](taskId, res.toBuffer, appContext, blockContext, hdmContext))
@@ -232,8 +234,9 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
 
       }.flatten
     } else { // full depdency functions require input data have been fully loaded.
+      log.info(s"Reading blocks for function: [${(taskId, func)}] with class loader [${classLoader}]")
       val inputs = input.map { in =>
-        val inputData = DataParser.readBlock(in, false).asInstanceOf[Block[I]]
+        val inputData = DataParser.readBlock(in, false, classLoader).asInstanceOf[Block[I]]
         log.info(s"Input data size ${inputData.data.size} ")
         inputData.data
       }.flatten
@@ -264,9 +267,10 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
     var res:Buf[R] = Buf.empty[R]
     val inputFinished = new AtomicBoolean(false)
     val inputQueue = new LinkedBlockingDeque[Block[_]]
+    val classLoader = DependencyManager().getClassLoader(appId, version)
     Future{
       while(iter.hasNext) {
-        val block = DataParser.readBlock(iter.next(), true)
+        val block = DataParser.readBlock(iter.next(), true, classLoader)
         inputQueue.offer(block)
       }
       inputFinished.set(true)

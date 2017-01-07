@@ -48,8 +48,9 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
   }
 
   def runTaskIteratively(): Seq[DDM[_, R]] ={
-    val input1Iter = new BufferedBlockIterator[T](input1)
-    val input2Iter = new BufferedBlockIterator[U](input2)
+    val classLoader = DependencyManager().getClassLoader(appId, version)
+    val input1Iter = new BufferedBlockIterator[T](input1, classLoader)
+    val input2Iter = new BufferedBlockIterator[U](input2, classLoader)
     val res = func.aggregate((input1Iter, input2Iter), mutable.Buffer.empty[R])
     val ddms = if (partitioner == null || partitioner.isInstanceOf[KeepPartitioner[_]]) {
       Seq(DDM[R](taskId, res, appContext, blockContext, hdmContext))
@@ -61,7 +62,7 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
 
   def runTaskAsynchronously(): Seq[DDM[_, R]] = {
     // todo be implemented using DataLoader and loading queue
-    log.debug(s"Preparing input data for task: [${(taskId, func)}] ")
+    log.info(s"Preparing input data for task: [${(taskId, func)}] ")
     val classLoader = DependencyManager().getClassLoader(appId, version)
     var res: Buf[R] = Buf.empty[R]
 //    val blockFetchingCounter = new AtomicInteger(0)

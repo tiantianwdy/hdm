@@ -21,7 +21,7 @@ import scala.reflect.ClassTag
  */
 class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], 
                                         val bufferSize:Int = 100000,
-                                        val classLoader: ClassLoader = ClassLoader.getSystemClassLoader) extends BufferedIterator[A] with Logging{
+                                        val classLoader: ClassLoader) extends BufferedIterator[A] with Logging{
 
   val blockCounter = new AtomicInteger(0)
   val readingOffset = new AtomicInteger(0)
@@ -31,7 +31,11 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path],
   val waitForReading = new Semaphore(1)
 
   def this(hdms:Seq[HDM[_]]){
-    this(hdms.flatMap(_.blocks).map(Path(_)), 100000)
+    this(hdms.flatMap(_.blocks).map(Path(_)), 100000, ClassLoader.getSystemClassLoader)
+  }
+
+  def this(hdms:Seq[HDM[_]], classLoader: ClassLoader){
+    this(hdms.flatMap(_.blocks).map(Path(_)), 100000, classLoader)
   }
 
   def reset() = {
@@ -111,8 +115,11 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path],
 
   def deserializeBlock(received: Any):Seq[A] = {
     val block = received match {
-      case resp:FetchSuccessResponse => HDMContext.defaultHDMContext.defaultSerializer.deserialize[Block[A]](resp.data, classLoader)
-      case blk: Block[_] => blk.asInstanceOf[Block[A]]
+      case resp:FetchSuccessResponse =>
+        log.trace(s"Class loader: ${classLoader}")
+        HDMContext.defaultHDMContext.defaultSerializer.deserialize[Block[A]](resp.data, classLoader)
+      case blk: Block[_] =>
+        blk.asInstanceOf[Block[A]]
       case x:Any => Block(Seq.empty[A])
     }
     block.data
