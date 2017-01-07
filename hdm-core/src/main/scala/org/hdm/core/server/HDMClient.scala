@@ -18,12 +18,26 @@ object HDMClient {
    * @param file
    * @param user
    */
-  def submitApplication(master:String, app:String, version:String, file:String, user:String): Unit ={
-    val start = System.currentTimeMillis()
-
+  def submitApplication(master:String, app:String, version:String, user:String, file:String): Unit ={
     SmsSystem.startAsClient(master, 20001)
     Thread.sleep(100)
     DependencyManager.submitAppByPath(master, app, version, file, user)
+    Thread.sleep(3000)
+  }
+
+  /**
+   * add dependency to a application by using its path.
+   *
+   * @param master
+   * @param app
+   * @param version
+   * @param user
+   * @param file
+   */
+  def addDependency(master:String, app:String, version:String, user:String, file:String): Unit ={
+    SmsSystem.startAsClient(master, 20001)
+    Thread.sleep(100)
+    DependencyManager.submitDepByPath(master, app, version, file, user)
     Thread.sleep(3000)
   }
 
@@ -43,6 +57,10 @@ object HDMClient {
     Thread.sleep(2000)
   }
 
+  /**
+   *
+   * @param args
+   */
   def main(args: Array[String]) {
     try {
       assert(args.length > 0)
@@ -52,8 +70,11 @@ object HDMClient {
       val params = argSeq.tail
       cmd match {
         case "submit" =>
-          assert(params.length >= 5, "Submit Usage: submit [master] [appName] [version] [filePath] [userName]")
+          assert(params.length >= 5, "Submit Usage: submit [master] [appName] [version] [userName] [filePath]")
           submitApplication(params(0), params(1), params(2), params(3), params(4))
+        case "addDep" =>
+          assert(params.length >= 5, "Add dependency Usage: submit [master] [appName] [version] [userName] [filePath]")
+          addDependency(params(0), params(1), params(2), params(3), params(4))
         case "coordinate" =>
           assert(params.length >= 2, "Coordinate Usage: coordinate [master1] [master2]")
           coordinate(params(0), params(1))
