@@ -32,7 +32,7 @@ object HDMServer {
   /**
    * server main startup
    * @param args {
-   *             case "-m" | "-master" => is this a Master
+   *              case "-m" | "-master" => is this a Master
                   case "-p" | "-port" => port of akka system
                   case "-P" | "-parent" => parentPath of this node
                   case "-c" | "-conf" => name of config

@@ -79,7 +79,7 @@ object PlanningUtils {
       ddmBuffer += buffer
     }
 
-    println(s"${ddmBuffer.size},$total, $n ")
+    println(s"${ddmBuffer.size}, $total, $n ")
     // subGrouping in each bounded group
     val distribution = ddmBuffer.map(seq => Math.round( (seq.size/total) * n))
     val finalRes = Buffer.empty[Buffer[Path]]

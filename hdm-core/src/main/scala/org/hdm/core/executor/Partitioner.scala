@@ -84,3 +84,19 @@ class RangePartitioner[T: Ordering : ClassTag](bounds: Array[T]) extends HashPar
 
   override val pFunc = (d: T) => partitioning.partitionIndex(d)
 }
+
+
+class RoundRobinPartitioner[T: ClassTag](var partitionNum: Int) extends Partitioner[T] {
+
+  override val pFunc: (T) => Int = null
+
+  override def split(data: Seq[T]): Map[Int, _ <: Seq[T]] = {
+    val mapBuffer = new HashMap[Int, CompactBuffer[T]]()
+    for (i <- 0 until data.size){
+      val partitionId = i % partitionNum
+      val buf = mapBuffer.getOrElseUpdate(partitionId, CompactBuffer.empty[T])
+      buf += data(i)
+    }
+    mapBuffer
+  }
+}

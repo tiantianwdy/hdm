@@ -558,7 +558,7 @@ object HDM {
                                hdmContext: HDMContext = HDMContext.defaultHDMContext,
                                appContext: AppContext = AppContext.defaultAppContext,
                                numOfPartitions: Int = ClusterExecutor.CORES): HDM[T] = {
-    val ddms = new RandomPartitioner[T](numOfPartitions).split(elems).map(d => DDM(d._2, hdmContext, appContext))
+    val ddms = new RoundRobinPartitioner[T](numOfPartitions).split(elems).map(d => DDM(d._2, hdmContext, appContext))
     new DFM(children = ddms.toSeq,
       func = new NullFunc[T],
       distribution = Horizontal,
