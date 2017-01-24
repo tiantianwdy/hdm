@@ -97,6 +97,7 @@ class CoGroupFunc[T: ClassTag, U: ClassTag, K: ClassTag](f1: T => K, f2: U => K)
   }
 
   override def aggregate(params: (Arr[T], Arr[U])): Unit = {
+    require(tempBuffer != null && tempBuffer.get() != null)
     params._1.foreach { elem =>
       val key = f1(elem)
       val buffer = tempBuffer.get().getOrElseUpdate(key, (Buf.empty[T], Buf.empty[U]))
