@@ -33,6 +33,11 @@ trait ResourceManager {
 
   def waitForNonEmpty()
 
+  def hasAvailableResource():Boolean = {
+    val seq = Scheduler.getAllAvailableWorkers(getAllResources())
+    seq.size > 0
+  }
+
 
 }
 

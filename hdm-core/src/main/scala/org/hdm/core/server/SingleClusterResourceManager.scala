@@ -113,9 +113,10 @@ class SingleClusterResourceManager extends ResourceManager with Logging{
   }
 
   override def waitForNonEmpty(): Unit = {
-      if(workingSize.availablePermits() < 1){
-        println("waiting for non-empty")
+//      if(workingSize.availablePermits() < 1) {
+    if(!hasAvailableResource()) {
+        log.info("waiting for available resources")
         waitNonEmpty
-      }
+    }
   }
 }

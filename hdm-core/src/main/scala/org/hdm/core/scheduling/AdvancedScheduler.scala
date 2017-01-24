@@ -125,11 +125,15 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
         nonEmptyLock.acquire()
         log.info("exit from waiting for tasks..")
       }
-      log.trace(s"current waiting task size:${taskQueue.size()}")
+      log.info(s"current waiting task size:${taskQueue.size()}")
+      var candidates = Seq.empty[(Path, Int)]
       resAccessorlock.acquire()
-      resourceManager.waitForNonEmpty()
-      val candidates = Scheduler.getAllAvailableWorkersWithIdx(resourceManager.getAllResources())
-      log.trace(s"current waiting worker size:${candidates.size}")
+      while(candidates.size <= 0){ // todo solve without thread sleep
+        resourceManager.waitForNonEmpty()
+        candidates = Scheduler.getAllAvailableWorkersWithIdx(resourceManager.getAllResources())
+        Thread.sleep(50)
+      }
+      log.info(s"current waiting worker size:${candidates.size}")
       scheduleOnResource(taskQueue, candidates)
       resAccessorlock.release()
     }
