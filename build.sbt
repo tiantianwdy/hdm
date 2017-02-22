@@ -35,7 +35,7 @@ lazy val revisions: Map[String, String] = Map(
   "akka" -> "2.3.8",
   "asm" -> "4.0",
   "breeze" -> "0.11.1",
-  "chill" -> "0.5.0",
+  "chill" -> "0.9.1",
   "hbase" -> "0.94.6",
   "hadoopCore" -> "1.2.1",
   "hadoop" -> "2.6.0",
