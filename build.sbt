@@ -144,6 +144,7 @@ lazy val root = (project in file("."))
     name := "hdm-cluster",
     resolvers += Resolver.sonatypeRepo("public"),
     javacOptions ++= javacSeq,
+    scalacOptions += "-target:jvm-1.8",
     mainClass in assembly := Some("Main"),
     assemblyJarName in assembly := ""
   )
