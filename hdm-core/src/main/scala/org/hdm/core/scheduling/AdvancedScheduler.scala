@@ -304,7 +304,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
 
   protected def runRemoteTask[ R: ClassTag](workerPath: String, task: ParallelTask[R]): Future[Seq[String]] = {
-    val taskBytes = HDMContext.DEFAULT_SERIALIZER.serialize(task).array
+    val taskBytes = HDMContext.JOB_SERIALIZER.serialize(task).array
     val msg = SerializedTaskMsg(task.appId, task.version, task.taskId, taskBytes)
 //    val msg = AddTaskMsg(task)
     val future = (actorSys.actorSelection(workerPath) ? msg).mapTo[Seq[String]]

@@ -110,7 +110,7 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
     }
 
     //aggregator semantics:
-    def aggregateNext[T: ClassTag, U: ClassTag](aggregator:Aggregator[Arr[T], Buf[U]]): Unit ={
+    def aggregateNext[T: ClassTag, U: ClassTag](aggregator:Aggregator[Arr[T], Buf[U]]): Unit = {
       val received = inputQueue.poll(60, TimeUnit.SECONDS)
       log.debug(s"start processing FetchResponse: ${received}.")
       val block = received match {

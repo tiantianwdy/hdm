@@ -93,7 +93,7 @@ class HDMClusterWorkerActor(var leaderPath: String, slots:Int, blockContext: Blo
       processTask(task)
     case SerializedTaskMsg(appName, version, taskId, serTask) =>
       val loader = dependencyManager.getClassLoader(appName, version)
-      val task = HDMContext.DEFAULT_SERIALIZER.deserialize[ParallelTask[_]](ByteBuffer.wrap(serTask), loader)
+      val task = HDMContext.JOB_SERIALIZER.deserialize[ParallelTask[_]](ByteBuffer.wrap(serTask), loader)
       processTask(task)
   }
 

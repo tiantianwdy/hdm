@@ -13,7 +13,7 @@ import org.hdm.core.message._
 import org.hdm.core.model.{GroupedSeqHDM, HDM, KvHDM, ParHDM}
 import org.hdm.core.planing.{StaticMultiClusterPlanner, StaticPlaner}
 import org.hdm.core.scheduling.{AdvancedScheduler, MultiClusterScheduler, SchedulingPolicy}
-import org.hdm.core.serializer.{JavaSerializer, SerializerInstance}
+import org.hdm.core.serializer.{SerializerInstance, KryoSerializer, JavaSerializer}
 import org.hdm.core.server._
 import org.hdm.core.storage.{Block, HDMBlockManager}
 import org.hdm.core.utils.Logging
@@ -119,6 +119,10 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
   val defaultSerializer: SerializerInstance = new JavaSerializer(defaultConf).newInstance()
 
   val defaultSerializerFactory = new JavaSerializer(defaultConf)
+
+//  val jobSerializerFactory = new KryoSerializer(defaultConf)
+
+//  val jobSerializer: SerializerInstance = new KryoSerializer(defaultConf).newInstance()
 
   val compressor = HDMContext.DEFAULT_COMPRESSOR
 
@@ -246,7 +250,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
       case none => null
     }
     //    val jobMsg = SubmitJobMsg(appId, hdm, rootPath + "/"+JOB_RESULT_DISPATCHER, parallel)
-    val jobBytes = this.defaultSerializer.serialize(hdm).array
+    val jobBytes = HDMContext.JOB_SERIALIZER.serialize(hdm).array
     val jobMsg = new SerializedJobMsg(appName, version, jobBytes, rootPath + "/" + HDMContext.JOB_RESULT_DISPATCHER, rootPath + "/" + HDMContext.CLUSTER_EXECUTOR_NAME, parallel)
     SmsSystem.askAsync(master + "/" + HDMContext.CLUSTER_EXECUTOR_NAME, jobMsg)
     if (promise ne null) promise.future
@@ -345,6 +349,8 @@ object HDMContext extends Logging {
 
   val _defaultConf = new AtomicReference[Config]()
 
+  private val jobSerializer = new ThreadLocal[SerializerInstance]()
+
   lazy val defaultHDMContext = apply()
 
   val CLUSTER_EXECUTOR_NAME: String = "ClusterExecutor"
@@ -356,6 +362,17 @@ object HDMContext extends Logging {
   val DEFAULT_SERIALIZER: SerializerInstance = new JavaSerializer(defaultConf).newInstance()
 
   val DEFAULT_SERIALIZER_FACTORY = new JavaSerializer(defaultConf)
+
+  def JOB_SERIALIZER: SerializerInstance = {
+    if(jobSerializer.get() == null){
+      jobSerializer.set(new KryoSerializer(defaultConf).newInstance())
+    }
+    jobSerializer.get()
+  }
+
+  def reNewJobSerilizer(ser:SerializerInstance): Unit ={
+    jobSerializer.set(ser)
+  }
 
   val DEFAULT_COMPRESSOR = new SnappyCompressionCodec(defaultConf)
 

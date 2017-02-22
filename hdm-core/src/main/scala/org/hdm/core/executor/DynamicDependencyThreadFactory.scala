@@ -14,7 +14,7 @@ class DynamicDependencyThreadFactory(private val under:ThreadFactory = Executors
 
   val baseLoader = new AtomicReference[ClassLoader](classLoader)
 
-  def addURLs(urls:Array[java.net.URL]): Unit ={
+  def addURLs(urls:Array[java.net.URL]): Unit = {
     urls.foreach(url => classLoader.addURL(url))
   }
 
@@ -31,7 +31,9 @@ object DynamicDependencyThreadFactory {
   import java.net.URL
 
   private val defaultLoader:DynamicURLClassLoader = {
-    new DynamicURLClassLoader(Array.empty[URL], ClassLoader.getSystemClassLoader)
+//    val baseClassLoader = this.getClass.getClassLoader
+    val baseClassLoader = Thread.currentThread().getContextClassLoader
+    new DynamicURLClassLoader(Array.empty[URL], baseClassLoader)
   }
 
   private val defaultThreadFactory = new DynamicDependencyThreadFactory(classLoader = defaultLoader)

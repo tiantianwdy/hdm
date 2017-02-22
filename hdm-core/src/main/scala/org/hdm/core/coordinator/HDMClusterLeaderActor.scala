@@ -213,7 +213,7 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
      */
     case SerializedJobMsg(appName, version, serHDM, resultHandler, from, parallel) =>
       val appLoader = hdmBackend.dependencyManager.getClassLoader(appName, version)
-      val serializer = hDMContext.defaultSerializer
+      val serializer = HDMContext.JOB_SERIALIZER
       val hdm = serializer.deserialize[HDM[_]](ByteBuffer.wrap(serHDM), appLoader)
       val appId = hdmBackend.dependencyManager.appId(appName, version)
       val senderPath = sender.path
