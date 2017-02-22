@@ -11,6 +11,8 @@
     <modelVersion>4.0.0</modelVersion>
 
     <artifactId>hdm-core</artifactId>
+    <packaging>jar</packaging>
+    <version>0.0.1</version>
 
     <properties>
         <mesos.version>0.13.0</mesos.version>
@@ -18,7 +20,7 @@
         <hadoop.core.version>1.2.1</hadoop.core.version>
         <hadoop.version>2.6.0</hadoop.version>
         <protobuf.version>2.5.0</protobuf.version>
-        <chill.version>0.5.0</chill.version>
+        <chill.version>0.9.1</chill.version>
         <yarn.version>0.23.7</yarn.version>
         <hbase.version>0.94.6</hbase.version>
         <jetty.version>8.1.14.v20131031</jetty.version>
@@ -332,6 +334,12 @@
             <version>0.9</version>
         </dependency>
 
+        <!--<dependency>-->
+            <!--<groupId>com.esotericsoftware</groupId>-->
+            <!--<artifactId>kryo</artifactId>-->
+            <!--<version>4.0.0</version>-->
+        <!--</dependency>-->
+
         <dependency>
             <groupId>org.apache.hadoop</groupId>
             <artifactId>hadoop-client</artifactId>
@@ -354,6 +362,7 @@
                     <groupId>com.google.protobuf</groupId>
                     <artifactId>protobuf-java</artifactId>
                 </exclusion>
+
                 <!--
                 <exclusion>
                                    <groupId>commons-logging</groupId>

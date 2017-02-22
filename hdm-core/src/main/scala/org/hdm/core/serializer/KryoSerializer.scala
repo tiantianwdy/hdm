@@ -19,14 +19,19 @@ package org.hdm.core.serializer
 
 import java.io.{EOFException, InputStream, OutputStream}
 import java.nio.ByteBuffer
+import java.util.concurrent.{ConcurrentHashMap, CopyOnWriteArrayList}
 
 import com.esotericsoftware.kryo.{Kryo, KryoException}
 import com.esotericsoftware.kryo.io.{Input => KryoInput, Output => KryoOutput}
-import com.esotericsoftware.kryo.serializers.{JavaSerializer => KryoJavaSerializer}
+import com.esotericsoftware.kryo.serializers.{JavaSerializer => KryoJavaSerializer, ClosureSerializer}
+import com.esotericsoftware.minlog.Log
 
-import com.twitter.chill.{AllScalaRegistrar, EmptyScalaKryoInstantiator}
+import com.twitter.chill.{ScalaKryoInstantiator, AllScalaRegistrar, EmptyScalaKryoInstantiator}
 import com.typesafe.config.Config
+import org.hdm.core.model.{DDM, DFM, HDM}
+import org.objenesis.strategy.StdInstantiatorStrategy
 
+import scala.collection.mutable
 import scala.reflect.ClassTag
 
 /**
@@ -49,9 +54,11 @@ class KryoSerializer(conf: Config)
   def newKryoOutput() = new KryoOutput(bufferSize, math.max(bufferSize, maxBufferSize))
 
   def newKryo(): Kryo = {
-    val instantiator = new EmptyScalaKryoInstantiator
+//    val instantiator = new EmptyScalaKryoInstantiator
+    val instantiator = new ScalaKryoInstantiator()
     val kryo = instantiator.newKryo()
     kryo.setRegistrationRequired(registrationRequired)
+    kryo.setInstantiatorStrategy(new StdInstantiatorStrategy())
 
     val oldClassLoader = Thread.currentThread.getContextClassLoader
     val classLoader = defaultClassLoader.getOrElse(Thread.currentThread.getContextClassLoader)
@@ -64,8 +71,12 @@ class KryoSerializer(conf: Config)
       kryo.register(cls)
     }
 
+    for (tup <- KryoSerializer.serializerMap) {
+      kryo.register(tup._1, tup._2)
+    }
     // For results returned by asJavaIterable. See JavaIterableWrapperSerializer.
     kryo.register(JavaIterableWrapperSerializer.wrapperClass, new JavaIterableWrapperSerializer)
+    kryo.register(classOf[ClosureSerializer.Closure], new ClosureSerializer())
 
 //    kryo.register(classOf[SerializableWritable[_]], new KryoJavaSerializer())
 
@@ -91,6 +102,7 @@ class KryoSerializer(conf: Config)
     new AllScalaRegistrar().apply(kryo)
 
     kryo.setClassLoader(classLoader)
+//    Log.TRACE()
     kryo
   }
 
@@ -133,7 +145,12 @@ class KryoDeserializationStream(kryo: Kryo, inStream: InputStream) extends Deser
 }
 
 private[hdm] class KryoSerializerInstance(ks: KryoSerializer) extends SerializerInstance {
-  private val kryo = ks.newKryo()
+
+  private val _kryo = new ThreadLocal[Kryo]()
+
+  _kryo.set(ks.newKryo())
+//  private val kryo = ks.newKryo()
+  def kryo = _kryo.get()
 
   // Make these lazy vals to avoid creating a buffer unless we use them
   private lazy val output = ks.newKryoOutput()
@@ -177,13 +194,32 @@ trait KryoRegistrator {
 }
 
 private[serializer] object KryoSerializer {
+  import scala.collection.JavaConversions._
   // Commonly used classes.
-  private val toRegister: Seq[Class[_]] = Seq(
+  private val toRegister: mutable.Buffer[Class[_]] = new CopyOnWriteArrayList[Class[_]]()
+  
+  private val serializerMap: mutable.Map[Class[_], com.esotericsoftware.kryo.Serializer[_]] = new ConcurrentHashMap[Class[_], com.esotericsoftware.kryo.Serializer[_]]()
+
+  toRegister ++=  mutable.Seq(
     ByteBuffer.allocate(1).getClass,
     classOf[Array[Byte]],
     classOf[Array[Short]],
-    classOf[Array[Long]]
+    classOf[Array[Long]],
+    classOf[HDM[_]],
+    classOf[DFM[_,_]],
+    classOf[DDM[_, _]],
+    classOf[java.lang.invoke.SerializedLambda]
   )
+  
+  def registerClass(cls: Class[_]): Unit = {
+    toRegister += cls
+  }
+  
+  
+  def registerSerializer(cls: Class[_], serializer: com.esotericsoftware.kryo.Serializer[_]): Unit = {
+    serializerMap += cls -> serializer
+  }
+  
 }
 
 /**
