@@ -67,8 +67,8 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
     exeId
   }
 
-  def getAllApps() = {
-    appInsMapping.keySet().toSeq
+  def getAllApps():Seq[String] = {
+    appInsMapping.keys().toIndexedSeq
   }
 
   def getExeIns(exeId:String):ExecutionInstance = {
