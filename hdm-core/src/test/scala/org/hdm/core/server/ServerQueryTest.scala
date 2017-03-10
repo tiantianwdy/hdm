@@ -101,4 +101,24 @@ class ServerQueryTest {
     }
   }
 
+  @Test
+  def testAllApplications(): Unit ={
+    val msg = new AllApplicationsQuery
+    val resp = SmsSystem.askSync(masterPath, msg).get.asInstanceOf[AllApplicationsResp]
+    println(resp.results)
+  }
+
+  @Test
+  def testGetJobStages(): Unit ={
+    val msg = new AllApplicationsQuery
+    val resp = SmsSystem.askSync(masterPath, msg).get.asInstanceOf[AllApplicationsResp]
+    println(resp.results)
+
+    val appId = resp.results.last
+    println(s"Getting job stages of $appId .")
+    val msg2 = new JobStagesQuery(appId, "0.0.1")
+    val resp2 = SmsSystem.askSync(masterPath, msg2).get.asInstanceOf[JobStageResp]
+    println(resp2.results)
+  }
+
 }
