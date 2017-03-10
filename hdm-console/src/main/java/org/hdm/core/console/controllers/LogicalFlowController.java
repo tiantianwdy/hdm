@@ -5,6 +5,7 @@ import org.hdm.core.console.models.DagGraph;
 import org.hdm.core.console.models.DagGraph;
 import org.hdm.core.console.views.HDMViewAdapter;
 import org.hdm.core.message.LogicalFLowQuery;
+import org.hdm.core.message.LogicalFLowQueryByStage;
 import org.hdm.core.message.LogicalFLowResp;
 import scala.Option;
 
@@ -22,10 +23,17 @@ public class LogicalFlowController extends HttpServlet {
     @Override
     protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
         String exeId = req.getParameter("executionTag");
+        String jobId = req.getParameter("jobId");
         Boolean opt = Boolean.parseBoolean(req.getParameter("opt"));
-        LogicalFLowQuery msg = new LogicalFLowQuery(exeId, opt);
         String actor = AbstractController.masterExecutor;
-        Option objRes = SmsSystem.askSync(actor, msg);
+        Option objRes;
+        if(exeId != null && !exeId.equals("")){
+            LogicalFLowQuery msg = new LogicalFLowQuery(exeId, opt);
+            objRes = SmsSystem.askSync(actor, msg);
+        } else {
+            LogicalFLowQueryByStage msg = new LogicalFLowQueryByStage(jobId, opt);
+            objRes = SmsSystem.askSync(actor, msg);
+        }
         if(objRes != null) {
             LogicalFLowResp res = (LogicalFLowResp) objRes.get();
             DagGraph vo = HDMViewAdapter.HDMPojoSeqToGraph(res.results());

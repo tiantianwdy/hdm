@@ -64,11 +64,11 @@
 
 
     <!--<link rel="import" href="header.html">-->
-        <!--<script type="text/javascript">-->
-        <!--$(function(){-->
-          <!--$("#header").load("header.html");-->
-        <!--});-->
-       <!--</script>-->
+    <!--<script type="text/javascript">-->
+    <!--$(function(){-->
+    <!--$("#header").load("header.html");-->
+    <!--});-->
+    <!--</script>-->
 </head>
 
 <body>
@@ -89,8 +89,8 @@
             <div id="navbar" class="navbar-collapse collapse">
                 <ul class="nav navbar-nav navbar-left">
                     <li><a href="/">Home</a></li>
-                    <li><a href="./job-manager.html">JobManager</a></li>
-                    <li class="active"><a href="./execution-manager.html">ExecutionManager</a></li>
+                    <li class="active"><a href="./job-manager.html">JobManager</a></li>
+                    <li><a href="./execution-manager.html">ExecutionManager</a></li>
                     <li><a href="./resource-manager.html">ResourceManager</a></li>
                     <li><a href="./dependency-manager.html">DependencyManager</a></li>
                 </ul>
@@ -125,6 +125,21 @@
                             <tr>
                                 <td>
                                     <div class="container">
+                                        <div class="header" id="stage-span"><span>Show Stages Flow</span></div>
+                                        <div class="content">
+                                            <p>Stages: <span id="dag-span-stage"></span></p>
+                                            <div id="dag-stage">
+                                                <svg height="240" , width="100%">
+                                                    <g transform="translate(20, 20)"/>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="container">
                                         <div class="header" id="logical-span"><span>Show Logical Flow</span></div>
                                         <div class="content">
                                             <p>Logic Dataflow: <span id="dag-span-logical"></span></p>
@@ -155,22 +170,6 @@
                                     </div>
                                 </td>
                             </tr>
-                            <tr>
-                                <td>
-                                    <div class="container">
-                                        <div class="header" id="physical-span"><span>Show Physical Flow</span></div>
-                                        <div class="content">
-                                            <p>Physiacal Dataflow: <span id="dag-span-physical"></span></p>
-
-                                            <div id="dag-physical">
-                                                <svg height="240" , width="100%">
-                                                    <g transform="translate(20, 20)"/>
-                                                </svg>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
                         </table>
                     </div>
                 </div>
@@ -179,36 +178,52 @@
             <div id="execution-view" class="tab-pane fade">
                 <div class="container-fluid">
                     <div class="row">
-                    <table id="execution-content-table" style="width:100%" align="middle" >
-                        <tr>
-                            <td>
-                                <div class="container">
-                                    <div class="header" id="execution-trace-span"><span>Show Execution Graph</span></div>
-                                    <div class="content">
-                                        <p>Execution Graph: <span id="execution-graph-label"></span></p>
-                                        <div id="execution-graph">
-                                            <svg height="240" , width="100%">
-                                                <g transform="translate(20, 20)"/>
-                                            </svg>
+                        <table id="execution-content-table" style="width:100%" align="middle" >
+                            <tr>
+                                <td>
+                                    <div class="container">
+                                        <div class="header" id="stage-exe-span"><span>Show Stages Status</span></div>
+                                        <div class="content">
+                                            <p>Stages: <span id="dag-span-stage-exe"></span></p>
+                                            <div id="dag-stage-exe">
+                                                <svg height="240" , width="100%">
+                                                    <g transform="translate(20, 20)"/>
+                                                </svg>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            </td>
-                        </tr>
+                                </td>
+                            </tr>
 
-                        <tr>
-                            <td>
-                                <div class="container">
-                                    <div class="header" id="workers-span">
-                                        <span>Show Execution Traces of Workers</span>
+                            <tr>
+                                <td>
+                                    <div class="container">
+                                        <div class="header" id="execution-trace-span"><span>Show Execution Graph</span></div>
+                                        <div class="content">
+                                            <p>Execution Graph: <span id="execution-graph-label"></span></p>
+                                            <div id="execution-graph">
+                                                <svg height="240" , width="100%">
+                                                    <g transform="translate(20, 20)"/>
+                                                </svg>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div class="content">
-                                        <div id="workerLanes"/>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>
+                                    <div class="container">
+                                        <div class="header" id="workers-span">
+                                            <span>Show Execution Traces of Workers</span>
+                                        </div>
+                                        <div class="content">
+                                            <div id="workerLanes"/>
+                                        </div>
                                     </div>
-                                </div>
-                            </td>
-                        </tr>
-                    </table>
+                                </td>
+                            </tr>
+                        </table>
 
                     </div>
                     <div class="table-responsive">
@@ -225,7 +240,7 @@
 
 
 <!-- web logic of this page -->
-<script src="../res/js/execution-manager.js"></script>
+<script src="../res/js/job-manager.js"></script>
 
 <!-- Bootstrap core JavaScript
 ================================================== -->

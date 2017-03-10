@@ -68,6 +68,18 @@
         <servlet-class>org.hdm.core.console.controllers.DependencyTraceController</servlet-class>
         <load-on-startup>2</load-on-startup>
     </servlet>
+
+    <servlet>
+        <servlet-name>all-application-servlet</servlet-name>
+        <servlet-class>org.hdm.core.console.controllers.AllApplicationsController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>job-stage-servlet</servlet-name>
+        <servlet-class>org.hdm.core.console.controllers.StagesController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
 <!--
 
 
@@ -120,6 +132,16 @@
     <servlet-mapping>
         <servlet-name>dependency-trace-servlet</servlet-name>
         <url-pattern>/service/dependencyTrace/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>all-application-servlet</servlet-name>
+        <url-pattern>/service/allApplications/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>job-stage-servlet</servlet-name>
+        <url-pattern>/service/jobStage/*</url-pattern>
     </servlet-mapping>
     <!--
 

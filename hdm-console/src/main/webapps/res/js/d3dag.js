@@ -1,16 +1,16 @@
 var color = d3.scale.category20();
 
-var colorArray = ["lightsteelblue", "LimeGreen", "gold", "steelblue", "green", "blue", "red", "purple",  "black"];
+var colorArray = ["lightsteelblue", "LimeGreen", "gold", "steelblue", "green", "blue", "red", "purple",  "grey", "black"];
 
 
 var  d3dag = {
-        displayGraph: function (graphData, dagNameElem, svgElem, dir) {
+        displayGraph: function (graphData, dagNameElem, svgElem, dir, nodeShape, func) {
             dagNameElem.text(graphData.name);
             if(!dir) dir = "LR";
-            this.renderGraph(graphData, svgElem, dir);
+            this.renderGraph(graphData, svgElem, dir, nodeShape, func);
         },
 
-        renderGraph: function(graphData, svgParent, dir) {
+        renderGraph: function(graphData, svgParent, dir, nodeShape, func) {
             var divId = svgParent + "tooltip"
             var div = d3.select("body").append("div")
               .attr("class", "tabletooltip")
@@ -27,7 +27,9 @@ var  d3dag = {
             //add nodes
             nodes.forEach(function(n) {
             var color = colorArray[n.group]
-            var style = { style: "fill: " + color, label: n.name, shape: "ellipse"};
+            if(! color) color = colorArray[1]
+            if(!nodeShape) nodeShape = "ellipse"
+            var style = { style: "fill: " + color, label: n.name, shape: nodeShape};
               g.setNode(n.id, style)
             });
             //add links
@@ -110,6 +112,8 @@ var  d3dag = {
               return d3dag.addToolTip(d, div, nodes);
             }).on("mouseout", function(d){
               return d3dag.hideToolTip(d, div);
+            }).on('click', function(d){
+               if(func) func(d);
             });
 
             // Zoom

@@ -5,11 +5,11 @@ var d3ColorArray = ["firebrick", "GoldenRod", "Yellow", "GreenYellow", "LawnGree
 function createDAG(elem, graph) {
 
   var width = 800,
-      height = 275;
+      height = 400;
 
   var force = d3.layout.force()
-      .charge(-200)
-      .linkDistance(120)
+      .charge(-300)
+      .linkDistance(140)
       .size([width, height]);
 
   // remove old svg if exists

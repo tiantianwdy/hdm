@@ -22,6 +22,16 @@ object HDMViewAdapter {
     str.replaceAll("_p(\\d+)", "")
   }
 
+  def allApplicationsRespToTreeVO(resp: AllApplicationsResp): TreeVO = {
+    val data= resp.results
+    val root = new TreeVO("Applications")
+    data.foreach{ app =>
+      val child = new TreeVO(app)
+      root.addChild(child)
+    }
+    root
+  }
+
   def applicationsRespToTreeVO(resp: ApplicationsResp): TreeVO = {
     val data = resp.results
     mapToTreeVO("All Jobs", data)
@@ -130,7 +140,7 @@ object HDMViewAdapter {
         val id = validId(child)
         if (nodeIdxes.contains(id)) {
           val parent = nodeIdxes(id)
-          if(parent.getType == "DDM") {
+          if (parent.getType == "DDM") {
             val groupId = s"Grouped_${hdm.id}"
             val buff = if (ddmGroups.contains(groupId)) {
               ddmGroups.get(groupId).get
@@ -149,8 +159,6 @@ object HDMViewAdapter {
       }
     }
     }
-
-
     graph.setLinks(links)
     graph.setNodes(nodes)
     graph
@@ -183,6 +191,32 @@ object HDMViewAdapter {
         }
       }
      }
+    }
+    graph.setLinks(links)
+    graph.setNodes(nodes)
+    graph
+  }
+
+  def StagesToGraph(resp: JobStageResp): DagGraph = {
+    val data = resp.results
+    val graph = new DagGraph()
+    val nodes = mutable.Buffer.empty[StageNode]
+    val nodeIdxes = mutable.HashMap.empty[String, StageNode]
+    val links = mutable.Buffer.empty[DagLink]
+
+    data.foreach { stage =>
+      val node = new StageNode(stage.appId, stage.jobId, stage.parents, stage.context, stage.parallelism, stage.isLocal, "waiting")
+      nodeIdxes += (node.getId -> node)
+      nodes += node
+    }
+    data.foreach { stage => if (stage.parents != null && stage.parents.nonEmpty) {
+      stage.parents.foreach { child =>
+        if (nodeIdxes.contains(child)) {
+          val parent = nodeIdxes(child)
+          links += (new DagLink(parent.getId, stage.jobId, s"${child}"))
+        }
+      }
+    }
     }
     graph.setLinks(links)
     graph.setNodes(nodes)

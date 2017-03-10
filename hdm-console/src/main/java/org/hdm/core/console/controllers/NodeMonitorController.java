@@ -29,6 +29,7 @@ public class NodeMonitorController extends HttpServlet {
             Query msg = new Query("dataService/dataLike", prop, k, 1800*1000L, "", "");
             String actor = AbstractController.master;
             Reply reply = (Reply) SmsSystem.askSync(actor, msg).get();
+
             Object[][] data = HDMViewAdapter.slaveMonitorVO(reply.result());
             results.add(data);
         }
