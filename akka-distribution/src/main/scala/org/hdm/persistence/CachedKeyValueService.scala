@@ -35,7 +35,7 @@ class CachedKeyValueService(var maxBufferSize: Int = 512) extends PersistenceSer
   def saveMasterMessage(msg: MasterSlaveProtocol) {
     msg match {
       case HeartbeatMsg(_, _, data) => {
-        data.foreach { d => addToMap(d); logger.debug(d.toString) }
+        data.foreach { d => addToMap(d); logger.debug(s"add monitor data:${d.toString}") }
       }
       case _ => //ignore
     }
@@ -73,12 +73,12 @@ class CachedKeyValueService(var maxBufferSize: Int = 512) extends PersistenceSer
 
   def keys(prop: String): java.util.List[String] = {
     if (dataCache.containsKey(prop)) {
-      dataCache(prop).keys().toList
+      dataCache(prop).keys.toList
     } else List.empty[String]
   }
 
   def props()={
-    dataCache.keySet().toList
+    dataCache.keys().toList
   }
   
   def sum(prop: String, key: String):Double = {
