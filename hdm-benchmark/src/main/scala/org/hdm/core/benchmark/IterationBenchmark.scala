@@ -86,7 +86,6 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
 
   }
 
-  case class DataPoint(x: Vector[Double], y: Double) extends Serializable
 
   def testLinearRegression(dataPath:String, iterations:Int, p:Int = 4) = {
     implicit  val parallelism = p
@@ -286,3 +285,5 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
   }
 
 }
+
+case class DataPoint(x: Vector[Double], y: Double) extends Serializable
