@@ -40,7 +40,7 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
                                                       actorSys,
                                                       schedulingPolicy) {
 
-  private val stateQueue = new LinkedBlockingQueue[JobStage]()
+  private val stageQueue = new LinkedBlockingQueue[JobStage]()
 
   private val remoteTaskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
   private val localTaskQueue = new LinkedBlockingQueue[ParallelTask[_]]()
@@ -109,7 +109,7 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
 
 
   def initStateScheduling(): Unit ={
-    stateQueue.clear()
+    stageQueue.clear()
     appStateBuffer.clear()
     remoteTaskQueue.clear()
   }
@@ -204,32 +204,31 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
     val promise = promiseManager.createPromise[HDM[_]](appId)
     states.map{ sg =>
       if(sg.parents == null || sg.parents.isEmpty){
-        stateQueue.offer(sg)
+        stageQueue.offer(sg)
       } else {
         appStateBuffer.getOrElseUpdate(sg.appId, new CopyOnWriteArrayList[JobStage]()) += sg
       }
     }
+    historyManager.addJobStages(appId, states)
     promise.future
   }
 
   def startStateScheduling(): Unit ={
-    while(isRunning.get()){
-      val stage = stateQueue.take()
+    while(isRunning.get()) {
+      val stage = stageQueue.take()
       val hdm = stage.job
       val appName = hdm.appContext.appName
       val version = hdm.appContext.version
       val exeId = dependencyManager.addInstance(appName, version , hdm)
+      dependencyManager.historyManager.addExeStage(stage.jobId, exeId)
       blockManager.addRef(hdm)
       val jobFuture = if(stage.isLocal){
         //if job is local
         val start = System.currentTimeMillis()
-
         val plans = planner.plan(hdm, stage.parallelism)
         dependencyManager.addPlan(exeId, plans)
-
         val end = System.currentTimeMillis() - start
         totalScheduleTime.addAndGet(end)
-
         submitJob(appName, version, exeId, plans.physicalPlan)
       } else {
         // send to remote master state based on context
@@ -285,7 +284,7 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
       log.info(s"New stages are triggered: ${nextStages}")
       nextStages.foreach{stage =>
         stages.remove(stage)
-        stateQueue.offer(stage)
+        stageQueue.offer(stage)
       }
     } else {
       log.info(s"A Job succeed id: ${appId}")
@@ -300,5 +299,13 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
   }
 
 
+  def getJobStage(appID:String):Seq[JobStage] = {
+    appStateBuffer(appID)
+  }
+
+
+  def getAllApplications(): Seq[String] ={
+    appStateBuffer.keySet().toIndexedSeq
+  }
 
 }

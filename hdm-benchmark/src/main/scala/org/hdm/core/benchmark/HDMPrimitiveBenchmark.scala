@@ -40,6 +40,7 @@ object HDMBenchmark {
     val iterativeBenchmark = new IterationBenchmark()
     val sqlBenchmark = new RankingSQLBenchmark()
     val uservisitsSQL = new UservisitsSQLBenchmark()
+
     val tweetsBenchmark = dataTag match {
       case "userVisits" => new TweetsAnalysisBenchmark(context, 1, 3)
       case "ranking" => new TweetsAnalysisBenchmark(context)

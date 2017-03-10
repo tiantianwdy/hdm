@@ -1,6 +1,7 @@
 package org.hdm.core.message
 
 import org.hdm.core.model.{HDMPoJo, HDM}
+import org.hdm.core.planing.{JobStageInfo, JobStage}
 import org.hdm.core.server.provenance.{ApplicationTrace, ExecutionTrace}
 
 /**
@@ -23,6 +24,8 @@ case class ExecutionTraceResp(execId:String, results:Seq[ExecutionTrace])
 
 case class LogicalFLowQuery(execId:String, opt:Boolean) extends QueryMsg
 
+case class LogicalFLowQueryByStage(jobId:String, opt:Boolean) extends QueryMsg
+
 case class LogicalFLowResp(execId:String, results:Seq[HDMPoJo])extends QueryMsg
 
 case class PhysicalFlow(execId:String) extends QueryMsg
@@ -43,5 +46,12 @@ case class DependencyTraceResp(appName:String, version:String, results:Seq[(Stri
 
 case class DescendantQuery(parent:String)extends QueryMsg
 
+case class JobStagesQuery(appName:String, version:String) extends QueryMsg
+
+case class JobStageResp(appName:String, version:String, results:Seq[JobStageInfo]) extends QueryMsg
+
+case class AllApplicationsQuery() extends QueryMsg
+
+case class AllApplicationsResp(results:Seq[String]) extends QueryMsg
 
 case class NodeInfo(id:String, typ:String, parent:String, address:String,  joinTime:Long,  slots:Int, state:String) extends  Serializable

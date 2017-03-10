@@ -30,4 +30,13 @@ class HDMBenchmarkTest {
     Thread.sleep(1000000)
   }
 
+  @Test
+  def testWeatherLR(): Unit ={
+    implicit val parallelism = 2
+    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/weather"
+    multiClusterBenchmark.testMultiPartyLR(data, data, 12 ,3)
+
+    Thread.sleep(1000000)
+  }
+
 }
