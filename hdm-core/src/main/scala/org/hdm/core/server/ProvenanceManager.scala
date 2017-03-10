@@ -3,6 +3,7 @@ package org.hdm.core.server
 import java.util.concurrent.{CopyOnWriteArrayList, ConcurrentHashMap}
 
 import com.google.common.collect.Maps
+import org.hdm.core.planing.{JobStageInfo, JobStage}
 import org.hdm.core.server.provenance.{ExecutionDAG, ExecutionTrace, ApplicationTrace}
 
 import scala.collection.mutable
@@ -36,6 +37,15 @@ trait ProvenanceManager {
   
   def getInstanceDAG(instanceId:String):ExecutionDAG
 
+  def addJobStages(appID:String, stages:Seq[JobStage])
+
+  def getJobStages(appID:String): Seq[JobStageInfo]
+
+  def getAllApplicationIDs:Seq[String]
+
+  def addExeStage(jobId:String, instanceId:String)
+
+  def getInstanceIdStage(jobID:String):String
 }
 
 class ProvenanceManagerImpl extends ProvenanceManager {
@@ -61,6 +71,17 @@ class ProvenanceManagerImpl extends ProvenanceManager {
    * indexes : ${appName}#{$version} -> Seq of instanceId
    */
   private val appInstancesMap = new ConcurrentHashMap[String, mutable.Buffer[String]]
+
+  /**
+    * indexes for multi-cluster applications: appId -> seq of job stages
+    * appId = [appName] + [version] + [instanceId]
+    */
+  private val stageMap = new ConcurrentHashMap[String, Seq[JobStageInfo]]()
+
+  /**
+    * stageId -> instanceId
+    */
+  private val stageInstanceMap = new ConcurrentHashMap[String, String]()
 
   override def addAppTrace(trace: ApplicationTrace): Unit = {
     appTraceMap.getOrElseUpdate(trace.name, 
@@ -118,7 +139,7 @@ class ProvenanceManagerImpl extends ProvenanceManager {
 
 
   override def getAllAppIDs(): Seq[String] = {
-    appTraceMap.keySet().toIndexedSeq
+    appTraceMap.keys().toIndexedSeq
   }
 
   override def getInstanceTraces(instanceId: String) = {
@@ -136,6 +157,27 @@ class ProvenanceManagerImpl extends ProvenanceManager {
         ExecutionDAG(seq, links)
       case null => null
     }
+  }
+
+  override def addJobStages(appID: String, stages: Seq[JobStage]): Unit = {
+    val simplifiedStages = stages.map(_.toJobStageInfo())
+    stageMap.put(appID, simplifiedStages)
+  }
+
+  override def getJobStages(appID: String): Seq[JobStageInfo] = {
+    stageMap.get(appID)
+  }
+
+  override def getAllApplicationIDs: Seq[String] = {
+    stageMap.keySet().toIndexedSeq
+  }
+
+  override def addExeStage(jobId: String, instanceId: String): Unit = {
+    stageInstanceMap.put(jobId, instanceId)
+  }
+
+  override def getInstanceIdStage(jobID: String): String = {
+    stageInstanceMap.get(jobID)
   }
 }
 

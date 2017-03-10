@@ -78,8 +78,6 @@ class KryoSerializer(conf: Config)
     kryo.register(JavaIterableWrapperSerializer.wrapperClass, new JavaIterableWrapperSerializer)
     kryo.register(classOf[ClosureSerializer.Closure], new ClosureSerializer())
 
-//    kryo.register(classOf[SerializableWritable[_]], new KryoJavaSerializer())
-
     try {
       // Use the default classloader when calling the user registrator.
       Thread.currentThread.setContextClassLoader(classLoader)

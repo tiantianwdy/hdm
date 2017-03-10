@@ -211,7 +211,7 @@ trait MultiClusterScheduling extends SchedulingMsgReceiver {
       log.info(s"received a SerializedTaskMsg from: ${sender().path}")
       remoteTaskMap.put(taskId, sender().path.toString)
       val loader = hdmBackend.dependencyManager.getClassLoader(appName, version)
-      val task = hDMContext.defaultSerializer.deserialize[ParallelTask[_]](ByteBuffer.wrap(serTask), loader)
+      val task = HDMContext.JOB_SERIALIZER.deserialize[ParallelTask[_]](ByteBuffer.wrap(serTask), loader)
       hdmBackend.scheduler.scheduleRemoteTask(task)
 
   }
@@ -243,6 +243,14 @@ trait MultiClusterQueryReceiver extends QueryReceiver {
       sender() ! ApplicationInsResp(app, version, instances)
 
     case LogicalFLowQuery(exeId, opt) =>
+      val ins = hdmBackend.dependencyManager.getExeIns(exeId)
+      if(ins ne null) {
+        val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMPoJo(_))
+        sender() ! LogicalFLowResp(exeId, flow)
+      }
+
+    case LogicalFLowQueryByStage(jobId, opt) =>
+      val exeId = hdmBackend.dependencyManager.historyManager.getInstanceIdStage(jobId)
       val ins = hdmBackend.dependencyManager.getExeIns(exeId)
       if(ins ne null) {
         val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMPoJo(_))
@@ -328,5 +336,17 @@ trait MultiClusterQueryReceiver extends QueryReceiver {
         traces.filter(tup => tup._1.replaceAll(".", "").toInt >= versionCode)
       }
       sender() ! DependencyTraceResp(app, version, res)
+
+    case JobStagesQuery(app, version) =>
+      val stages = hdmBackend.dependencyManager.historyManager.getJobStages(s"$app#$version")
+      if(stages != null) {
+        sender() ! JobStageResp(app, version, stages)
+      }
+
+    case msg: AllApplicationsQuery =>
+      val apps = hdmBackend.dependencyManager.historyManager.getAllAppIDs()
+      if(apps ne null) {
+        sender() ! AllApplicationsResp(apps)
+      }
   }
 }
