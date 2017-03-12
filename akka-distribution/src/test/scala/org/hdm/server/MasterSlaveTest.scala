@@ -5,8 +5,9 @@ import akka.actor.ActorSystem
 import akka.actor.Props
 import org.hdm.akka.actors.MasterActor
 import com.typesafe.config.ConfigFactory
+import org.hdm.akka.MyClusterActor
 
-class MasterSlaveTest {
+object MasterSlaveTest extends App {
 
   def startMaster() {
     val masterConf = ConfigFactory.parseString("""
@@ -22,16 +23,19 @@ class MasterSlaveTest {
 		  remote {
 		  	enabled-transports = ["akka.remote.netty.tcp"]
 		  	netty.tcp {
-		  		hostname = "172.22.218.177"
-		  		port = 10010
+		  		hostname = "172.18.0.1"
+		  		port = 8998
 		  	}
 		  }  
       }
       """)
     val masterSystem = ActorSystem("masterSys", ConfigFactory.load(masterConf))
-    val masterAddr = Address("akka", "masterSys", "172.22.218.177", 15000)
-    val masterRooter = masterSystem.actorOf(Props[MasterActor], "master")
+    val masterAddr = Address("akka", "masterSys", "172.18.0.1", 8998)
+    val masterRooter = masterSystem.actorOf(Props[MyClusterActor], "master")
   }
+
+  startMaster()
+
 }
 
 

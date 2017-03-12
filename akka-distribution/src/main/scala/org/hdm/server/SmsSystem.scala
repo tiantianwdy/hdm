@@ -35,7 +35,6 @@ import scala.util.Random
  * Akka system 的接口封装类，可以直接使用
  * 具体使用示例参考 SmsSystemTest
  * @author wudongyao
- * @date 2013-6-17
  * @version since 0.0.1
  *
  */
@@ -100,14 +99,24 @@ object SmsSystem {
 
   /**
    * 将这个actor system初始化为Master
-   * @param port 启动端口
-   * @param isLinux 是否是Linux操作系统，影响资源监控策略的实现
-   * @param conf 启动配置，如果为空则从classpath下读取配置，非空则使用这个配置，包括覆盖port参数
+    * @param host starting host
+    * @param port 启动端口
+    * @param isLinux 是否是Linux操作系统，影响资源监控策略的实现
+    * @param conf 启动配置，如果为空则从classpath下读取配置，非空则使用这个配置，包括覆盖port参数
    */
-  def startAsMaster(port: Int, isLinux: Boolean, conf: Config = null) {
+  def startAsMaster(host:String, port: Int, isLinux: Boolean, conf: Config = null) {
     //    if (system ne null) throw new AkkaException("Already started a  local actor system..")
-
-    val config = if (port > 0) ConfigFactory.parseString(s"""akka.remote.netty.tcp.port="${port}" """).withFallback(loadConf(conf))
+    val hostname = if(host eq null) "" else host
+    val config = if (port > 0) {
+      ConfigFactory.parseString(s"""
+      akka.remote {
+          netty.tcp {
+            hostname = "${hostname}"
+            port = $port
+          }
+        }
+        """).withFallback(loadConf(conf))
+    }
     else loadConf(conf)
     systemPort = Option(config.getInt("akka.remote.netty.tcp.port"))
     IS_LINUX = isLinux

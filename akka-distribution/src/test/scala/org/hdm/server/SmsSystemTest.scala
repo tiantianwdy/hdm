@@ -17,7 +17,7 @@ import org.hdm.akka.messages.InitMsg
 class SmsSystemTest extends TestCase with TestConfig {
 
   def testStartSmsSystem() {
-    SmsSystem.startAsMaster(8998, false)
+    SmsSystem.startAsMaster("127.0.0.1", 8998, false)
     //later starting up will cover the previous one
 //    SmsSystem.startAsSlave("akka://smsSystem@172.22.218.167:15100", 15010, false)
     SmsSystem.addActor("testActor", "localhost", "org.hdm.akka.MyClusterActor", null)
@@ -27,7 +27,7 @@ class SmsSystemTest extends TestCase with TestConfig {
   def testRegisterMonitor() {
     new Thread {
       override def run {
-        SmsSystem.startAsMaster(8999, false, testMasterConf)
+        SmsSystem.startAsMaster("127.0.0.1", 8999, false, testMasterConf)
       }
     }.start
     Thread.sleep(2000)
@@ -42,7 +42,7 @@ class SmsSystemTest extends TestCase with TestConfig {
   }
 
   def testAddRemoteActor() {
-    SmsSystem.startAsMaster(8999, false)
+    SmsSystem.startAsMaster("127.0.0.1", 8999, false)
     val address = AddressFromURIString("akka.tcp://masterSys@192.168.1.105:10001")
     val actorRef = SmsSystem.system.actorOf(Props(new TestMonitor("instance_1", 15007)).withDeploy(Deploy(scope = RemoteScope(address))), "remoteActor")
     println(actorRef.path)
@@ -50,7 +50,7 @@ class SmsSystemTest extends TestCase with TestConfig {
   }
 
   def testAddActorToSlave() {
-    SmsSystem.startAsMaster(8999, false, testMasterConf)
+    SmsSystem.startAsMaster("127.0.0.1", 8999, false, testMasterConf)
     Thread.sleep(1500) //wait for starting
     new Thread {
       override def run {
@@ -65,7 +65,7 @@ class SmsSystemTest extends TestCase with TestConfig {
   }
 
   def testAddConfigBeforeStartSlave() {
-    SmsSystem.startAsMaster(8999, false, testMasterConf)
+    SmsSystem.startAsMaster("127.0.0.1", 8999, false, testMasterConf)
     Thread.sleep(1500) //wait for starting
     val actorPath = SmsSystem.addActor(AddMsg("testActor", "akka.tcp://slaveSys@127.0.0.1:10010/user/smsSlave", "org.hdm.akka.MyActor", null))
     Thread.sleep(1500) //wait for receiving
@@ -83,7 +83,7 @@ class SmsSystemTest extends TestCase with TestConfig {
   def testSendMsg() {
     new Thread {
       override def run {
-        SmsSystem.startAsMaster(8999, false, testMasterConf)
+        SmsSystem.startAsMaster("127.0.0.1", 8999, false, testMasterConf)
       }
     }.start
     Thread.sleep(1500) //wait for starting
@@ -95,7 +95,7 @@ class SmsSystemTest extends TestCase with TestConfig {
     val actorName = "testActor"
     val slavePath = "akka.tcp://slaveSys@127.0.0.1:10010/user/smsSlave"
     val actorPath = s"$slavePath/$actorName"
-    SmsSystem.startAsMaster(8999, false, testMasterConf)
+    SmsSystem.startAsMaster("127.0.0.1", 8999, false, testMasterConf)
     SmsSystem.addActor(actorName, slavePath, "org.hdm.akka.MyClusterActor", null)
     assert(SmsSystem.getParam("akka.tcp://slaveSys@127.0.0.1:10010/user/smsSlave/testActor") == null)
     SmsSystem.updateConfig(actorPath, "conf","newConfig",true)
@@ -108,11 +108,13 @@ class SmsSystemTest extends TestCase with TestConfig {
 
 
   def testSendClosure(){
+    val host = "127.0.0.1"
+    val port = 8998
     val f: String => Array[String] = _.split(",")
     new Thread {
       override def run {
-        SmsSystem.startAsMaster(8999, false, testMasterConf)
-        Thread.sleep(1500)
+        SmsSystem.startAsMaster(host, port, false, testMasterConf)
+        Thread.sleep(2500)
         val actorPath = SmsSystem.addActor(AddMsg("testActor", "akka.tcp://slaveSys@127.0.0.1:10010/user/smsSlave", "org.hdm.akka.MyActor", null))
         Thread.sleep(4500) //wait to completed
         println(SmsSystem.askSync(actorPath, f))
@@ -121,9 +123,9 @@ class SmsSystemTest extends TestCase with TestConfig {
     }.start
 //    SmsSystem.startAsMaster(8999, false, testMasterConf)
      //wait for starting
-    Thread.sleep(2500)
+    Thread.sleep(1500)
 
-    SmsSystem.startAsSlave("akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster", 10010, false, testSlaveConf)
+    SmsSystem.startAsSlave(s"akka.tcp://masterSys@$host:$port/user/smsMaster", 10010, false, testSlaveConf)
 
     Thread.sleep(15000) //wait to completed
   }

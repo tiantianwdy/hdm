@@ -26,7 +26,7 @@ class RooterExtensionTest extends TestConfig {
     println(RoutingExtension.globalSystemAddress())
     val actor = actorSystem.actorOf(Props[MyActor],"cmpp_actor_guodu")
     actorSystem.shutdown()
-    SmsSystem.startAsMaster(8999, false,testMasterConf)
+    SmsSystem.startAsMaster("127.0.0.1", 8999, false,testMasterConf)
     println(RoutingExtension.globalSystemAddress())
     val path = ActorPath.fromString( "akka.tcp://slaveSys/user/smsSlave/proxy/cmpp_actor_guodu")
     println(path.toStringWithAddress(RoutingExtension.globalSystemAddress()))
