@@ -4,13 +4,14 @@ import java.io.File
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.hdm.core.executor.HDMContext
+import org.hdm.core.utils.Logging
 
 import scala.util.Try
 
 /**
  * Created by Tiantian on 2014/12/19.
  */
-object HDMServer {
+object HDMServer extends Logging {
 
 
   val isLinux = System.getProperty("os.name").toLowerCase().contains("linux")
@@ -18,6 +19,7 @@ object HDMServer {
   var defaultConf = ConfigFactory.load("hdm-core.conf")
   var parentPath = defaultConf.getString("hdm.cluster.master.url")
   var port = defaultConf.getInt("akka.remote.netty.tcp.port")
+  var host = defaultConf.getString("akka.remote.netty.tcp.hostname")
   var slots = 1
   var blockServerPort = 9091
   var mode = "single-cluster"
@@ -46,6 +48,7 @@ object HDMServer {
     }
 
     paramMap.foreach(param => param._1 match {
+      case "-h" | "-host" => host = param._2
       case "-p" | "-port" => port = param._2.toInt
       case "-b" | "-bport" => blockServerPort = param._2.toInt
       case "-m" | "-master" => isMaster = param._2.toBoolean
@@ -66,18 +69,21 @@ object HDMServer {
     val hDMContext = HDMContext.defaultHDMContext
 
     if (isMaster){
-      println(s"starting master with $port, $mode, ${hDMContext.PLANER_PARALLEL_CPU_FACTOR}, ${hDMContext.PLANER_PARALLEL_NETWORK_FACTOR}")
-      hDMContext.startAsMaster(port = port, conf = defaultConf, mode = mode)//port, defaultConf
+      log.info(s"starting master at $host:$port, with mode: $mode, " +
+        s"CPU Parallel factor: ${hDMContext.PLANER_PARALLEL_CPU_FACTOR}, " +
+        s"Network parallel factor: ${hDMContext.PLANER_PARALLEL_NETWORK_FACTOR}")
+      hDMContext.startAsMaster(host= host, port = port, conf = defaultConf, mode = mode)//port, defaultConf
     }
-    else
-      hDMContext.startAsSlave(parentPath, port, blockServerPort, defaultConf, slots)//parentPath, port, defaultConf
-    println(s"[HDM Node Startted] as ${if (isMaster) "master" else "slave"} at port: $port .")
+    else{
+      hDMContext.startAsSlave(parentPath, host, port, blockServerPort, defaultConf, slots)
+    }//parentPath, port, defaultConf
+    log.info(s"[HDM Node Started] as ${if (isMaster) "master" else "slave"} at: $host:$port .")
 
     Runtime.getRuntime.addShutdownHook(new Thread {
       override def run(): Unit = {
-        println(s"HDMContext is shuting down...")
+        log.info(s"HDMContext is shuting down...")
         hDMContext.shutdown()
-        println(s"HDMContext has shut down successfully..")
+        log.info(s"HDMContext has shut down successfully..")
       }
     })
   }

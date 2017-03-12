@@ -150,8 +150,8 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
   }
 
 
-  def startAsMaster(port: Int = 8999, conf: Config = defaultConf, slots: Int = 0, mode: String = "single-cluster") {
-    SmsSystem.startAsMaster(port, isLinux, conf)
+  def startAsMaster(host:String = "", port: Int = 8999, conf: Config = defaultConf, slots: Int = 0, mode: String = "single-cluster") {
+    SmsSystem.startAsMaster(host, port, isLinux, conf)
     //    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.hdm.core.coordinator.ClusterExecutorLeader", slots)
     //    SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost","org.hdm.core.coordinator.HDMClusterLeaderActor", slots)
     val masterCls = if (mode == "multi-cluster") "org.hdm.core.coordinator.HDMMultiClusterLeader"
@@ -162,7 +162,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
     leaderPath.set(SmsSystem.physicalRootPath)
   }
 
-  def startAsSlave(masterPath: String, port: Int = 10010, blockPort: Int = 9091, conf: Config = defaultConf, slots: Int = cores) {
+  def startAsSlave(masterPath: String, host:String = "", port: Int = 10010, blockPort: Int = 9091, conf: Config = defaultConf, slots: Int = cores) {
     this.slot.set(slots)
     this.NETTY_BLOCK_SERVER_PORT = blockPort
     val blockContext = BlockContext(masterPath + "/" + HDMContext.BLOCK_MANAGER_NAME, BLOCK_SERVER_PROTOCOL, NETTY_BLOCK_SERVER_PORT)
