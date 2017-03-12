@@ -18,7 +18,7 @@ trait TestConfig {
 		    enabled-transports = ["akka.remote.netty.tcp"]
 		    netty.tcp {
 		        hostname = "127.0.0.1"
-		  		port = "8999"
+		  		  port = "8999"
 		    }
 		  }
 		}

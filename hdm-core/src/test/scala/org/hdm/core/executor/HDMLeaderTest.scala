@@ -40,7 +40,7 @@ class HDMLeaderTest extends ClusterTestSuite {
   val appContext = new AppContext()
 
   def testForDebugging {
-    hDMContext.startAsMaster(8999, testMasterConf)
+    hDMContext.startAsMaster(port = 8999, conf = testMasterConf)
     val rootPath = SmsSystem.rootPath
     println(rootPath)
     //    val addmsg1 = AddMsg(CLUSTER_EXECUTOR_NAME, "localhost","org.hdm.core.coordinator.BlockManagerLeader", null)
@@ -61,7 +61,7 @@ class HDMLeaderTest extends ClusterTestSuite {
    */
   @Test
   def testLeaderStart() {
-    hDMContext.startAsMaster(8999, testMasterConf)
+    hDMContext.startAsMaster(port = 8999, conf = testMasterConf)
     val rootPath = SmsSystem.rootPath
     println(rootPath)
 
