@@ -41,13 +41,13 @@ class KryoSerializer(conf: Config)
   extends org.hdm.core.serializer.Serializer
   with Serializable {
 
-  private val bufferSize = (0.064 * 1024 * 1024).toInt
+  private val bufferSize = (0.128 * 1024 * 1024).toInt
 
-  private val maxBufferSize =  64 * 1024 * 1024 //MB
+  private val maxBufferSize =  512 * 1024 * 1024 //MB
   private val referenceTracking = true
   private val registrationRequired = false
-//  private val userRegistrator = conf.getOption("spark.kryo.registrator")
-//  private val classesToRegister = conf.get("spark.kryo.classesToRegister", "")
+//  private val userRegistrator = conf.getOption("hdm.kryo.registrator")
+//  private val classesToRegister = conf.get("hdm.kryo.classesToRegister", "")
 //    .split(',')
 //    .filter(!_.isEmpty)
 
@@ -81,10 +81,10 @@ class KryoSerializer(conf: Config)
     try {
       // Use the default classloader when calling the user registrator.
       Thread.currentThread.setContextClassLoader(classLoader)
-      // Register classes given through spark.kryo.classesToRegister.
+      // Register classes given through hdm.kryo.classesToRegister.
 //      classesToRegister
 //        .foreach { className => kryo.register(Class.forName(className, true, classLoader)) }
-      // Allow the user to register their own classes by setting spark.kryo.registrator.
+      // Allow the user to register their own classes by setting hdm.kryo.registrator.
 //      userRegistrator
 //        .map(Class.forName(_, true, classLoader).newInstance().asInstanceOf[KryoRegistrator])
 //        .foreach { reg => reg.registerClasses(kryo) }
