@@ -566,6 +566,22 @@ object HDM {
       appContext = appContext)
   }
 
+
+  def parallelWithIndex[T: ClassTag](elems: Seq[T],
+                                     hdmContext: HDMContext = HDMContext.defaultHDMContext,
+                                     appContext: AppContext = AppContext.defaultAppContext,
+                                     numOfPartitions: Int = ClusterExecutor.CORES): HDM[(Long, T)] = {
+    val ddms = new RoundRobinPartitioner[(Long, T)](numOfPartitions)
+      .split(elems.zipWithIndex.map(_.swap).map(tup => (tup._1.toLong, tup._2)))
+      .map(d => DDM(d._2, hdmContext, appContext))
+    new DFM(children = ddms.toSeq,
+      func = new NullFunc[(Long, T)],
+      distribution = Horizontal,
+      location = Path(hdmContext.clusterBlockPath),
+      appContext = appContext)
+
+  }
+
   def jParallelize[T](elems: Array[T],
                       hdmContext: HDMContext = HDMContext.defaultHDMContext,
                       appContext: AppContext = AppContext.defaultAppContext,
