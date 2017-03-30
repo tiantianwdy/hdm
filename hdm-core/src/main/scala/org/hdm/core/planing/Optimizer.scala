@@ -1,12 +1,13 @@
 package org.hdm.core.planing
 
-import org.hdm.core.executor.{Partitioner, KeepPartitioner}
-import org.hdm.core.functions.{ParMapFunc, ParFindByFunc, ParGroupByFunc, FindByKey}
+import org.hdm.akka.server.SmsSystem
+import org.hdm.core.functions._
+import org.hdm.core.io.Path
 import org.hdm.core.model._
 import org.hdm.core.storage.{Computed, HDMBlockManager}
 import org.hdm.core.utils.Logging
 
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
 import scala.reflect.ClassTag
 
 /**
@@ -127,8 +128,25 @@ class CacheOptimizer extends  LogicalOptimizer with Logging{
       val cached = HDMBlockManager().getRef(cur.id).asInstanceOf[ParHDM[_, R]].copy(parallelism = cur.parallelism)
       log.info(s"Replace HDM ${cur} with cached: ${cached} .")
       cached
-    } else if(cur.children == null) {
-      cur
+    } else if(cur.children == null || cur.children.isEmpty) {
+      if (cur.isInstanceOf[DFM[_, _]] && (cur.state == Computed) && cur.blocks != null && cur.blocks.nonEmpty) {
+        val inType = cur.asInstanceOf[DFM[_, R]].inType
+        val children = cur.blocks.map{ blkStr =>
+          val blkPath = Path(blkStr)
+          val ddm = new DDM[inType.type, inType.type](id= blkPath.name,
+            func = new NullFunc[inType.type],
+            blocks = mutable.Buffer(blkStr),
+            blockSize = 1,
+            state = Computed,
+            location = blkPath,
+            preferLocation = Path(SmsSystem.physicalRootPath),
+            appContext = cur.appContext)
+          ddm
+        }
+        cur.asInstanceOf[ParHDM[inType.type, R]].copy(children = children)
+      } else {
+        cur
+      }
     } else {
       cur match {
         case curHDM: ParHDM[_, R] =>

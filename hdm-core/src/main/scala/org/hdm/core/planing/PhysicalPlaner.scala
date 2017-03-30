@@ -1,7 +1,7 @@
 package org.hdm.core.planing
 
 import org.hdm.core.executor.HDMContext
-import org.hdm.core.functions.{ParallelFunction, NullFunc, ParUnionFunc, FlattenFunc}
+import org.hdm.core.functions.{NullFunc, ParUnionFunc, ParallelFunction}
 import org.hdm.core.io.{DataParser, Path}
 import org.hdm.core.model._
 import org.hdm.core.scheduling.Scheduler

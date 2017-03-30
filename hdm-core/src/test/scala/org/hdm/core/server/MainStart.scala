@@ -8,8 +8,9 @@ import org.hdm.core.executor.HDMContext
 object MainStart  {
 
   def main(args: Array[String]): Unit ={
-//    HDMContext.defaultHDMContext.startAsMaster(mode = "multi-cluster")
-    HDMContext.defaultHDMContext.init(slots = 0) // start master
+    HDMContext.defaultHDMContext.startAsMaster(port = 8999)
+    //    HDMContext.defaultHDMContext.startAsMaster(mode = "multi-cluster")
+    //    HDMContext.defaultHDMContext.init(slots = 0) // start master
   }
 
 }
