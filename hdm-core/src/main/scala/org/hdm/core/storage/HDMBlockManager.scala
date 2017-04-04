@@ -2,18 +2,16 @@ package org.hdm.core.storage
 
 import java.net.InetSocketAddress
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.{BlockingQueue, ConcurrentHashMap}
 
 import org.hdm.akka.monitor.SystemMonitorService
 import org.hdm.core.executor.HDMContext
-import org.hdm.core.io.netty.{NettyBlockServer, NettyConnectionManager, NettyBlockFetcher}
+import org.hdm.core.io.netty.{NettyBlockServer, NettyConnectionManager}
 import org.hdm.core.io.{DataParser, Path}
 import org.hdm.core.message.{FetchSuccessResponse, QueryBlockMsg}
-import org.hdm.core.model.{HDM, DFM, ParHDM, DDM}
-import java.util.concurrent.{BlockingQueue, ConcurrentHashMap}
+import org.hdm.core.model._
+import org.hdm.core.utils.{Logging, Utils}
 
-import org.hdm.core.utils.{Utils, Logging}
-import org.hdm.core.Arr
-import scala.concurrent.Future
 import scala.reflect.ClassTag
 
 /**
@@ -266,7 +264,7 @@ object HDMBlockManager extends Logging{
    * @param queue
    * @param completeWatcher
    */
-  def loadBlocksIntoQueue(hdms:Seq[_<: HDM[_]], queue: BlockingQueue[AnyRef], completeWatcher:AtomicBoolean): Unit ={
+  def loadBlocksIntoQueue(hdms:Seq[HDMInfo], queue: BlockingQueue[AnyRef], completeWatcher:AtomicBoolean): Unit ={
     val blockCounter = new AtomicInteger(0)
 
     val blockHandler = (blk: Block[_]) => {

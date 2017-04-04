@@ -64,7 +64,7 @@ class DefScheduler(val blockManager:HDMBlockManager,
           val blkSeq = singleInputTask.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
           val inputDDMs = blkSeq.map(bl => blockManager.getRef(Path(bl).name))
           singleInputTask.asInstanceOf[Task[singleInputTask.inType.type, R]]
-            .copy(input = inputDDMs.asInstanceOf[Seq[ParHDM[_, singleInputTask.inType.type]]])
+            .copy(input = inputDDMs.map(hdm => HDMInfo(hdm)))
         case twoInputTask:TwoInputTask[_, _, R] =>
           val blkSeq1 = twoInputTask.input1.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
           val blkSeq2 = twoInputTask.input2.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
@@ -116,7 +116,7 @@ class DefScheduler(val blockManager:HDMBlockManager,
           version = version,
           exeId = exeId,
           taskId = h.id,
-          input = h.children.asInstanceOf[Seq[ParHDM[_, hdm.inType.type]]],
+          input = h.children.map(hdm => HDMInfo(hdm)),
           func = h.func.asInstanceOf[ParallelFunction[hdm.inType.type, h.outType.type]],
           dep = h.dependency,
           partitioner = h.partitioner.asInstanceOf[Partitioner[h.outType.type]],
@@ -195,6 +195,7 @@ class DefScheduler(val blockManager:HDMBlockManager,
 
   /**
    * find next tasks which are available to be executed
+ *
    * @param appId
    */
   private def triggerTasks(appId: String) = { //todo replace with planner.findNextTask

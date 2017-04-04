@@ -250,7 +250,10 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
       case none => null
     }
     //    val jobMsg = SubmitJobMsg(appId, hdm, rootPath + "/"+JOB_RESULT_DISPATCHER, parallel)
+    val start = System.currentTimeMillis()
     val jobBytes = HDMContext.JOB_SERIALIZER.serialize(hdm).array
+    val end = System.currentTimeMillis()
+    log.info(s"Completed serializing task with size: ${jobBytes.length / 1024} KB. in ${end - start} ms.")
     val jobMsg = new SerializedJobMsg(appName, version, jobBytes, rootPath + "/" + HDMContext.JOB_RESULT_DISPATCHER, rootPath + "/" + HDMContext.CLUSTER_EXECUTOR_NAME, parallel)
     SmsSystem.askAsync(master + "/" + HDMContext.CLUSTER_EXECUTOR_NAME, jobMsg)
     if (promise ne null) promise.future

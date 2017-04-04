@@ -7,7 +7,7 @@ import org.hdm.core._
 import org.hdm.core.functions.{Aggregatable, Aggregator, DualInputFunction}
 import org.hdm.core.io.{Path, BufferedBlockIterator}
 import org.hdm.core.message.FetchSuccessResponse
-import org.hdm.core.model.{HDM, DDM, DataDependency}
+import org.hdm.core.model.{HDMInfo, HDM, DDM, DataDependency}
 import org.hdm.core.server.DependencyManager
 import org.hdm.core.storage.{HDMBlockManager, Block}
 import org.hdm.core.utils.Utils
@@ -38,7 +38,7 @@ case class TwoInputTask[T: ClassTag, U: ClassTag, R: ClassTag](appId: String, ve
 
   final val outType = classTag[R]
 
-  override def input = input1 ++ input2
+  override def input = (input1 ++ input2).map(h => HDMInfo(h))
 
   override def call(): Seq[DDM[_, R]] = try {
     func.setTaskContext(TaskContext(this))

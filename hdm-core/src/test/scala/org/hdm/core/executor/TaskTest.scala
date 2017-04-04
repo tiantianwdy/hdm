@@ -5,7 +5,7 @@ import org.junit.Test
 import org.hdm.core.executor._
 import org.hdm.core.functions.ParallelFunction
 import org.hdm.core.io.Path
-import org.hdm.core.model.{DFM, DDM, ParHDM, HDM}
+import org.hdm.core.model._
 import org.hdm.core.storage.HDMBlockManager
 
 import scala.util.{Failure, Success}
@@ -37,7 +37,7 @@ class TaskTest extends ClusterTestSuite {
         val dfm = h.asInstanceOf[DFM[_,_]]
         val task = Task(appId = appContext.appName, version = appContext.version,
           taskId = h.id, exeId = "",
-          input = h.children.asInstanceOf[Seq[ParHDM[_, dfm.inType.type]]],
+          input = h.children.map(h => HDMInfo(h)),
           dep = h.dependency,
           func = h.func.asInstanceOf[ParallelFunction[dfm.inType.type, dfm.outType.type]],
           appContext = appContext,

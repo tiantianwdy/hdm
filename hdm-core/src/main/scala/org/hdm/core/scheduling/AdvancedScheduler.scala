@@ -61,7 +61,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       val inputLocations = new ArrayBuffer[Path](task.input.length)
       val inputSize = new ArrayBuffer[Long](task.input.length)
       inputLocations ++= HDMBlockManager().getLocations(ids)
-      inputSize ++= HDMBlockManager().getblockSizes(ids).map(_ / 1024)
+      inputSize ++= HDMBlockManager().getblockSizes(ids).map(n => Math.max(n / 1024, 1L))
       tasks += SchedulingTask(task.taskId, inputLocations, inputSize, task.dep)
     }
 //    val tasks = blockingQue.map { task =>
@@ -78,8 +78,10 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
       HDMContext.defaultHDMContext.SCHEDULING_FACTOR_NETWORK)
     val end = System.currentTimeMillis() - start
     totalScheduleTime.addAndGet(end)
+    log.trace(s"in scheduleOnResource get task with size ${tasks.size}...")
+    log.trace(s"in scheduleOnResource with candidates [${candidates.mkString("\n\r")}]...")
+    log.trace(s"scheduling takes ${end} ms. Got plan [${plans.mkString("\n\r")}]")
 
-//    log.info(s"in scheduleOnResource get task with size ${tasks.size}...")
     val scheduledTasks = blockingQue.filter(t => plans.contains(t.taskId)).map(t => t.taskId -> t).toMap[String, ParallelTask[_]]
 //    log.info(s"in scheduleOnResource get scheduledTasks with size ${scheduledTasks.size}...")
     val now = System.currentTimeMillis()
@@ -172,7 +174,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           version = version,
           exeId = exeId,
           taskId = h.id,
-          input = h.children.asInstanceOf[Seq[ParHDM[_, hdm.inType.type]]],
+          input = if(h.children != null) h.children.map(child => HDMInfo(child)) else null,
           func = h.func.asInstanceOf[ParallelFunction[hdm.inType.type, hdm.outType.type]],
           dep = h.dependency,
           idx = hdm.index,
@@ -282,7 +284,8 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           val blkSeq = singleInputTask.input.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
           val inputDDMs = blkSeq.map(bl => blockManager.getRef(Path(bl).name))
           singleInputTask.asInstanceOf[Task[singleInputTask.inType.type, R]]
-            .copy(input = inputDDMs.asInstanceOf[Seq[ParHDM[_, singleInputTask.inType.type]]])
+            .copy(input = inputDDMs.map(hdm => HDMInfo(hdm)))
+
         case twoInputTask:TwoInputTask[_, _, R] =>
           val blkSeq1 = twoInputTask.input1.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
           val blkSeq2 = twoInputTask.input2.map(h => blockManager.getRef(h.id)).flatMap(_.blocks)
@@ -304,7 +307,10 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
 
   protected def runRemoteTask[ R: ClassTag](workerPath: String, task: ParallelTask[R]): Future[Seq[String]] = {
+    val start = System.currentTimeMillis()
     val taskBytes = HDMContext.JOB_SERIALIZER.serialize(task).array
+    val end = System.currentTimeMillis()
+    log.trace(s"Completed serializing task ${task.taskId} with size: ${taskBytes.length / 1024} KB, in ${end -start} ms.")
     val msg = SerializedTaskMsg(task.appId, task.version, task.taskId, taskBytes)
 //    val msg = AddTaskMsg(task)
     val future = (actorSys.actorSelection(workerPath) ? msg).mapTo[Seq[String]]

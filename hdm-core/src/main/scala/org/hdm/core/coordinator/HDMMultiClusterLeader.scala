@@ -9,7 +9,7 @@ import org.hdm.akka.server.SmsSystem
 import org.hdm.core.executor.{ParallelTask, HDMContext}
 import org.hdm.core.io.Path
 import org.hdm.core.message._
-import org.hdm.core.model.{HDMPoJo, HDM}
+import org.hdm.core.model.{HDMInfo, HDM}
 import org.hdm.core.server.{MultiClusterBackend, ServerBackend}
 
 import scala.collection.mutable
@@ -24,6 +24,7 @@ import scala.collection.JavaConversions._
 
 /**
  * a class leader which is able to handle multi-clusters with sibling master nodes for each master
+ *
  * @param hdmBackend
  * @param cores
  * @param hDMContext
@@ -245,7 +246,7 @@ trait MultiClusterQueryReceiver extends QueryReceiver {
     case LogicalFLowQuery(exeId, opt) =>
       val ins = hdmBackend.dependencyManager.getExeIns(exeId)
       if(ins ne null) {
-        val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMPoJo(_))
+        val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMInfo(_))
         sender() ! LogicalFLowResp(exeId, flow)
       }
 
@@ -253,14 +254,14 @@ trait MultiClusterQueryReceiver extends QueryReceiver {
       val exeId = hdmBackend.dependencyManager.historyManager.getInstanceIdStage(jobId)
       val ins = hdmBackend.dependencyManager.getExeIns(exeId)
       if(ins ne null) {
-        val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMPoJo(_))
+        val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMInfo(_))
         sender() ! LogicalFLowResp(exeId, flow)
       }
 
     case PhysicalFlow(exeId) =>
       val ins = hdmBackend.dependencyManager.getExeIns(exeId)
       if(ins ne null) {
-        val flow = ins.physicalPlan.map(HDMPoJo(_))
+        val flow = ins.physicalPlan.map(HDMInfo(_))
         sender() ! PhysicalFlowResp(exeId, flow)
       }
 

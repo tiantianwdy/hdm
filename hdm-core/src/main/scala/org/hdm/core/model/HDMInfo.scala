@@ -1,12 +1,14 @@
 package org.hdm.core.model
 
+import org.hdm.core.io.Path
+
 /**
  * A serializable HDM PoJo without reference of function dependencies and objects
  * Mainly used for information monitoring and sharing as messages
  *
  * Created by tiantian on 8/04/16.
  */
-class HDMPoJo(val id: String,
+class HDMInfo(val id: String,
               val name :String,
               val hdmType:String,
               val children: Seq[String],
@@ -14,7 +16,7 @@ class HDMPoJo(val id: String,
               val func: String,
               val blocks: Seq[String],
               val distribution: String,
-              val location: String, // todo change name to path
+              val locationStr: String, // todo change name to path
               val preferLocation: String,
               val blockSize: Long,
               val state: String,
@@ -22,7 +24,7 @@ class HDMPoJo(val id: String,
               val keepPartition: Boolean,
               val partitioner: String,
               val isCache: Boolean,
-              var depth: Int ,
+              var depth: Int,
               val outType: String
                ) extends Serializable {
 
@@ -35,7 +37,7 @@ class HDMPoJo(val id: String,
       hdm.func.getClass.getCanonicalName,
       hdm.blocks,
       hdm.distribution.toString,
-      hdm.location.toString,
+      if(hdm.location != null) hdm.location.toString else null,
       if(hdm.preferLocation == null) null else hdm.preferLocation.toString,
       hdm.blockSize,
       hdm.state.toString,
@@ -48,12 +50,16 @@ class HDMPoJo(val id: String,
     )
   }
 
+  def location:Path = {
+    Path(this.locationStr)
+  }
+
   def toURL = location.toString
 }
 
 
-object HDMPoJo {
+object HDMInfo {
 
-  def apply(hdm:HDM[_]) = new HDMPoJo(hdm)
+  def apply(hdm:HDM[_]) = new HDMInfo(hdm)
 
 }

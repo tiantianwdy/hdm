@@ -6,7 +6,7 @@ import akka.actor.ActorPath
 import org.hdm.akka.server.SmsSystem
 import org.hdm.core.io.Path
 import org.hdm.core.message._
-import org.hdm.core.model.{HDM, HDMPoJo}
+import org.hdm.core.model.{HDM, HDMInfo}
 
 import scala.collection.mutable
 import scala.util.{Failure, Success}
@@ -38,12 +38,12 @@ trait DefQueryMsgReceiver extends QueryReceiver{
 
     case LogicalFLowQuery(exeId, opt) =>
       val ins = hdmBackend.dependencyManager.getExeIns(exeId)
-      val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMPoJo(_))
+      val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMInfo(_))
       sender() ! LogicalFLowResp(exeId, flow)
 
     case PhysicalFlow(exeId) =>
       val ins = hdmBackend.dependencyManager.getExeIns(exeId)
-      val flow = ins.physicalPlan.map(HDMPoJo(_))
+      val flow = ins.physicalPlan.map(HDMInfo(_))
       sender() ! PhysicalFlowResp(exeId, flow)
 
     case ExecutionTraceQuery(execId) =>

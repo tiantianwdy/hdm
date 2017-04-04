@@ -1,6 +1,6 @@
 package org.hdm.core.message
 
-import org.hdm.core.model.{HDMPoJo, HDM}
+import org.hdm.core.model.{HDMInfo, HDM}
 import org.hdm.core.planing.{JobStageInfo, JobStage}
 import org.hdm.core.server.provenance.{ApplicationTrace, ExecutionTrace}
 
@@ -26,11 +26,11 @@ case class LogicalFLowQuery(execId:String, opt:Boolean) extends QueryMsg
 
 case class LogicalFLowQueryByStage(jobId:String, opt:Boolean) extends QueryMsg
 
-case class LogicalFLowResp(execId:String, results:Seq[HDMPoJo])extends QueryMsg
+case class LogicalFLowResp(execId:String, results:Seq[HDMInfo])extends QueryMsg
 
 case class PhysicalFlow(execId:String) extends QueryMsg
 
-case class PhysicalFlowResp(execId:String, results:Seq[HDMPoJo])extends QueryMsg
+case class PhysicalFlowResp(execId:String, results:Seq[HDMInfo])extends QueryMsg
 
 case class AllSlavesQuery(parent:String)extends QueryMsg
 

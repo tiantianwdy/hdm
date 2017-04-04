@@ -6,7 +6,7 @@ import org.hdm.akka.configuration.ActorConfig
 import org.hdm.core.console.models._
 import org.hdm.core.io.Path
 import org.hdm.core.message._
-import org.hdm.core.model.HDMPoJo
+import org.hdm.core.model.HDMInfo
 import org.hdm.core.server.provenance.ExecutionTrace
 
 import scala.collection.mutable
@@ -81,7 +81,7 @@ object HDMViewAdapter {
     }
   }
 
-  def HDMPojoSeqToGraph(data: Seq[HDMPoJo]): DagGraph = {
+  def HDMPojoSeqToGraph(data: Seq[HDMInfo]): DagGraph = {
       val graph = new DagGraph()
       val nodes = mutable.Buffer.empty[HDMNode]
       val nodeIdxes = mutable.HashMap.empty[String, HDMNode]
@@ -90,7 +90,7 @@ object HDMViewAdapter {
       data.foreach { hdm =>
         val input = if(hdm.children != null) hdm.children.toArray else Array.empty[String]
         val output = if(hdm.blocks != null) hdm.blocks.toArray else null
-        val node = new HDMNode (hdm.id, hdm.name, "version", hdm.func, hdm.hdmType , hdm.location,
+        val node = new HDMNode (hdm.id, hdm.name, "version", hdm.func, hdm.hdmType , hdm.locationStr,
           hdm.dependency, hdm.parallelism.toString, hdm.partitioner, input, output, hdm.isCache,
           0L, 0L, hdm.state, statusToGroup(hdm.state))
         nodeIdxes += (node.getId -> node)
@@ -113,7 +113,7 @@ object HDMViewAdapter {
       graph
   }
 
-  def HDMPojoSeqToGraphAggregated(data: Seq[HDMPoJo]): DagGraph = {
+  def HDMPojoSeqToGraphAggregated(data: Seq[HDMInfo]): DagGraph = {
     // todo aggregate same input (DDM) for each HDM into one node to avoid performance problem and filter out DDMs group the ddms based on their output
     val graph = new DagGraph()
     val nodes = mutable.Buffer.empty[HDMNode]
@@ -126,7 +126,7 @@ object HDMViewAdapter {
     data.foreach { hdm =>
       val input = if(hdm.children != null) hdm.children.toArray else Array.empty[String]
       val output = if(hdm.blocks != null) hdm.blocks.toArray else null
-      val node = new HDMNode (hdm.id, hdm.name, "version", hdm.func, hdm.hdmType , hdm.location,
+      val node = new HDMNode (hdm.id, hdm.name, "version", hdm.func, hdm.hdmType , hdm.locationStr,
         hdm.dependency, hdm.parallelism.toString, hdm.partitioner, input, output, hdm.isCache,
         0L, 0L, hdm.state, statusToGroup(hdm.state))
       nodeIdxes += (node.getId -> node)

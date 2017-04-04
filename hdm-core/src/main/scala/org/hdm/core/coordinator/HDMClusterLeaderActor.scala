@@ -8,7 +8,7 @@ import org.hdm.akka.server.SmsSystem
 import org.hdm.core.executor.HDMContext
 import org.hdm.core.io.Path
 import org.hdm.core.message._
-import org.hdm.core.model.{HDMPoJo, HDM}
+import org.hdm.core.model.{HDMInfo, HDM}
 import org.hdm.core.server.ServerBackend
 
 import scala.collection.mutable
@@ -86,12 +86,12 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
 
     case LogicalFLowQuery(exeId, opt) =>
       val ins = hdmBackend.dependencyManager.getExeIns(exeId)
-      val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMPoJo(_))
+      val flow = (if(opt) ins.logicalPlanOpt else ins.logicalPlan).map(HDMInfo(_))
       sender() ! LogicalFLowResp(exeId, flow)
 
     case PhysicalFlow(exeId) =>
       val ins = hdmBackend.dependencyManager.getExeIns(exeId)
-      val flow = ins.physicalPlan.map(HDMPoJo(_))
+      val flow = ins.physicalPlan.map(HDMInfo(_))
       sender() ! PhysicalFlowResp(exeId, flow)
 
     case ExecutionTraceQuery(execId) =>
@@ -160,6 +160,7 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
 
   /**
    * handle coordination messages
+ *
    * @return
    */
   protected def processClusterMsg: PartialFunction[CoordinatingMsg, Unit] = {
@@ -180,6 +181,7 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
 
   /**
    * handle Scheduling messages
+ *
    * @return
    */
   protected def processScheduleMsg: PartialFunction[SchedulingMsg, Unit] = {

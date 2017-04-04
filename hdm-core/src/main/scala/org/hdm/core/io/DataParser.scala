@@ -1,23 +1,19 @@
 package org.hdm.core.io
 
-import java.nio.ByteBuffer
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{Path, FileSystem}
+import org.apache.hadoop.fs.FileSystem
 import org.hdm.core.executor.{AppContext, HDMContext}
-import org.hdm.core.{Buf, Arr}
 import org.hdm.core.functions.NullFunc
 import org.hdm.core.io.hdfs.HDFSUtils
-import org.hdm.core.model.{ParHDM, DDM}
-import org.hdm.core.storage.{HDMBlockManager, Block}
-import akka.serialization.Serializer
-import java.io.IOException
-
+import org.hdm.core.model.{DDM, HDMInfo}
+import org.hdm.core.storage.{Block, HDMBlockManager}
 import org.hdm.core.utils.Logging
+import org.hdm.core.{Arr, Buf}
 
 import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scala.reflect.ClassTag
@@ -223,7 +219,7 @@ object DataParser extends Logging{
     case _ => throw new IOException("Unsupported data protocol:" + path.protocol)
   }
   
-  def readBlock(in:ParHDM[_,_],
+  def readBlock(in:HDMInfo,
                 removeFromCache:Boolean,
                 classLoader: ClassLoader):Block[_] = {
     if (!HDMBlockManager().isCached(in.id)) {
@@ -259,7 +255,7 @@ object DataParser extends Logging{
     }
   }
 
-  def readBlock[R:ClassTag](in:ParHDM[_,_],
+  def readBlock[R:ClassTag](in:HDMInfo,
                             removeFromCache:Boolean,
                             func:Arr[Any] => Arr[R],
                             classLoader: ClassLoader):Buf[R] = {

@@ -4,7 +4,7 @@ import java.util.concurrent.Callable
 
 import org.hdm.core._
 import org.hdm.core.functions.SerializableFunction
-import org.hdm.core.model.{HDM, DDM, DataDependency}
+import org.hdm.core.model.{HDMInfo, HDM, DDM, DataDependency}
 import org.hdm.core.utils.Logging
 
 import scala.reflect.ClassTag
@@ -24,7 +24,7 @@ abstract class ParallelTask [R : ClassTag] extends Serializable with Callable[Se
 
   val idx:Int
 
-  def input:Seq[HDM[_]]
+  def input:Seq[HDMInfo]
 
   val dep: DataDependency
 
