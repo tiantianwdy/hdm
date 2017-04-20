@@ -7,7 +7,6 @@ package org.hdm.core.planing
 import org.hdm.core.executor.HDMContext
 import org.hdm.core.model.DDM
 import org.hdm.core.scheduling.{MinMinScheduling, SchedulingTask}
-import org.hdm.core.storage.HDMBlockManager
 
 import scala.collection.mutable.Buffer
 import org.hdm.core.io.Path
@@ -56,6 +55,13 @@ object PlanningUtils {
     }
   }
 
+  /**
+    * group a set of input path into n group based on their location boundary
+    * @param paths addresses of inputs
+    * @param n  number of group
+    * @param boundary location boundary calculated by IP address
+    * @return grouped input paths
+    */
   def groupPathByBoundary(paths:Seq[Path], n:Int, boundary:Int = 256 << 8 ) = {
     val sorted = paths.sortWith( (p1,p2) => Path.path2Int(p1) < Path.path2Int(p2)).iterator
 //    val boundary = 256 << 8 - 1

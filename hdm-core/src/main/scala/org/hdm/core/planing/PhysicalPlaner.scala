@@ -15,9 +15,6 @@ import scala.reflect.ClassTag
 /**
  * Created by tiantian on 7/01/15.
  */
-/**
- *
- */
 trait PhysicalPlanner extends Serializable{
 
   def plan[I: ClassTag, R: ClassTag](input: Seq[ParHDM[_,I]], target: ParHDM[I, R], parallelism:Int):Seq[ParHDM[_, _]]
@@ -119,7 +116,8 @@ class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hD
 
     case dfm:DFM[I,R] if(dfm.children.forall(_.isInstanceOf[DDM[_, I]])) => //for computed DFM
       val children = dfm.children.map(_.asInstanceOf[DDM[_, I]])
-      val inputs = PlanningUtils.groupDDMByBoundary(children, defParallel, 0).asInstanceOf[Seq[Seq[DDM[_,I]]]]
+      val numOfGroups = Math.min(children.size, defParallel)
+      val inputs = PlanningUtils.groupDDMByBoundary(children, numOfGroups, 0).asInstanceOf[Seq[Seq[DDM[_,I]]]]
       val func = target.func
       val mediator = inputs.map { seq =>
         val index = inputs.indexOf(seq)
