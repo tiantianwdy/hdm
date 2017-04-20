@@ -3,8 +3,8 @@ package org.hdm.core.executor
 import org.hdm.core.collections.CompactBuffer
 import org.hdm.core.functions.{RangePartitioning, TeraSortPartitioning}
 
-import scala.collection._
-import scala.collection.mutable.HashMap
+import scala.collection.{mutable, _}
+import scala.collection.mutable.{ArrayBuffer, HashMap}
 import scala.reflect.ClassTag
 
 /**
@@ -43,17 +43,17 @@ class HashPartitioner[T: ClassTag](var partitionNum: Int, val pFunc: T => Int) e
 
   override def split(data: Seq[T]): Map[Int, _ <: Seq[T]] = {
 
-    val mapBuffer = new HashMap[Int, CompactBuffer[T]]()
+    val mapBuffer = new HashMap[Int, mutable.Buffer[T]]()
     for (d <- data) {
       val partitionId = Math.abs(pFunc(d)) % partitionNum
-      val bullet = mapBuffer.getOrElseUpdate(partitionId, CompactBuffer.empty[T])
+      val bullet = mapBuffer.getOrElseUpdate(partitionId, ArrayBuffer.empty[T])
       bullet += d
     }
     if (mapBuffer.keySet.size < partitionNum) {
       // if elems is less than the partition number return empty buffers
       for (i <- 0 until partitionNum) {
         if (!mapBuffer.contains(i)) {
-          mapBuffer.put(i, CompactBuffer.empty[T])
+          mapBuffer.put(i, ArrayBuffer.empty[T])
         }
       }
     }
@@ -62,10 +62,12 @@ class HashPartitioner[T: ClassTag](var partitionNum: Int, val pFunc: T => Int) e
   }
 }
 
+
 class KeepPartitioner[T](var partitionNum: Int, val pFunc: T => Int = null) extends Partitioner[T] {
 
   override def split(data: Seq[T]): Map[Int, Seq[T]] = ???
 }
+
 
 
 class TeraSortPartitioner[T: ClassTag](partitionNum: Int) extends HashPartitioner[T](partitionNum, null) {
@@ -78,12 +80,14 @@ class TeraSortPartitioner[T: ClassTag](partitionNum: Int) extends HashPartitione
 }
 
 
+
 class RangePartitioner[T: Ordering : ClassTag](bounds: Array[T]) extends HashPartitioner[T](bounds.length + 1, null) {
 
   val partitioning = new RangePartitioning[T](bounds)
 
   override val pFunc = (d: T) => partitioning.partitionIndex(d)
 }
+
 
 
 class RoundRobinPartitioner[T: ClassTag](var partitionNum: Int) extends Partitioner[T] {
