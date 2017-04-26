@@ -1,13 +1,9 @@
 package org.hdm.core.planing
 
 import org.hdm.core.executor.HDMContext
-import org.hdm.core.functions.{FlattenFunc, ParUnionFunc, ParallelFunction}
-import org.hdm.core.io.{DataParser, Path}
 import org.hdm.core.model._
 import org.hdm.core.storage.HDMBlockManager
 
-import scala.collection.mutable.ListBuffer
-import scala.reflect.ClassTag
 import scala.util.Try
 
 /**
@@ -40,7 +36,6 @@ trait DynamicPlaner {
 /**
  *
  */
-
 class StaticPlaner(hDMContext: HDMContext) extends HDMPlaner {
 
   val physicalPlaner = new DefaultPhysicalPlanner(HDMBlockManager(), isStatic = true, hDMContext)
