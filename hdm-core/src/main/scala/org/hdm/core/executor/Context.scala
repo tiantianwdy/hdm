@@ -96,7 +96,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
 
   val SCHEDULING_POLICY_CLASS = Try {
     defaultConf.getString("hdm.scheduling.policy.class")
-  } getOrElse ("org.hdm.core.scheduling.MinMinScheduling")
+  } getOrElse ("org.hdm.core.scheduling.MinMinSchedulingOpt")
 
   lazy val DEFAULT_DEPENDENCY_BASE_PATH = Try {
     defaultConf.getString("hdm.dep.base.path")
@@ -113,6 +113,11 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
   val MAX_MEM_GC_SIZE = Try {
     defaultConf.getInt("hdm.memory.gc.max.byte")
   } getOrElse (1024 * 1024 * 1024) // about 256MB
+
+
+  val JOB_DEFAULT_WAITING_TIMEOUT = Try {
+    defaultConf.getLong("hdm.executor.job.timeout.default")
+  } getOrElse (600000L) // 10 mins
 
   lazy val DEFAULT_BLOCK_ID_LENGTH = defaultSerializer.serialize(newLocalId()).array().length
 

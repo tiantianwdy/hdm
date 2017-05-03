@@ -453,13 +453,13 @@ abstract class HDM[R: ClassTag] extends Serializable{
     compute(parallelism).map(hdm => HDMAction.traverse[R](hdm))
   }
 
-  def collect(maxWaiting: Long = 500000)(implicit parallelism: Int): Iterator[R] = {
+  def collect(maxWaiting: Long = hdmContext.JOB_DEFAULT_WAITING_TIMEOUT)(implicit parallelism: Int): Iterator[R] = {
     import scala.concurrent.duration._
     Await.result(traverse(parallelism), maxWaiting millis)
   }
 
 
-  def cached(implicit parallelism: Int, maxWaiting: Long = 500000): ParHDM[_, R] = {
+  def cached(implicit parallelism: Int, maxWaiting: Long = hdmContext.JOB_DEFAULT_WAITING_TIMEOUT): ParHDM[_, R] = {
     import scala.concurrent.duration._
     Await.result(compute(parallelism), maxWaiting millis).asInstanceOf[ParHDM[_, R]]
   }
