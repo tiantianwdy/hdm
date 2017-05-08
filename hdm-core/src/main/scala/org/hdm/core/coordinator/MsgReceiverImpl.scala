@@ -4,6 +4,7 @@ import java.nio.ByteBuffer
 
 import akka.actor.ActorPath
 import org.hdm.akka.server.SmsSystem
+import org.hdm.core.executor.HDMContext
 import org.hdm.core.io.Path
 import org.hdm.core.message._
 import org.hdm.core.model.{HDM, HDMInfo}
@@ -57,10 +58,10 @@ trait DefQueryMsgReceiver extends QueryReceiver{
       val masterAddress = Path(masterPath).address
       val nodes = hdmBackend.resourceManager.getAllResources()
         .map { tup =>
-        val id = tup._1
-        val address = Path(tup._1).address
-        NodeInfo(id, "Worker", masterPath, address, cur, tup._2.get(), "Running")
-      }
+          val id = tup._1
+          val address = Path(tup._1).address
+          NodeInfo(id, "Worker", masterPath, address, cur, tup._2.get(), "Running")
+        }
       val masterNode = NodeInfo(masterPath, "Master", null, masterAddress, cur, 0, "Running")
       val resp = if(nodes ne null) nodes.toSeq else Seq.empty[NodeInfo]
       sender() ! AllSLavesResp(resp :+ masterNode)
@@ -140,7 +141,7 @@ trait DefSchedulingReceiver extends SchedulingMsgReceiver {
      */
     case SerializedJobMsg(appName, version, serHDM, resultHandler, from, parallel) =>
       val appLoader = hdmBackend.dependencyManager.getClassLoader(appName, version)
-      val serializer = hDMContext.defaultSerializer
+      val serializer = HDMContext.JOB_SERIALIZER
       val hdm = serializer.deserialize[HDM[_]](ByteBuffer.wrap(serHDM), appLoader)
       val appId = hdmBackend.dependencyManager.appId(appName, version)
       val senderPath = sender.path
@@ -149,7 +150,8 @@ trait DefSchedulingReceiver extends SchedulingMsgReceiver {
         case Success(res) =>
           val resActor = context.actorSelection(fullPath)
           resActor ! JobCompleteMsg(hdm.id, 0, res)
-          log.info(s"A job has completed successfully. result has been send to [${resultHandler}}]; appId: ${appId}}; res:${res}  ")
+          val scheduleTime = hdmBackend.scheduler.totalScheduleTime.getAndSet(0L)
+          log.info(s"A job has completed successfully with scheduling time: ${scheduleTime} ms. result has been send to [${resultHandler}}]; appId: ${appId}}.")
         case Failure(t) =>
           context.actorSelection(resultHandler) ! JobCompleteMsg(appId, 1, t.toString)
           log.info(s"A job has failed. result has been send to [${resultHandler}}]; appId: ${appId}} ")
@@ -161,10 +163,8 @@ trait DefSchedulingReceiver extends SchedulingMsgReceiver {
     case TaskCompleteMsg(appId, taskId, func, results) =>
       log.info(s"received a task completed msg: ${taskId + "_" + func}")
       val workerPath = sender.path.toString
-      //      HDMContext.declareHdm(results, false)
       hdmBackend.blockManager.addAllRef(results)
       hdmBackend.resourceManager.incResource(workerPath, 1)
-      //      hdmBackend.resourceManager.release(1)
       hdmBackend.taskSucceeded(appId, taskId, func, results)
   }
 

@@ -155,7 +155,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
     //    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.hdm.core.coordinator.ClusterExecutorLeader", slots)
     //    SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost","org.hdm.core.coordinator.HDMClusterLeaderActor", slots)
     val masterCls = if (mode == "multi-cluster") "org.hdm.core.coordinator.HDMMultiClusterLeader"
-    else "org.hdm.core.coordinator.HDMClusterLeaderActor"
+    else "org.hdm.core.coordinator.SingleClusterLeader"
     SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost", masterCls, slots)
     SmsSystem.addActor(HDMContext.BLOCK_MANAGER_NAME, "localhost", "org.hdm.core.coordinator.BlockManagerLeader", null)
     SmsSystem.addActor(HDMContext.JOB_RESULT_DISPATCHER, "localhost", "org.hdm.core.coordinator.ResultHandler", null)
