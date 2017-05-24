@@ -94,13 +94,13 @@ class TechfestDemo {
 //    val benchmark = new KVBasedPrimitiveBenchmark(context)
     val benchmark = new KVBasedPrimitiveBenchmark(context = context, kIndex = 0, vIndex = 1)
     hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
+    hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster", slots = 0)
     Thread.sleep(1500)
     val hdm =
-    benchmark.testGroupBy(data,len, parallelism)
+//    benchmark.testGroupBy(data,len, parallelism)
 //    benchmark.testMultipleMap(data,len, parallelism)
 //    benchmark.testMultiMapFilter(data,len, parallelism, "a")
-//    benchmark.testFindByKey(data,len, parallelism, "a")
+    benchmark.testFindByKey(data,len, parallelism, "a")
 //    benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)
 
@@ -114,6 +114,7 @@ class TechfestDemo {
       hdm.compute(parallelism).map { hdm =>
         println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received response: ${hdm.id}")
         hdm.blocks.foreach(println(_))
+        hDMContext.shutdown()
         System.exit(0)
       }
     case "sample" =>

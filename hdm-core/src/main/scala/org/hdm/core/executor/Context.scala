@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.coordinator.HDMWorkerParams
+import org.hdm.core.coordinator.{ClusterResourceWorkerSpec, HDMWorkerParams}
 import org.hdm.core.functions.SerializableFunction
 import org.hdm.core.io.netty.NettyConnectionManager
 import org.hdm.core.io.{CompressionCodec, SnappyCompressionCodec}
@@ -37,6 +37,12 @@ trait Context {
 }
 
 class HDMContext(defaultConf: Config) extends Serializable with Logging {
+
+  val HDM_HOME = Try {
+    defaultConf.getString("hdm.home")
+  } getOrElse {
+    "/home/tiantian/Dev/lib/hdm/hdm-core"
+  }
 
   lazy val PLANER_PARALLEL_CPU_FACTOR = Try {
     defaultConf.getInt("hdm.planner.parallelism.cpu.factor")
@@ -155,12 +161,32 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
   }
 
 
+  def startAsClusterMaster(host:String = "", port: Int = 8999, conf: Config = defaultConf,  mode: String = "stand-alone"): Unit = {
+    SmsSystem.startAsMaster(host, port, isLinux, conf)
+    val masterCls = if (mode == "stand-alone") "org.hdm.core.coordinator.ClusterResourceLeader"
+    else "org.hdm.core.coordinator.ClusterResourceLeader"
+    SmsSystem.addActor(HDMContext.CLUSTER_RESOURCE_MANAGER_NAME, "localhost", masterCls, null)
+//    SmsSystem.addActor(HDMContext.BLOCK_MANAGER_NAME, "localhost", "org.hdm.core.coordinator.BlockManagerLeader", null)
+//    SmsSystem.addActor(HDMContext.JOB_RESULT_DISPATCHER, "localhost", "org.hdm.core.coordinator.ResultHandler", null)
+    leaderPath.set(SmsSystem.physicalRootPath)
+  }
+
+
+  def startAsClusterSlave(masterPath: String, host:String = "", port: Int = 12010, blockPort: Int = 9091, conf: Config = defaultConf, slots: Int = cores, mem:String): Unit = {
+    SmsSystem.startAsSlave(masterPath, port, isLinux, conf)
+    SmsSystem.addActor(HDMContext.CLUSTER_RESOURCE_WORKER_NAME, "localhost",
+      "org.hdm.core.coordinator.ClusterResourceWorker",
+      ClusterResourceWorkerSpec(masterPath + "/" + HDMContext.CLUSTER_RESOURCE_MANAGER_NAME, slots, mem, HDM_HOME))
+    leaderPath.set(masterPath)
+  }
+
+
   def startAsMaster(host:String = "", port: Int = 8999, conf: Config = defaultConf, slots: Int = 0, mode: String = "single-cluster") {
     SmsSystem.startAsMaster(host, port, isLinux, conf)
     //    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.hdm.core.coordinator.ClusterExecutorLeader", slots)
     //    SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost","org.hdm.core.coordinator.HDMClusterLeaderActor", slots)
     val masterCls = if (mode == "multi-cluster") "org.hdm.core.coordinator.HDMMultiClusterLeader"
-    else "org.hdm.core.coordinator.HDMClusterLeaderActor"
+    else "org.hdm.core.coordinator.SingleCoordinationLeader"
     SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost", masterCls, slots)
     SmsSystem.addActor(HDMContext.BLOCK_MANAGER_NAME, "localhost", "org.hdm.core.coordinator.BlockManagerLeader", null)
     SmsSystem.addActor(HDMContext.JOB_RESULT_DISPATCHER, "localhost", "org.hdm.core.coordinator.ResultHandler", null)
@@ -215,11 +241,6 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
   }
 
 
-  def shutdown() {
-    SmsSystem.shutDown()
-  }
-
-
   def getServerBackend(mode: String = "single"): ServerBackend = {
     if (hdmBackEnd == null) mode match {
       case "single" =>
@@ -254,14 +275,15 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
       case Some(promise) => promise.asInstanceOf[Promise[HDM[_]]]
       case none => null
     }
-    //    val jobMsg = SubmitJobMsg(appId, hdm, rootPath + "/"+JOB_RESULT_DISPATCHER, parallel)
+    //    val masterURL = master + "/" + HDMContext.CLUSTER_EXECUTOR_NAME
+    val masterURL = master + "/" + HDMContext.CLUSTER_RESOURCE_MANAGER_NAME
     val start = System.currentTimeMillis()
     val jobBytes = HDMContext.JOB_SERIALIZER.serialize(hdm).array
     val end = System.currentTimeMillis()
     log.info(s"Completed serializing task with size: ${jobBytes.length / 1024} KB. in ${end - start} ms.")
     val jobMsg = new SerializedJobMsg(appName, version, jobBytes, rootPath + "/" + HDMContext.JOB_RESULT_DISPATCHER, rootPath + "/" + HDMContext.CLUSTER_EXECUTOR_NAME, parallel)
-    SmsSystem.askAsync(master + "/" + HDMContext.CLUSTER_EXECUTOR_NAME, jobMsg)
-    log.info(s"Sending a job [${hdm.id}] to ${master + "/" + HDMContext.CLUSTER_EXECUTOR_NAME} for execution.")
+    SmsSystem.askAsync(masterURL, jobMsg)
+    log.info(s"Sending a job [${hdm.id}] to ${masterURL} for execution.")
     if (promise ne null) promise.future
     else throw new Exception("add job dispatcher failed.")
   }
@@ -279,6 +301,17 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
       hdm.appContext.appName,
       hdm.appContext.version,
       hdm, parallelism)
+  }
+
+  def clean(appId: String): Unit = {
+    //todo clean all the resources used by this application
+    val masterURL = leaderPath.get() + "/" + HDMContext.CLUSTER_RESOURCE_MANAGER_NAME
+    SmsSystem.askAsync(masterURL, ApplicationShutdown(appId))
+  }
+
+  def shutdown(appContext: AppContext = AppContext.defaultAppContext) {
+    clean(appContext.appName + "#" + appContext.version)
+    SmsSystem.shutDown()
   }
 
   def declareHdm(hdms: Seq[ParHDM[_, _]], declare: Boolean = true) = {
@@ -320,10 +353,6 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
   }
 
 
-  def clean(appId: String): Unit = {
-    //todo clean all the resources used by this application
-  }
-
   def clusterBlockPath = {
     leaderPath.get() + "/" + HDMContext.BLOCK_MANAGER_NAME
   }
@@ -361,6 +390,10 @@ object HDMContext extends Logging {
   private val jobSerializer = new ThreadLocal[SerializerInstance]()
 
   lazy val defaultHDMContext = apply()
+
+  val CLUSTER_RESOURCE_MANAGER_NAME = "ClusterResourceLeader"
+
+  val CLUSTER_RESOURCE_WORKER_NAME = "ClusterResourceWorker"
 
   val CLUSTER_EXECUTOR_NAME: String = "ClusterExecutor"
 

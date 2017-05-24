@@ -28,14 +28,14 @@ object ServerStartMaster{
 object ServerStartSlave1{
 
   def main(args:Array[String]): Unit ={
-    HDMServer.main(Array("-m", "false", "-p", "10001", "-P", "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster"))
+    HDMServer.main(Array("-m", "false", "-p", "10001", "-P", "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"))
   }
 }
 
 object ServerStartSlave2{
 
   def main(args:Array[String]): Unit ={
-    HDMServer.main(Array("-m", "false", "-p", "10002", "-P", "akka.tcp://masterSys@127.0.0.1:8999/user/smsMaster"))
+    HDMServer.main(Array("-m", "false", "-p", "10002", "-P", "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"))
   }
 }
 

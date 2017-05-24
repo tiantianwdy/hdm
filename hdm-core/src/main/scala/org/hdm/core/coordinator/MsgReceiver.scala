@@ -21,11 +21,11 @@ trait QueryReceiver extends MsgReceiver{
 
 }
 
-trait ClusterMsgReceiver extends MsgReceiver{
+trait CoordinationReceiver extends MsgReceiver{
 
   this: WorkActor =>
 
-  def processClusterMsg: PartialFunction[CoordinatingMsg, Unit]
+  def processCoordinationMsg: PartialFunction[CoordinatingMsg, Unit]
 }
 
 trait DepMsgReceiver extends MsgReceiver{

@@ -119,7 +119,7 @@ object HDMBenchmark {
 
     res match {
       case hdm:ParHDM[_,_] =>
-        onEvent(hdm, "compute", start, endInit)(parallelism)
+        onEvent(hdm, "compute", start, endInit, hDMContext)(parallelism)
       case other:Any =>
         println(other)
     }
@@ -128,7 +128,7 @@ object HDMBenchmark {
   }
 
 
-  def onEvent(hdm:ParHDM[_,_], action:String, start:Long, endInit:Long)(implicit parallelism:Int) = action match {
+  def onEvent(hdm:ParHDM[_,_], action:String, start:Long, endInit:Long, hDMContext: HDMContext)(implicit parallelism:Int) = action match {
     case "compute" =>
       hdm.compute(parallelism).map { hdm =>
         val end = System.currentTimeMillis()
@@ -137,6 +137,7 @@ object HDMBenchmark {
         println(s"Job completed in ${end - start} ms. And received response: ${hdm.id}")
         val size = hdm.children.map(_.blockSize).reduce(_ + _)
         println(s"results size:$size bytes with ${hdm.children.size} blocks.")
+        hDMContext.shutdown()
         System.exit(0)
       }
     case "sample" =>

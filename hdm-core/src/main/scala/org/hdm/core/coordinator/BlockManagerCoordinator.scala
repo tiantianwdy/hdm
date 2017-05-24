@@ -134,7 +134,7 @@ class BlockManagerFollower(val leaderPath: String) extends WorkActor {
 
   override def postStop(): Unit = {
     super.postStop()
-    context.actorSelection(leaderPath) ! LeaveMsg(self.path.toString)
+    context.actorSelection(leaderPath) ! LeaveMsg(Seq(self.path.toString))
   }
 
   /**

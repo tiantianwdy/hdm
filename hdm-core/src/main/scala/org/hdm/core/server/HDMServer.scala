@@ -3,6 +3,7 @@ package org.hdm.core.server
 import java.io.File
 
 import com.typesafe.config.{Config, ConfigFactory}
+import org.hdm.akka.server.SmsSystem
 import org.hdm.core.executor.HDMContext
 import org.hdm.core.utils.Logging
 
@@ -17,10 +18,13 @@ object HDMServer extends Logging {
   val isLinux = System.getProperty("os.name").toLowerCase().contains("linux")
 
   var defaultConf = ConfigFactory.load("hdm-core.conf")
+  var clusterMaster = defaultConf.getString("hdm.cluster.master.url")
   var parentPath = defaultConf.getString("hdm.cluster.master.url")
   var port = defaultConf.getInt("akka.remote.netty.tcp.port")
   var host = defaultConf.getString("akka.remote.netty.tcp.hostname")
   var slots = 1
+  var mem = "2G"
+  var nodeType = "app" // or resource
   var blockServerPort = 9091
   var mode = "single-cluster"
   var isMaster = Try {
@@ -33,7 +37,8 @@ object HDMServer extends Logging {
 
   /**
    * server main startup
-   * @param args {
+    *
+    * @param args {
    *              case "-m" | "-master" => is this a Master
                   case "-p" | "-port" => port of akka system
                   case "-P" | "-parent" => parentPath of this node
@@ -54,7 +59,9 @@ object HDMServer extends Logging {
       case "-m" | "-master" => isMaster = param._2.toBoolean
       case "-P" | "-parent" => parentPath = param._2
       case "-M" | "-mode" => mode = param._2
+      case "-n" | "-nodeType" => nodeType = param._2
       case "-s" | "-slots" => slots = param._2.toInt
+      case "-mem" | "-memory" => mem = param._2
       case "-c" | "-conf" => try {
         defaultConf = ConfigFactory.load(param._2)
         loadConf(defaultConf)
@@ -72,17 +79,23 @@ object HDMServer extends Logging {
       log.info(s"starting master at $host:$port, with mode: $mode, " +
         s"CPU Parallel factor: ${hDMContext.PLANER_PARALLEL_CPU_FACTOR}, " +
         s"Network parallel factor: ${hDMContext.PLANER_PARALLEL_NETWORK_FACTOR}")
-      hDMContext.startAsMaster(host= host, port = port, conf = defaultConf, mode = mode)//port, defaultConf
-    }
-    else{
-      hDMContext.startAsSlave(parentPath, host, port, blockServerPort, defaultConf, slots)
+      nodeType match {
+        case "app" => hDMContext.startAsMaster(host= host, port = port, conf = defaultConf, mode = mode)//port, defaultConf
+        case "cluster" => hDMContext.startAsClusterMaster(host= host, port = port, conf = defaultConf, mode = mode)
+      }
+    } else {
+      nodeType match {
+        case "app" => hDMContext.startAsSlave(parentPath, host, port, blockServerPort, defaultConf, slots)
+        case "cluster" => hDMContext.startAsClusterSlave(parentPath, host, port, blockServerPort, defaultConf, slots, mem)
+      }
     }//parentPath, port, defaultConf
-    log.info(s"[HDM Node Started] as ${if (isMaster) "master" else "slave"} at: $host:$port .")
+    log.info(s"HDM [$nodeType] node started  as ${if (isMaster) "master" else "slave"} at: $host:$port .")
 
     Runtime.getRuntime.addShutdownHook(new Thread {
       override def run(): Unit = {
         log.info(s"HDMContext is shuting down...")
         hDMContext.shutdown()
+        SmsSystem.shutDown()
         log.info(s"HDMContext has shut down successfully..")
       }
     })

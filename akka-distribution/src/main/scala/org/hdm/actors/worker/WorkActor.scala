@@ -44,9 +44,9 @@ abstract class WorkActor(params: Any) extends Actor with WorkActorExtension with
     for (child <- context.children) {
       context.stop(child)
     }
+    stateChanged(Deployment.UN_DEPLOYED,"actor has been stopped.")
     context.stop(self)
     log.info(s"Actor: ${self.toString()} has been stopped.")
-    stateChanged(Deployment.UN_DEPLOYED,"actor has been stopped.")
     log.info(s"Actor: ${context.self} has been stopped")
   }
 }
