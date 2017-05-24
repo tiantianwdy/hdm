@@ -15,7 +15,7 @@ if [ $# -gt 5 ]; then
 fi
 masterPath="akka.tcp://masterSys@${masterAddress}/user/smsMaster"
 if [ "$1" == 'master' ]; then
-	${JAVA_HOME}java $DEBUG_OPTS -Xms$memory -Xmx$memory -Dfile.encoding=UTF-8 -cp "$lib" -jar ./hdm-core-0.0.1.jar -m true -p $port -n cluster
+	${JAVA_HOME}java $DEBUG_OPTS -Xms$memory -Xmx$memory -Dfile.encoding=UTF-8 -cp "$lib" -jar ./hdm-core-0.0.1.jar -m true -p $port -n cluster -f "./hdm-core.conf"
 elif [ "$1" == 'slave' ]; then
-	${JAVA_HOME}java $DEBUG_OPTS -Dfile.encoding=UTF-8 -cp "$lib" -jar ./hdm-core-0.0.1.jar -m false -p $port -P $masterPath -s $slots -b $bPort -mem $memory -n cluster
+	${JAVA_HOME}java $DEBUG_OPTS -Dfile.encoding=UTF-8 -cp "$lib" -jar ./hdm-core-0.0.1.jar -m false -p $port -P $masterPath -s $slots -b $bPort -mem $memory -n cluster -f "./hdm-core.conf"
 fi
