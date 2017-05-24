@@ -174,11 +174,11 @@ trait DefSchedulingReceiver extends SchedulingMsgReceiver {
 /**
  * the message reveiver for processing coordiation messages in a single cluster architecture
  */
-trait SingleClusteringReceiver extends ClusterMsgReceiver {
+trait SingleClustering extends CoordinationReceiver {
 
   this: AbstractHDMLeader =>
 
-  override def processClusterMsg: PartialFunction[CoordinatingMsg, Unit] = {
+  override def processCoordinationMsg: PartialFunction[CoordinatingMsg, Unit] = {
     // coordinating msg
     case JoinMsg(path, state) =>
       val senderPath = sender().path.toString
@@ -186,8 +186,10 @@ trait SingleClusteringReceiver extends ClusterMsgReceiver {
       hdmBackend.resourceManager.addResource(senderPath, state)
       log.info(s"A executor has joined from [${senderPath}}] ")
 
-    case LeaveMsg(senderPath) =>
-      hdmBackend.resourceManager.removeResource(senderPath)
-      log.info(s"A executor has left from [${senderPath}}] ")
+    case LeaveMsg(nodes) =>
+      nodes foreach {node =>
+        hdmBackend.resourceManager.removeResource(node)
+      }
+      log.info(s"Executors have left the cluster from [${nodes}}] ")
   }
 }

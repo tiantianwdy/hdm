@@ -173,9 +173,11 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
       //        hdmBackend.resourceManager.release(state)
       log.info(s"A executor has joined from [${senderPath}}] ")
 
-    case LeaveMsg(senderPath) =>
-      hdmBackend.resourceManager.removeResource(senderPath)
-      log.info(s"A executor has left from [${senderPath}}] ")
+    case LeaveMsg(nodes) =>
+      nodes foreach {node =>
+        hdmBackend.resourceManager.removeResource(node)
+      }
+      log.info(s"Executors have left the cluster from [${nodes}}] ")
   }
 
 

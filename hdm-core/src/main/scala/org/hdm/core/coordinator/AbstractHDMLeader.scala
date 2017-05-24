@@ -17,7 +17,7 @@ abstract class AbstractHDMLeader (val hdmBackend:ServerBackend,
                                                               with QueryReceiver
                                                               with SchedulingMsgReceiver
                                                               with DepMsgReceiver
-                                                              with ClusterMsgReceiver {
+                                                              with CoordinationReceiver {
 
   implicit val executorService: ExecutionContext = hDMContext.executionContext
 
@@ -46,7 +46,7 @@ abstract class AbstractHDMLeader (val hdmBackend:ServerBackend,
 
     case msg: CoordinatingMsg =>
       log.info(s"received a coordination msg [${msg}}] ")
-      processClusterMsg(msg)
+      processCoordinationMsg(msg)
 
     case msg: DependencyMsg =>
       log.info(s"received a dependency msg [${msg}}] ")
@@ -74,14 +74,14 @@ abstract class AbstractHDMLeader (val hdmBackend:ServerBackend,
  * @param cores
  * @param hDMContext
  */
-class SingleClusterLeader (override val hdmBackend:ServerBackend,
-                           override val cores:Int ,
-                           override val hDMContext:HDMContext)
+class SingleCoordinationLeader(override val hdmBackend:ServerBackend,
+                               override val cores:Int,
+                               override val hDMContext:HDMContext)
                             extends AbstractHDMLeader(hdmBackend, cores, hDMContext)
                             with DefQueryMsgReceiver
                             with DefDepReceiver
                             with DefSchedulingReceiver
-                            with SingleClusteringReceiver {
+                            with SingleClustering {
 
   def this(cores: Int) {
     this(HDMContext.defaultHDMContext.getServerBackend(), cores, HDMContext.defaultHDMContext)

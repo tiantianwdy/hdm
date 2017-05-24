@@ -340,6 +340,7 @@ object SmsSystem {
   def shutDown() {
     if (system ne null) {
       system.shutdown()
+      system.awaitTermination()
     }
   }
 

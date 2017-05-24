@@ -4,6 +4,7 @@ import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicInteger
 
 import org.hdm.akka.actors.worker.WorkActor
+import org.hdm.akka.server.SmsSystem
 import org.hdm.core.executor.{BlockContext, ParallelTask, ClusterExecutor, HDMContext}
 import org.hdm.core.message._
 import org.hdm.core.server.DependencyManager
@@ -32,6 +33,8 @@ class HDMClusterWorkerActor(var leaderPath: String, slots:Int, blockContext: Blo
 
   val runningTasks = new AtomicInteger(0)
 
+  def selfPath = self.path.toStringWithAddress(SmsSystem.localAddress)
+
   override def initParams(params: Any): Int = {
     super.initParams(params)
     context.actorSelection(leaderPath) ! JoinMsg(self.path.toString, slots)
@@ -54,8 +57,8 @@ class HDMClusterWorkerActor(var leaderPath: String, slots:Int, blockContext: Blo
   }
 
   override def postStop(): Unit = {
+    context.actorSelection(leaderPath) ! LeaveMsg(Seq(selfPath))
     super.postStop()
-    context.actorSelection(leaderPath) ! LeaveMsg(self.path.toString)
   }
 
   def processTask(task:ParallelTask[_]): Unit = {

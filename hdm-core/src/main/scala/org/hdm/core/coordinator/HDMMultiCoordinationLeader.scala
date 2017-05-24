@@ -29,13 +29,13 @@ import scala.collection.JavaConversions._
  * @param cores
  * @param hDMContext
  */
-class HDMMultiClusterLeader(override val hdmBackend:MultiClusterBackend,
-                            override val cores:Int ,
-                            override val hDMContext:HDMContext)
+class HDMMultiCoordinationLeader(override val hdmBackend:MultiClusterBackend,
+                                 override val cores:Int,
+                                 override val hDMContext:HDMContext)
                             extends AbstractHDMLeader(hdmBackend, cores, hDMContext)
                             with MultiClusterQueryReceiver
                             with MultiCLusterDepReceiver
-                            with MultiClusterReceiver
+                            with MultiCoordination
                             with MultiClusterScheduling {
 
 
@@ -48,9 +48,9 @@ class HDMMultiClusterLeader(override val hdmBackend:MultiClusterBackend,
 /**
  * the message receiver for processing cluster coordination messages
  */
-trait MultiClusterReceiver extends ClusterMsgReceiver {
+trait MultiCoordination extends CoordinationReceiver {
 
-  this: HDMMultiClusterLeader =>
+  this: HDMMultiCoordinationLeader =>
 
   def syncRes(): Unit ={
     hdmBackend.resourceManager.getSiblingRes() foreach { res =>
@@ -59,7 +59,7 @@ trait MultiClusterReceiver extends ClusterMsgReceiver {
     }
   }
 
-  override def processClusterMsg: PartialFunction[CoordinatingMsg, Unit] = {
+  override def processCoordinationMsg: PartialFunction[CoordinatingMsg, Unit] = {
     // coordinating msg
     case JoinMsg(path, state) =>
       val senderPath = sender().path.toString
@@ -68,9 +68,11 @@ trait MultiClusterReceiver extends ClusterMsgReceiver {
       log.info(s"A child has joined from [${senderPath}] ")
       syncRes()
 
-    case LeaveMsg(senderPath) =>
-      hdmBackend.resourceManager.removeResource(senderPath)
-      log.info(s"A node has left from [${senderPath}] ")
+    case LeaveMsg(nodes) =>
+      nodes foreach {node =>
+        hdmBackend.resourceManager.removeResource(node)
+      }
+      log.info(s"Executors have left the cluster from [${nodes}}] ")
       syncRes()
 
     case CollaborateMsg(path, state) =>
@@ -109,7 +111,7 @@ trait MultiClusterReceiver extends ClusterMsgReceiver {
  */
 trait MultiCLusterDepReceiver extends DepMsgReceiver {
 
-  this: HDMMultiClusterLeader =>
+  this: HDMMultiCoordinationLeader =>
 
   override def processDepMsg: PartialFunction[DependencyMsg, Unit] = {
 
@@ -141,7 +143,7 @@ trait MultiCLusterDepReceiver extends DepMsgReceiver {
 trait MultiClusterScheduling extends SchedulingMsgReceiver {
 
 
-  this: HDMMultiClusterLeader =>
+  this: HDMMultiCoordinationLeader =>
 
   //  holding the task map to the origins of the remote tasks received from sibling masters
   protected val remoteTaskMap = new ConcurrentHashMap[String, String]()
@@ -225,7 +227,7 @@ import concurrent.duration.{Duration, DurationInt}
 
 trait MultiClusterQueryReceiver extends QueryReceiver {
 
-  this: HDMMultiClusterLeader =>
+  this: HDMMultiCoordinationLeader =>
 
   implicit val maxWaitResponseTime = Duration(300, TimeUnit.SECONDS)
   implicit val timeout = Timeout(300 seconds)
