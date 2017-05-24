@@ -1,20 +1,21 @@
 package org.hdm.core.coordinator
 
-import java.util.concurrent.{TimeUnit, ConcurrentHashMap}
+import java.util.concurrent.{ConcurrentHashMap, TimeUnit}
 
 import akka.util.Timeout
 
 import scala.collection.JavaConversions._
-
 import akka.pattern._
+import akka.remote.{DisassociatedEvent, RemotingLifecycleEvent}
 import org.hdm.akka.actors.worker.WorkActor
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.executor.{HDMContext, ExecutorLauncher}
+import org.hdm.core.executor.{ExecutorLauncher, HDMContext}
+import org.hdm.core.io.Path
 import org.hdm.core.message._
-import org.hdm.core.server.{SingleResourceManager, ServerBackend, HDMServerBackend}
+import org.hdm.core.server.{HDMServerBackend, ServerBackend, SingleResourceManager}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 import scala.concurrent.duration.{Duration, DurationInt}
 
 
@@ -24,7 +25,8 @@ import scala.concurrent.duration.{Duration, DurationInt}
 class ClusterResourceLeader(hdmBackend:ServerBackend, val hDMContext:HDMContext, val clusterMode:String = "single-cluster", val appMasterMode:String = "stand-alone") extends WorkActor
   with DepMsgReceiver
   with SchedulingMsgReceiver
-  with CoordinationReceiver {
+  with CoordinationReceiver
+  with RemotingEventManager {
 
   implicit val timeout = Timeout(600 seconds)
   implicit val maxWaitResponseTime = Duration(600, TimeUnit.SECONDS)
@@ -56,11 +58,12 @@ class ClusterResourceLeader(hdmBackend:ServerBackend, val hDMContext:HDMContext,
       SmsSystem.addActor(HDMContext.BLOCK_MANAGER_NAME, "localhost", "org.hdm.core.coordinator.BlockManagerLeader", null)
       SmsSystem.addActor(HDMContext.JOB_RESULT_DISPATCHER, "localhost", "org.hdm.core.coordinator.ResultHandler", null)
     }
+    context.system.eventStream.subscribe(self, classOf[RemotingLifecycleEvent])
     1
   }
 
   def initAppMaster(): String ={
-    val masterCls = if (appMasterMode == "multi-cluster") "org.hdm.core.coordinator.HDMMultiClusterLeader"
+    val masterCls = if (clusterMode == "multi-cluster") "org.hdm.core.coordinator.HDMMultiClusterLeader"
     else "org.hdm.core.coordinator.SingleCoordinationLeader"
     SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost", masterCls, 0)
     val appMaster = self.path.parent.toStringWithAddress(SmsSystem.localAddress)
@@ -80,6 +83,8 @@ class ClusterResourceLeader(hdmBackend:ServerBackend, val hDMContext:HDMContext,
     case depMsg:DependencyMsg => processDepMsg(depMsg)
 
     case cdMsg:CoordinatingMsg => processCoordinationMsg(cdMsg)
+
+    case event:RemotingLifecycleEvent => processRemotingEvents(event)
   }
 
   def processClusterMsg: PartialFunction[ClusterMsg, Unit] = {
@@ -107,12 +112,24 @@ class ClusterResourceLeader(hdmBackend:ServerBackend, val hDMContext:HDMContext,
 
     case LeaveMsg(nodes) =>
       nodes foreach {node =>
-        hdmBackend.resourceManager.removeResource(node)
+        clusterResourceManager.removeResource(node)
       }
       log.info(s"Executors have left the cluster from [${nodes}}] ")
   }
 
 
+
+  override def processRemotingEvents: PartialFunction[RemotingLifecycleEvent, Unit] = {
+    case event:DisassociatedEvent =>
+      val affectedRes = clusterResourceManager.getAllResources().filter{ tup =>
+        val path = Path(tup._1)
+        Try {path.host == event.remoteAddress.host.get && path.port == event.remoteAddress.port.get} getOrElse false
+      }.map(_._1)
+      log.info(s"Remove disconnected resources ${affectedRes.mkString("[", ",", "]")}")
+      affectedRes.foreach(res => clusterResourceManager.removeResource(res))
+
+    case other: RemotingLifecycleEvent => unhandled(other)
+  }
 
   override def processDepMsg: PartialFunction[DependencyMsg, Unit] = {
     case AddApplication(appName, version, content, author) =>
@@ -182,7 +199,8 @@ class ClusterResourceLeader(hdmBackend:ServerBackend, val hDMContext:HDMContext,
         }
         Future.sequence(futureSeq) onComplete {
           case Success(any) =>
-            //  redirect to App master
+            //  clear resource manager for execution
+//            hdmBackend.resourceManager.removeResource()
             log.info(s"Recycled executors for application [$appId] successfully.")
           case Failure(msg) =>
             log.error(s"Fails to shutdown executors for application [$appId] due to [$msg] .")

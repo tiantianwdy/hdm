@@ -37,7 +37,7 @@ class HDMClusterWorkerActor(var leaderPath: String, slots:Int, blockContext: Blo
 
   override def initParams(params: Any): Int = {
     super.initParams(params)
-    context.actorSelection(leaderPath) ! JoinMsg(self.path.toString, slots)
+    context.actorSelection(leaderPath) ! JoinMsg(selfPath, slots)
     1
   }
 
@@ -57,6 +57,7 @@ class HDMClusterWorkerActor(var leaderPath: String, slots:Int, blockContext: Blo
   }
 
   override def postStop(): Unit = {
+    log.info(s"Leaving from [$leaderPath], node: [$selfPath]")
     context.actorSelection(leaderPath) ! LeaveMsg(Seq(selfPath))
     super.postStop()
   }

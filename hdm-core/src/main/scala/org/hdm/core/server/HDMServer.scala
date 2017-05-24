@@ -91,14 +91,6 @@ object HDMServer extends Logging {
     }//parentPath, port, defaultConf
     log.info(s"HDM [$nodeType] node started  as ${if (isMaster) "master" else "slave"} at: $host:$port .")
 
-    Runtime.getRuntime.addShutdownHook(new Thread {
-      override def run(): Unit = {
-        log.info(s"HDMContext is shuting down...")
-        hDMContext.shutdown()
-        SmsSystem.shutDown()
-        log.info(s"HDMContext has shut down successfully..")
-      }
-    })
   }
 
 

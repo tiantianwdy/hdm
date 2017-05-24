@@ -137,7 +137,7 @@ object HDMBenchmark {
         println(s"Job completed in ${end - start} ms. And received response: ${hdm.id}")
         val size = hdm.children.map(_.blockSize).reduce(_ + _)
         println(s"results size:$size bytes with ${hdm.children.size} blocks.")
-        hDMContext.shutdown()
+//        hDMContext.shutdown()
         System.exit(0)
       }
     case "sample" =>

@@ -1,9 +1,10 @@
 package org.hdm.core.coordinator
 
+import akka.remote.RemotingLifecycleEvent
 import org.hdm.akka.actors.worker.WorkActor
 import org.hdm.akka.server.SmsSystem
 import org.hdm.core.executor.HDMContext
-import org.hdm.core.message.{QueryMsg, DependencyMsg, CoordinatingMsg, SchedulingMsg}
+import org.hdm.core.message.{CoordinatingMsg, DependencyMsg, QueryMsg, SchedulingMsg}
 import org.hdm.core.server.ServerBackend
 
 import scala.concurrent.ExecutionContext
@@ -17,7 +18,8 @@ abstract class AbstractHDMLeader (val hdmBackend:ServerBackend,
                                                               with QueryReceiver
                                                               with SchedulingMsgReceiver
                                                               with DepMsgReceiver
-                                                              with CoordinationReceiver {
+                                                              with CoordinationReceiver
+                                                              with RemotingEventManager {
 
   implicit val executorService: ExecutionContext = hDMContext.executionContext
 
@@ -30,6 +32,7 @@ abstract class AbstractHDMLeader (val hdmBackend:ServerBackend,
     if(cores > 0){
       hdmBackend.resourceManager.addResource(self.path.toStringWithAddress(SmsSystem.localAddress).toString, cores)
     }
+    context.system.eventStream.subscribe(self, classOf[RemotingLifecycleEvent])
     log.info(s"Leader has been initiated with $cores cores.")
     1
   }
@@ -56,6 +59,10 @@ abstract class AbstractHDMLeader (val hdmBackend:ServerBackend,
       log.info(s"received a query msg [${msg}}] ")
       processQueries(msg)
 
+    case msg:RemotingLifecycleEvent =>
+      log.info(s"received a RemotingLifecycleEvent[${msg}}] ")
+      processRemotingEvents(msg)
+
     case x: Any => log.info(s"received a unhanded msg [${x}}] ")
   }
 
@@ -81,7 +88,8 @@ class SingleCoordinationLeader(override val hdmBackend:ServerBackend,
                             with DefQueryMsgReceiver
                             with DefDepReceiver
                             with DefSchedulingReceiver
-                            with SingleClustering {
+                            with SingleClustering
+                            with RemoteExecutorMonitor {
 
   def this(cores: Int) {
     this(HDMContext.defaultHDMContext.getServerBackend(), cores, HDMContext.defaultHDMContext)

@@ -3,6 +3,7 @@ package org.hdm.core.coordinator
 import java.nio.ByteBuffer
 
 import akka.actor.ActorPath
+import akka.remote.{DisassociatedEvent, RemotingLifecycleEvent}
 import org.hdm.akka.server.SmsSystem
 import org.hdm.core.executor.HDMContext
 import org.hdm.core.io.Path
@@ -10,7 +11,7 @@ import org.hdm.core.message._
 import org.hdm.core.model.{HDM, HDMInfo}
 
 import scala.collection.mutable
-import scala.util.{Failure, Success}
+import scala.util.{Failure, Success, Try}
 
 /**
  *  Default Message Receivers for HDM Cluster leader
@@ -191,5 +192,25 @@ trait SingleClustering extends CoordinationReceiver {
         hdmBackend.resourceManager.removeResource(node)
       }
       log.info(s"Executors have left the cluster from [${nodes}}] ")
+  }
+
+}
+
+trait RemoteExecutorMonitor extends RemotingEventManager {
+
+  this: AbstractHDMLeader =>
+
+  override def processRemotingEvents: PartialFunction[RemotingLifecycleEvent, Unit] = {
+    case event:DisassociatedEvent =>
+      val affectedRes = hdmBackend.resourceManager.getAllResources().filter{ tup =>
+        val path = Path(tup._1)
+        val remoteAddr = event.getRemoteAddress
+        log.debug(s"Match disassociation from ${remoteAddr.host.get + ":" + remoteAddr.port.get} \r\n with ${path.host+":"+path.port}")
+        Try {path.host == remoteAddr.host.get && path.port == remoteAddr.port.get} getOrElse false
+      }.map(_._1)
+      log.info(s"Remove disconnected resources ${affectedRes.mkString("[", " , ", "]")}")
+      affectedRes.foreach(res => hdmBackend.resourceManager.removeResource(res))
+
+    case other: RemotingLifecycleEvent => unhandled(other)
   }
 }

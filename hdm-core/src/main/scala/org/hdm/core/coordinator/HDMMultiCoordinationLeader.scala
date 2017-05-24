@@ -36,7 +36,8 @@ class HDMMultiCoordinationLeader(override val hdmBackend:MultiClusterBackend,
                             with MultiClusterQueryReceiver
                             with MultiCLusterDepReceiver
                             with MultiCoordination
-                            with MultiClusterScheduling {
+                            with MultiClusterScheduling
+                            with RemoteExecutorMonitor{
 
 
   def this(cores: Int) {

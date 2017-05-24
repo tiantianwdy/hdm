@@ -13,7 +13,8 @@ import org.hdm.core.message._
 import org.hdm.core.model.{GroupedSeqHDM, HDM, KvHDM, ParHDM}
 import org.hdm.core.planing.{StaticMultiClusterPlanner, StaticPlaner}
 import org.hdm.core.scheduling.{AdvancedScheduler, MultiClusterScheduler, SchedulingPolicy}
-import org.hdm.core.serializer.{SerializerInstance, KryoSerializer, JavaSerializer}
+import org.hdm.core.serializer.{JavaSerializer, KryoSerializer, SerializerInstance}
+import org.hdm.core.server.HDMServer.log
 import org.hdm.core.server._
 import org.hdm.core.storage.{Block, HDMBlockManager}
 import org.hdm.core.utils.Logging
@@ -169,6 +170,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
 //    SmsSystem.addActor(HDMContext.BLOCK_MANAGER_NAME, "localhost", "org.hdm.core.coordinator.BlockManagerLeader", null)
 //    SmsSystem.addActor(HDMContext.JOB_RESULT_DISPATCHER, "localhost", "org.hdm.core.coordinator.ResultHandler", null)
     leaderPath.set(SmsSystem.physicalRootPath)
+    addShutdownHook(AppContext.defaultAppContext)
   }
 
 
@@ -178,6 +180,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
       "org.hdm.core.coordinator.ClusterResourceWorker",
       ClusterResourceWorkerSpec(masterPath + "/" + HDMContext.CLUSTER_RESOURCE_MANAGER_NAME, slots, mem, HDM_HOME))
     leaderPath.set(masterPath)
+    addShutdownHook(AppContext.defaultAppContext)
   }
 
 
@@ -191,6 +194,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
     SmsSystem.addActor(HDMContext.BLOCK_MANAGER_NAME, "localhost", "org.hdm.core.coordinator.BlockManagerLeader", null)
     SmsSystem.addActor(HDMContext.JOB_RESULT_DISPATCHER, "localhost", "org.hdm.core.coordinator.ResultHandler", null)
     leaderPath.set(SmsSystem.physicalRootPath)
+    addShutdownHook(AppContext.defaultAppContext)
   }
 
   def startAsSlave(masterPath: String, host:String = "", port: Int = 10010, blockPort: Int = 9091, conf: Config = defaultConf, slots: Int = cores) {
@@ -208,6 +212,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
       "org.hdm.core.coordinator.ResultHandler", null)
     leaderPath.set(masterPath)
     if (BLOCK_SERVER_INIT) HDMBlockManager.initBlockServer(this)
+    addShutdownHook(AppContext.defaultAppContext)
   }
 
   def startAsClient(masterPath: String, port: Int = 20010, blockPort: Int = 9092, conf: Config = defaultConf, localExecution: Boolean = false) {
@@ -224,7 +229,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
         "org.hdm.core.coordinator.HDMClusterWorkerActor",
         HDMWorkerParams(masterPath + "/" + HDMContext.CLUSTER_EXECUTOR_NAME, cores, blockContext))
     }
-
+    addShutdownHook(AppContext.defaultAppContext)
   }
 
   def init(leader: String = "localhost", slots: Int = cores) {
@@ -379,6 +384,17 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
     UUID.randomUUID().toString
   }
 
+
+  def addShutdownHook(appContext: AppContext): Unit ={
+    Runtime.getRuntime.addShutdownHook(new Thread {
+      override def run(): Unit = {
+        log.info(s"HDMContext is shuting down...")
+        shutdown(appContext)
+        SmsSystem.shutDown()
+        log.info(s"HDMContext has shut down successfully..")
+      }
+    })
+  }
 
 }
 
