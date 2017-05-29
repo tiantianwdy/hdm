@@ -24,7 +24,7 @@ object HDMServer extends Logging {
   var host = defaultConf.getString("akka.remote.netty.tcp.hostname")
   var slots = 1
   var mem = "2G"
-  var nodeType = "app" // or resource
+  var nodeType = "app" // or cluster
   var blockServerPort = 9091
   var mode = "single-cluster"
   var isMaster = Try {
@@ -57,7 +57,7 @@ object HDMServer extends Logging {
       case "-p" | "-port" => port = param._2.toInt
       case "-b" | "-bport" => blockServerPort = param._2.toInt
       case "-m" | "-master" => isMaster = param._2.toBoolean
-      case "-P" | "-parent" => parentPath = param._2
+      case "-P" | "-parent" => parentPath = if (!param._2.startsWith("akka.tcp://")) s"akka.tcp://masterSys@${param._2}/user/smsMaster" else param._2
       case "-M" | "-mode" => mode = param._2
       case "-n" | "-nodeType" => nodeType = param._2
       case "-s" | "-slots" => slots = param._2.toInt
@@ -70,6 +70,7 @@ object HDMServer extends Logging {
         defaultConf = ConfigFactory.parseFile(new File(param._2))
         loadConf(defaultConf)
       }
+      case other:String => // do nothing
     })
 
 //    val hDMContext = new HDMContext(defaultConf)

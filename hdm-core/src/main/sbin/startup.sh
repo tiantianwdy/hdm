@@ -5,17 +5,11 @@ HDM_HOME="./"
 cd $HDM_HOME
 lib=`find lib -name *.jar | xargs`
 
-port="$2"
-masterAddress="$3"
-slots="$4"
-memory="$5"
-bPort="9091"
-if [ $# -gt 5 ]; then
- bPort="$6"
-fi
-masterPath="akka.tcp://masterSys@${masterAddress}/user/smsMaster"
-if [ "$1" == 'master' ]; then
-	${JAVA_HOME}java $DEBUG_OPTS -Xms$memory -Xmx$memory -Dfile.encoding=UTF-8 -cp "$lib" -jar ./hdm-core-0.0.1.jar -m true -p $port -n cluster -f "./hdm-core.conf"
-elif [ "$1" == 'slave' ]; then
-	${JAVA_HOME}java $DEBUG_OPTS -Dfile.encoding=UTF-8 -cp "$lib" -jar ./hdm-core-0.0.1.jar -m false -p $port -P $masterPath -s $slots -b $bPort -mem $memory -n cluster -f "./hdm-core.conf"
+nodeType="$1"
+shift
+
+if [ $nodeType == 'master' ]; then
+	${JAVA_HOME}java $DEBUG_OPTS -Dfile.encoding=UTF-8 -cp "$lib" -jar ./hdm-core-0.0.1.jar -m true -n cluster -f "./hdm-core.conf" "$@"
+elif [ $nodeType == 'slave' ]; then
+	${JAVA_HOME}java $DEBUG_OPTS -Dfile.encoding=UTF-8 -cp "$lib" -jar ./hdm-core-0.0.1.jar -m false -n cluster -f "./hdm-core.conf" "$@"
 fi

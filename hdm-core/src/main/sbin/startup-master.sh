@@ -13,4 +13,4 @@ if [ $# -gt 1 ]; then
  mode="$2"
 fi
 
-${JAVA_HOME}java $DEBUG_OPTS -Dfile.encoding=UTF-8 -cp "$lib" -jar ./hdm-core-0.0.1.jar -f "./hdm-core.conf" -m true -n cluster "$@"
+${JAVA_HOME}java $DEBUG_OPTS -Dfile.encoding=UTF-8 -cp "$lib" -jar ./hdm-core-0.0.1.jar -m true -n cluster -f "./hdm-core.conf" "$@"
