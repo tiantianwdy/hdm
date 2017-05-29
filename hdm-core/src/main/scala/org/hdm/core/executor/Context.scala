@@ -390,6 +390,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
       override def run(): Unit = {
         log.info(s"HDMContext is shuting down...")
         shutdown(appContext)
+        Thread.sleep(1000)
         SmsSystem.shutDown()
         log.info(s"HDMContext has shut down successfully..")
       }
