@@ -14,7 +14,6 @@ import org.hdm.core.model.{GroupedSeqHDM, HDM, KvHDM, ParHDM}
 import org.hdm.core.planing.{StaticMultiClusterPlanner, StaticPlaner}
 import org.hdm.core.scheduling.{AdvancedScheduler, MultiClusterScheduler, SchedulingPolicy}
 import org.hdm.core.serializer.{JavaSerializer, KryoSerializer, SerializerInstance}
-import org.hdm.core.server.HDMServer.log
 import org.hdm.core.server._
 import org.hdm.core.storage.{Block, HDMBlockManager}
 import org.hdm.core.utils.Logging

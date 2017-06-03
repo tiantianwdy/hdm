@@ -1,7 +1,7 @@
 package org.hdm.akka.actors.worker.javaapi;
 
 
-public class JavaWorkActor extends JWorkActor {
+public class JavaWorkActor extends org.hdm.akka.actors.worker.javaapi.JWorkActor {
 
     public JavaWorkActor(Object params) {
         super(params);
