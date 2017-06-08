@@ -33,8 +33,9 @@ class TechfestDemo {
     """.split("\\s+")
 
   val hDMContext = HDMContext.defaultHDMContext
+  val appContext = AppContext.defaultAppContext
 
-  AppContext.defaultAppContext.masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+  appContext.setMasterPath("akka.tcp://masterSys@172.18.0.1:8998/user/smsMaster")
 
 
   @Test
@@ -299,14 +300,14 @@ class TechfestDemo {
   @Test
   def testParallelize(): Unit ={
     val testData = Seq.fill[Double](1000){Math.random()}
-    val context = "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster"
+    val context = "akka.tcp://masterSys@172.18.0.1:8998/user/smsMaster"
     implicit val parallelism = 1
     hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    hDMContext.init(leader = context)
-    HDM.parallelWithIndex(testData).collect() foreach { pair =>
+    hDMContext.init(leader = context, 0)
+    HDM.parallelWithIndex(testData, hDMContext, appContext).collect() foreach { pair =>
       println(pair._1 -> pair._2)
     }
-    Thread.sleep(1500)
+    Thread.sleep(5000)
 
   }
 
