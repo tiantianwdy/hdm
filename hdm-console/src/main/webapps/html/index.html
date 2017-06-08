@@ -8,22 +8,22 @@
     <meta name="author" content="">
     <link rel="icon" href="../../favicon.ico">
 
-    <title>Justified Nav Template for Bootstrap</title>
+    <title>HDM Console</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="/res/css/bootstrap.min.css" rel="stylesheet">
+    <link href="./res/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
-    <link href="/res/css/justified-nav.css" rel="stylesheet">
-    <link href="/res/css/carousel.css" rel="stylesheet">
+    <link href="./res/css/justified-nav.css" rel="stylesheet">
+    <link href="./res/css/carousel.css" rel="stylesheet">
 
     <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
     
-    <!--[if lt IE 9]><script src="/res/js/ie8-responsive-file-warning.js"></script><![endif]-->
-    <script src="/res/js/libs/ie-emulation-modes-warning.js"></script>
+    <!--[if lt IE 9]><script src="../res/js/ie8-responsive-file-warning.js"></script><![endif]-->
+    <script src="./res/js/libs/ie-emulation-modes-warning.js"></script>
 
     <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-    <script src="/res/js/libs/ie10-viewport-bug-workaround.js"></script>
+    <script src="./res/js/libs/ie10-viewport-bug-workaround.js"></script>
 
     <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -45,14 +45,15 @@
               <span class="icon-bar"></span>
               <span class="icon-bar"></span>
             </button>
-            <a class="navbar-brand"><img  src="/res/img/hdm-logo-mini.png"  height="30" width="70"></a>
+            <a class="navbar-brand"><img  src="./res/img/hdm-logo-mini.png"  height="30" width="70"></a>
           </div>
           <div id="navbar" class="navbar-collapse collapse">
             <ul class="nav navbar-nav navbar-left">
-              <li class="active"><a href="/">Home</a></li>
-              <li><a href="/html/execution-manager.html">ExecutionManager</a></li>
-              <li><a href="/html/resource-manager.html">ResourceManager</a></li>
-              <li><a href="/html/dependency-manager.html">DependencyManager</a></li>
+              <li class="active"><a href=".">Home</a></li>
+              <li><a href="./html/job-manager.html">JobManager</a></li>
+              <li><a href="./html/execution-manager.html">ExecutionManager</a></li>
+              <li><a href="./html/resource-manager.html">ResourceManager</a></li>
+              <li><a href="./html/dependency-manager.html">DependencyManager</a></li>
             </ul>
             <form class="navbar-form navbar-right">
               <input type="text" class="form-control" placeholder="Search...">
@@ -73,7 +74,7 @@
     </ol>
     <div class="carousel-inner" role="listbox">
       <div class="item active">
-        <img class="first-slide" src="/res/img/matrix-green.jpg" alt="First slide">
+        <img class="first-slide" src="./res/img/matrix-green.jpg" alt="First slide">
         <div class="container">
           <div class="carousel-caption">
             <h1>Hierarchically Distributed Matrix</h1>
@@ -83,21 +84,21 @@
         </div>
       </div>
       <div class="item">
-        <img class="second-slide" src="/res/img/pipeline.jpg" alt="Second slide">
+        <img class="second-slide" src="./res/img/pipeline.jpg" alt="Second slide">
         <div class="container">
           <div class="carousel-caption">
             <h1>Pipeline Provenance</h1>
-            <p>Pipeline61 automatically supports history and dependency management of each pipe in the pipeline during its whole lifecycle.</p>
+            <p>Automatically supports history and dependency management of each pipe in the pipeline during its whole lifecycle.</p>
             <p><a class="btn btn-lg btn-primary" href="#" role="button">Learn more</a></p>
           </div>
         </div>
       </div>
       <div class="item">
-        <img class="third-slide" src="/res/img/data-provenance.jpg" alt="Third slide">
+        <img class="third-slide" src="./res/img/data-provenance.jpg" alt="Third slide">
         <div class="container">
           <div class="carousel-caption">
             <h1>Data Provenance</h1>
-            <p>Pipeline61 automatically saves data snapshots for every execution instance of each Pipe components.</p>
+            <p>Automatically saves data snapshots for every execution instance of each Pipe components.</p>
             <p><a class="btn btn-lg btn-primary" href="#" role="button">Browse gallery</a></p>
           </div>
         </div>
@@ -126,26 +127,27 @@
 
       <!-- Example row of columns -->
       <div class="row">
-        <div class="col-lg-4">
-          <h2>ImportDownloadService</h2>
-          <p>The importMarketData operation reads a Market Data file that exists outside of the system, filters the content according to the given parameters, and produces another Market Data file to store it inside the system. The filter conditions are specified by the input parameters. It accepts the following input parameters.</p>
-          <p class="text-danger">As of v7.0.1, Safari exhibits a bug in which resizing your browser horizontally causes rendering errors in the justified nav that are cleared upon refreshing.</p>
-          <p><a class="btn btn-primary" href="http://z3489982.srvr:8080/axis2/services/ImportDownloadSerivce?wsdl" role="button">View WSDL &raquo;</a></p>
-          <p><a class="btn btn-info" href="/html/docs.html" role="button">View Params &raquo;</a></p>
-          <p><a class="btn btn-success" href="/html/demo.html" role="button">Demo &raquo;</a></p>
+        <div class="col-lg-3">
+          <h2>Functional Interfaces</h2>
+          <p>HDM provides purely functional programming interfaces to facinitate users to write data-oriented analytics applications on large scale data sets</p>
+          <p><a class="btn btn-primary" href="#" role="button">View More Details &raquo;</a></p>
+          <p><a class="btn btn-info" href="./html/docs-summary.html" role="button">View Documents &raquo;</a></p>
         </div>
-        <div class="col-lg-4">
-          <h2>SummaryDataService</h2>
-          <p>The summaryMarketData operation reads an existing Market Data file in the system and produces summary information of the content.</p>
-          <p><a class="btn btn-primary" href="http://z3489982.srvr:8080/axis2/services/SummaryMarketDataSerivce?wsdl" role="button">View WSDL &raquo;</a></p>
-          <p><a class="btn btn-info" href="/html/docs-summary.html" role="button">View Params &raquo;</a></p>
-          <p><a class="btn btn-success" href="/html/demo-summary.html" role="button">Demo &raquo;</a></p>
+        <div class="col-lg-3">
+          <h2>Auto-optimized for execution</h2>
+          <p>HDM provides built-in optimizations to improve the performance for executing complicated and pipelined big data applications.</p>
+          <p><a class="btn btn-primary" href="#" role="button">View More Details &raquo;</a></p>
         </div>
-        <div class="col-lg-4">
-          <h2>ConvertDataService</h2>
-          <p>This service takes a Market Data file and convert all price information present in the file to another currency.</p>
-          <p><a class="btn btn-primary" href="http://z3489982.srvr:8080/axis2/services/CurrenyConvertSerivce?wsdl" role="button">View WSDL &raquo;</a></p>
-          <p><a class="btn btn-info" href="/html/docs-currency.html" role="button">View Params &raquo;</a></p>
+        <div class="col-lg-3">
+          <h2>Data Provenance and Version Control</h2>
+          <p>HDM provides supports for data provenance and version control to help users for the mantainance and management of continuously evolving big data applications.</p>
+          <p><a class="btn btn-primary" href="#" role="button">View More Details &raquo;</a></p>
+          <p><a class="btn btn-success" href="#" role="button">Demo &raquo;</a></p>
+        </div>
+        <div class="col-lg-3">
+          <h2>Supports for Multi-clusters</h2>
+          <p>HDM is designed to be able to scale to multi-cluster architectrures which are required for performing computation on more widely distributed infrastructures.</p>
+          <p><a class="btn btn-primary" href="#" role="button">View More Details &raquo;</a></p>
           <p><a class="btn btn-success" href="/html/demo-currency.html" role="button">Demo &raquo;</a></p>
         </div>
       </div>
@@ -161,7 +163,7 @@
     <!-- Bootstrap core JavaScript
     ================================================== -->
   <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-  <script src="/res/js/libs/bootstrap.min.js"></script>
+  <script src="./res/js/libs/bootstrap.min.js"></script>
     <!-- Placed at the end of the document so the pages load faster -->
   </body>
 </html>

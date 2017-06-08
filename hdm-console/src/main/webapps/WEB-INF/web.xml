@@ -11,61 +11,73 @@
 
     <servlet>
         <servlet-name>application-list-servlet</servlet-name>
-        <servlet-class>org.nicta.wdy.hdm.console.controllers.ApplicationController</servlet-class>
+        <servlet-class>org.hdm.core.console.controllers.ApplicationController</servlet-class>
         <load-on-startup>2</load-on-startup>
     </servlet>
 
     <servlet>
         <servlet-name>logical-flow-servlet</servlet-name>
-        <servlet-class>org.nicta.wdy.hdm.console.controllers.LogicalFlowController</servlet-class>
+        <servlet-class>org.hdm.core.console.controllers.LogicalFlowController</servlet-class>
         <load-on-startup>2</load-on-startup>
     </servlet>
 
     <servlet>
         <servlet-name>physical-flow-servlet</servlet-name>
-        <servlet-class>org.nicta.wdy.hdm.console.controllers.PhysicalFlowController</servlet-class>
+        <servlet-class>org.hdm.core.console.controllers.PhysicalFlowController</servlet-class>
         <load-on-startup>2</load-on-startup>
     </servlet>
 
     <servlet>
         <servlet-name>execution-graph-servlet</servlet-name>
-        <servlet-class>org.nicta.wdy.hdm.console.controllers.ExecutionGraphController</servlet-class>
+        <servlet-class>org.hdm.core.console.controllers.ExecutionGraphController</servlet-class>
         <load-on-startup>2</load-on-startup>
     </servlet>
 
     <servlet>
         <servlet-name>execution-lane-servlet</servlet-name>
-        <servlet-class>org.nicta.wdy.hdm.console.controllers.ExecutionTimeController</servlet-class>
+        <servlet-class>org.hdm.core.console.controllers.ExecutionTimeController</servlet-class>
         <load-on-startup>2</load-on-startup>
     </servlet>
 
     <servlet>
         <servlet-name>node-list-servlet</servlet-name>
-        <servlet-class>org.nicta.wdy.hdm.console.controllers.ListNodesController</servlet-class>
+        <servlet-class>org.hdm.core.console.controllers.ListNodesController</servlet-class>
         <load-on-startup>2</load-on-startup>
     </servlet>
 
     <servlet>
         <servlet-name>node-monitor-servlet</servlet-name>
-        <servlet-class>org.nicta.wdy.hdm.console.controllers.NodeMonitorController</servlet-class>
+        <servlet-class>org.hdm.core.console.controllers.NodeMonitorController</servlet-class>
         <load-on-startup>2</load-on-startup>
     </servlet>
 
     <servlet>
         <servlet-name>node-cluster-servlet</servlet-name>
-        <servlet-class>org.nicta.wdy.hdm.console.controllers.NodeClusterController</servlet-class>
+        <servlet-class>org.hdm.core.console.controllers.NodeClusterController</servlet-class>
         <load-on-startup>2</load-on-startup>
     </servlet>
 
     <servlet>
         <servlet-name>version-list-servlet</servlet-name>
-        <servlet-class>org.nicta.wdy.hdm.console.controllers.AllAppVersionsController</servlet-class>
+        <servlet-class>org.hdm.core.console.controllers.AllAppVersionsController</servlet-class>
         <load-on-startup>2</load-on-startup>
     </servlet>
 
     <servlet>
         <servlet-name>dependency-trace-servlet</servlet-name>
-        <servlet-class>org.nicta.wdy.hdm.console.controllers.DependencyTraceController</servlet-class>
+        <servlet-class>org.hdm.core.console.controllers.DependencyTraceController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>all-application-servlet</servlet-name>
+        <servlet-class>org.hdm.core.console.controllers.AllApplicationsController</servlet-class>
+        <load-on-startup>2</load-on-startup>
+    </servlet>
+
+    <servlet>
+        <servlet-name>job-stage-servlet</servlet-name>
+        <servlet-class>org.hdm.core.console.controllers.StagesController</servlet-class>
         <load-on-startup>2</load-on-startup>
     </servlet>
 <!--
@@ -120,6 +132,16 @@
     <servlet-mapping>
         <servlet-name>dependency-trace-servlet</servlet-name>
         <url-pattern>/service/dependencyTrace/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>all-application-servlet</servlet-name>
+        <url-pattern>/service/allApplications/*</url-pattern>
+    </servlet-mapping>
+
+    <servlet-mapping>
+        <servlet-name>job-stage-servlet</servlet-name>
+        <url-pattern>/service/jobStage/*</url-pattern>
     </servlet-mapping>
     <!--
 

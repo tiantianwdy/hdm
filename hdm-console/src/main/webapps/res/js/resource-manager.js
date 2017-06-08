@@ -15,7 +15,7 @@ require([ "jquery",
     "../res/js/libs/highstock/theme",
     "../res/js/libs/highstock/highStockUtils"],
     function ($, Ajax) {
-        curNode = null;
+        curNode = getCookie("curNode");
         var curShowingNode;
 
         function loadData(url, container, propName, ks) {
@@ -47,51 +47,63 @@ require([ "jquery",
             });
 
         //initialize slave list
-        ajaxSend("/service/nodeList/", "post", "", "admin", null, function(d){
+        ajaxSend("../service/nodeList/", "post", "", "admin", null, function(d){
             quickTree("slaveLists", d, nodeClicked);
             CollapsibleLists.apply("slaveLists");
+            if(d){
+                $('#slaveLists').trigger('click');
+                ajaxSend("../service/nodeCluster/", "post", "", "admin", null, function(d){
+                    createDAG("slave-cluster", d);
+                });
+            }
         });
 
         utils.collapseNative('slave-cluster-collapse','Show Cluster of Nodes', 'Collapse', function(){
 //             createDAG("slave-cluster", mockClusterData)
-            ajaxSend("/service/nodeCluster/", "post", "", "admin", null, function(d){
+            ajaxSend("../service/nodeCluster/", "post", "", "admin", null, function(d){
                 createDAG("slave-cluster", d);
             });
         });
 
         utils.collapseNative('slave-monitor-collapse','Show Resource States of nodes', 'Collapse', function(){
-             if(curShowingNode != curNode){
-               loadAllData(curNode)
+             if(curNode){
+                loadAllData(curNode);
              }
         });
 
+        if(curNode){
+           if(!$('#slave-monitor-collapse').next().is(":visible")){
+            $('#slave-monitor-collapse').trigger('click');
+           }
+           loadAllData(curNode);
+        }
 
         //
         function nodeClicked(node, depth){
             if(depth == 1){
-               if($('#monitor-main').is(":visible")){
-                loadAllData(node)
+               if(!$('#slave-monitor-collapse').next().is(":visible")){
+                $('#slave-monitor-collapse').trigger('click');
                }
-               curNode = node
+               loadAllData(node);
+               curNode = node;
+               setCookie("curNode", curNode);
             }
         }
 
         //load all monitor data of given node
         function loadAllData(node){
            curShowingNode = node;
-           loadData("/service/nodeMonitor/", "#highstock-cpu", "system/cpu", [node]);
-           loadData("/service/nodeMonitor/", "#highstock-mem", "system/mem", [node]);
-           loadData("/service/nodeMonitor/", "#highstock-net", "system/net", [node +"/receive", node + "/transmit"]);
+           loadData("../service/nodeMonitor/", "#highstock-cpu", "system/cpu", [node]);
+           loadData("../service/nodeMonitor/", "#highstock-mem", "system/mem", [node]);
+           loadData("../service/nodeMonitor/", "#highstock-net", "system/net", [node +"/receive", node + "/transmit"]);
            var jvmKeys = [node+"/memMax", node + "/memTotal", node + "/memUsed"]
-           loadData("/service/nodeMonitor/", "#highstock-jvm", "system/jvm", jvmKeys);
+           loadData("../service/nodeMonitor/", "#highstock-jvm", "system/jvm", jvmKeys);
         }
 
         // load mock data
         function loadAllMockData() {
-
             var key = "";
-            var keys = ["127.0.0.1:10001","127.0.0.1:10002"];
-
+            var keys = ["127.0.0.1:10001", "127.0.0.1:10002"];
             loadCpuMockData()
             loadJvmMockData()
             loadMemMockData()

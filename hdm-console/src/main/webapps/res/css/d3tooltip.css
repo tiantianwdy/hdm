@@ -1,0 +1,115 @@
+div.tabletooltip {
+  position: absolute;
+  text-align: left;
+//  width: 400px;
+//  height: 220px;
+  padding: 2px;
+  font: 12px sans-serif;
+  background: White;
+  border: 0px;
+  border-radius: 8px;
+  pointer-events: none;
+  box-shadow: 10px 10px 5px #888888;
+
+}
+
+div.tabletooltip  th {
+  color:#D5DDE5;;
+  background:#1b1e24;
+  border-bottom:4px solid #9ea7af;
+  border-right: 1px solid #343a45;
+  font-size:12px;
+  font-weight: 100;
+  padding:2px;
+  text-align:left;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
+  vertical-align:middle;
+}
+
+div.tabletooltip  th:first-child {
+  border-top-left-radius:1px;
+}
+
+div.tabletooltip th:last-child {
+  border-top-right-radius:1px;
+  border-right:none;
+}
+
+div.tabletooltip  tr {
+  border-top: 1px solid #C1C3D1;
+  border-bottom-: 1px solid #C1C3D1;
+  color:#666B85;
+  font-size:12px;
+  font-weight:normal;
+  text-shadow: 0 1px 1px rgba(256, 256, 256, 0.1);
+}
+
+div.tabletooltip  tr:hover td {
+  background:#4E5066;
+  color:#FFFFFF;
+  border-top: 1px solid #22262e;
+  border-bottom: 1px solid #22262e;
+}
+
+div.tabletooltip  tr:first-child {
+  border-top:none;
+}
+
+div.tabletooltip  tr:last-child {
+  border-bottom:none;
+}
+
+div.tabletooltip tr:nth-child(odd) td {
+  background:#EBEBEB;
+}
+
+div.tabletooltip tr:nth-child(odd):hover td {
+  background:#4E5066;
+}
+
+div.tabletooltip tr:last-child td:first-child {
+  border-bottom-left-radius:1px;
+}
+
+div.tabletooltip tr:last-child td:last-child {
+  border-bottom-right-radius:1px;
+}
+
+div.tabletooltip td {
+  background:#FFFFFF;
+  padding:2px;
+  text-align:left;
+  vertical-align:middle;
+  font-weight:300;
+  font-size:12px;
+  text-shadow: -1px -1px 1px rgba(0, 0, 0, 0.1);
+  border-right: 1px solid #C1C3D1;
+}
+
+div.tabletooltip td:last-child {
+  border-right: 0px;
+}
+
+div.tabletooltip th.text-left {
+  text-align: left;
+}
+
+div.tabletooltip th.text-center {
+  text-align: center;
+}
+
+div.tabletooltip th.text-right {
+  text-align: right;
+}
+
+div.tabletooltip td.text-left {
+  text-align: left;
+}
+
+div.tabletooltip td.text-center {
+  text-align: center;
+}
+
+div.tabletooltip td.text-right {
+  text-align: right;
+}

@@ -9,20 +9,21 @@
     <meta name="author" content="">
     <link rel="icon" href="../../favicon.ico">
 
-    <title>Dashboard Template for Bootstrap</title>
+    <title>HDM Console</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="/res/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../res/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
-    <link href="/res/css/dashboard.css" rel="stylesheet">
-    <link href="/res/css/d3-force.css" rel="stylesheet">
-    <link href="/res/css/d3-tree.css" rel="stylesheet">
-    <link href="/res/css/nav-tree.css" rel="stylesheet">
-    <link href="/res/css/dag.css" rel="stylesheet">
-    <link href="/res/css/d3lanes.css" rel="stylesheet">
-    <link href="/res/css/collapsible.css" rel="stylesheet">
-    <link href="/res/css/collapsibleList.css" rel="stylesheet">
+    <link href="../res/css/dashboard.css" rel="stylesheet">
+    <link href="../res/css/d3-force.css" rel="stylesheet">
+    <link href="../res/css/d3-tree.css" rel="stylesheet">
+    <link href="../res/css/nav-tree.css" rel="stylesheet">
+    <link href="../res/css/dag.css" rel="stylesheet">
+    <link href="../res/css/d3tooltip.css" rel="stylesheet">
+    <link href="../res/css/d3lanes.css" rel="stylesheet">
+    <link href="../res/css/collapsible.css" rel="stylesheet">
+    <link href="../res/css/collapsibleList.css" rel="stylesheet">
 
     <!-- side bar css-->
     <!--<link href="/res/css/sb-admin-2.css" rel="stylesheet">-->
@@ -31,8 +32,8 @@
 
     <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
     <!--[if lt IE 9]>
-    <script src="/res/js/libs/ie8-responsive-file-warning.js"></script><![endif]-->
-    <script src="/res/js/libs/ie-emulation-modes-warning.js"></script>
+    <script src="../res/js/libs/ie8-responsive-file-warning.js"></script><![endif]-->
+    <script src="../res/js/libs/ie-emulation-modes-warning.js"></script>
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -41,25 +42,25 @@
 
     <![endif]-->
     <!-- libs -->
-    <script src="/res/js/libs/common-utils.js"></script>
-    <script src="/res/js/libs/jquery-1.11.3.min.js"></script>
+    <script src="../res/js/libs/common-utils.js"></script>
+    <script src="../res/js/libs/jquery-1.11.3.min.js"></script>
     <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>-->
     <script src="http://d3js.org/d3.v3.js"></script>
     <!--js for this html-->
-    <script src="/res/js/libs/d3-force.js"></script>
-    <script src="/res/js/libs/dagre-d3.js"></script>
-    <script src="/res/js/libs/CollapsibleLists.js"></script>
+    <script src="../res/js/libs/d3-force.js"></script>
+    <script src="../res/js/libs/dagre-d3.js"></script>
+    <script src="../res/js/libs/CollapsibleLists.js"></script>
 
-    <script src="/res/js/libs/quick-table.js"></script>
-    <script src="/res/js/libs/d3-tree.js"></script>
-    <script src="/res/js/utils.js"></script>
-    <script src="/res/js/d3dag.js"></script>
-    <script src="/res/js/d3swimlanes.js"></script>
+    <script src="../res/js/libs/quick-table.js"></script>
+    <script src="../res/js/libs/d3-tree.js"></script>
+    <script src="../res/js/utils.js"></script>
+    <script src="../res/js/d3dag.js"></script>
+    <script src="../res/js/d3swimlanes.js"></script>
     <!-- testing data-->
-    <script src="/res/js/mockdata/mock-data.js"></script>
-    <script src="/res/js/mockdata/dag-mockdata.js"></script>
-    <script src="/res/js/mockdata/mock-hdm-data.js"></script>
-    <script src="/res/js/mockdata/mock-lanes-data.js"></script>
+    <script src="../res/js/mockdata/mock-data.js"></script>
+    <script src="../res/js/mockdata/dag-mockdata.js"></script>
+    <script src="../res/js/mockdata/mock-hdm-data.js"></script>
+    <script src="../res/js/mockdata/mock-lanes-data.js"></script>
 
 
     <!--<link rel="import" href="header.html">-->
@@ -83,14 +84,15 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand"><img src="/res/img/hdm-logo-mini.png"  height="30" width="70"></a>
+                <a class="navbar-brand"><img src="../res/img/hdm-logo-mini.png"  height="30" width="70"></a>
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <ul class="nav navbar-nav navbar-left">
                     <li><a href="/">Home</a></li>
-                    <li class="active"><a href="/html/execution-manager.html">ExecutionManager</a></li>
-                    <li><a href="/html/resource-manager.html">ResourceManager</a></li>
-                    <li><a href="/html/dependency-manager.html">DependencyManager</a></li>
+                    <li><a href="./job-manager.html">JobManager</a></li>
+                    <li class="active"><a href="./execution-manager.html">ExecutionManager</a></li>
+                    <li><a href="./resource-manager.html">ResourceManager</a></li>
+                    <li><a href="./dependency-manager.html">DependencyManager</a></li>
                 </ul>
                 <form class="navbar-form navbar-right">
                     <input type="text" class="form-control" placeholder="Search...">
@@ -223,15 +225,15 @@
 
 
 <!-- web logic of this page -->
-<script src="/res/js/execution-manager.js"></script>
+<script src="../res/js/execution-manager.js"></script>
 
 <!-- Bootstrap core JavaScript
 ================================================== -->
 <!-- Placed at the end of the document so the pages load faster -->
 <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.3/jquery.min.js"></script>
-<script src="/res/js/libs/bootstrap.min.js"></script>
+<script src="../res/js/libs/bootstrap.min.js"></script>
 <!-- Just to make our placeholder images work. Don't actually copy the next line! -->
 <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
-<script src="/res/js/libs/ie10-viewport-bug-workaround.js"></script>
+<script src="../res/js/libs/ie10-viewport-bug-workaround.js"></script>
 </body>
 </html>

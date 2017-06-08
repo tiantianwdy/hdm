@@ -21,3 +21,8 @@
     display: none;
     padding : 5px;
 }
+
+.container .cluster-content {
+    display: true;
+    padding : 5px;
+}

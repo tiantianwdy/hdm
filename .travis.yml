@@ -1,8 +1,11 @@
-language: java
-java:
-    - 1.8
+language: scala
+
+scala:
+  - 2.10.2
+
+jdk:
+  - oraclejdk8
 
 script:
-    - mvn -q clean verify
-    - mvn -q test
-    - mvn package -Dmaven.test.skip=true -Dmaven.javadoc.skip=true
+  - sbt ++$TRAVIS_SCALA_VERSION test -jvm-opts travis/jvmopts test
+

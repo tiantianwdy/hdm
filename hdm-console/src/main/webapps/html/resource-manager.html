@@ -9,25 +9,26 @@
     <meta name="author" content="">
     <link rel="icon" href="../../favicon.ico">
 
-    <title>Dashboard Template for Bootstrap</title>
+    <title>HDM Console</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="/res/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../res/css/bootstrap.min.css" rel="stylesheet">
 
     <!-- Custom styles for this template -->
-    <link href="/res/css/dashboard.css" rel="stylesheet">
-    <link href="/res/css/d3-force.css" rel="stylesheet">
-    <link href="/res/css/d3-tree.css" rel="stylesheet">
-    <link href="/res/css/nav-tree.css" rel="stylesheet">
-    <link href="/res/css/dag.css" rel="stylesheet">
-    <link href="/res/css/d3lanes.css" rel="stylesheet">
-    <link href="/res/css/collapsible.css" rel="stylesheet">
-    <link href="/res/css/collapsibleList-node.css" rel="stylesheet">
+    <link href="../res/css/grid.css" rel="stylesheet">
+    <link href="../res/css/dashboard.css" rel="stylesheet">
+    <link href="../res/css/d3-force.css" rel="stylesheet">
+    <link href="../res/css/d3-tree.css" rel="stylesheet">
+    <link href="../res/css/nav-tree.css" rel="stylesheet">
+    <link href="../res/css/dag.css" rel="stylesheet">
+    <link href="../res/css/d3lanes.css" rel="stylesheet">
+    <link href="../res/css/collapsible.css" rel="stylesheet">
+    <link href="../res/css/collapsibleList-node.css" rel="stylesheet">
 
     <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
     <!--[if lt IE 9]>
-    <script src="/res/js/libs/ie8-responsive-file-warning.js"></script><![endif]-->
-    <script src="/res/js/libs/ie-emulation-modes-warning.js"></script>
+    <script src="../res/js/libs/ie8-responsive-file-warning.js"></script><![endif]-->
+    <script src="../res/js/libs/ie-emulation-modes-warning.js"></script>
 
     <!-- HTML5 shim and Respond.js for IE8 support of HTML5 elements and media queries -->
     <!--[if lt IE 9]>
@@ -36,25 +37,25 @@
 
     <![endif]-->
     <!-- libs -->
-    <script src="/res/js/libs/common-utils.js"></script>
-    <script src="/res/js/libs/jquery-1.11.3.min.js"></script>
+    <script src="../res/js/libs/common-utils.js"></script>
+    <script src="../res/js/libs/jquery-1.11.3.min.js"></script>
     <!--<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/3.5.5/d3.min.js"></script>-->
     <script src="http://d3js.org/d3.v3.js"></script>
     <!--js for this html-->
-    <script src="/res/js/libs/d3-force.js"></script>
-    <script src="/res/js/libs/dagre-d3.js"></script>
-    <script src="/res/js/libs/quick-table.js"></script>
-    <script src="/res/js/libs/d3-tree.js"></script>
-    <script src="/res/js/libs/CollapsibleLists.js"></script>
+    <script src="../res/js/libs/d3-force.js"></script>
+    <script src="../res/js/libs/dagre-d3.js"></script>
+    <script src="../res/js/libs/quick-table.js"></script>
+    <script src="../res/js/libs/d3-tree.js"></script>
+    <script src="../res/js/libs/CollapsibleLists.js"></script>
 
-    <script src="/res/js/utils.js"></script>
-    <script src="/res/js/d3dag.js"></script>
-    <script src="/res/js/d3swimlanes.js"></script>
+    <script src="../res/js/utils.js"></script>
+    <script src="../res/js/d3dag.js"></script>
+    <script src="../res/js/d3swimlanes.js"></script>
     <!-- testing data-->
-    <script src="/res/js/mockdata/mock-data.js"></script>
-    <script src="/res/js/mockdata/dag-mockdata.js"></script>
-    <script src="/res/js/mockdata/mock-hdm-data.js"></script>
-    <script src="/res/js/mockdata/mock-lanes-data.js"></script>
+    <script src="../res/js/mockdata/mock-data.js"></script>
+    <script src="../res/js/mockdata/dag-mockdata.js"></script>
+    <script src="../res/js/mockdata/mock-hdm-data.js"></script>
+    <script src="../res/js/mockdata/mock-lanes-data.js"></script>
 
     <!--<meta charset="utf-8">-->
     <!--<link rel="import" href="header.html">-->
@@ -72,14 +73,15 @@
                     <span class="icon-bar"></span>
                     <span class="icon-bar"></span>
                 </button>
-                <a class="navbar-brand"><img  src="/res/img/hdm-logo-mini.png"  height="30" width="70"></a>
+                <a class="navbar-brand"><img  src="../res/img/hdm-logo-mini.png"  height="30" width="70"></a>
             </div>
             <div id="navbar" class="navbar-collapse collapse">
                 <ul class="nav navbar-nav navbar-left">
-                    <li><a href="/">Home</a></li>
-                    <li><a href="/html/execution-manager.html">ExecutionManager</a></li>
-                    <li class="active"><a href="/html/resource-manager.html">ResourceManager</a></li>
-                    <li><a href="/html/dependency-manager.html">DependencyManager</a></li>
+                    <li><a href="../">Home</a></li>
+                    <li><a href="./job-manager.html">JobManager</a></li>
+                    <li><a href="./execution-manager.html">ExecutionManager</a></li>
+                    <li class="active"><a href="./resource-manager.html">ResourceManager</a></li>
+                    <li><a href="./dependency-manager.html">DependencyManager</a></li>
                 </ul>
                 <form class="navbar-form navbar-right">
                     <input type="text" class="form-control" placeholder="Search...">
@@ -103,27 +105,32 @@
         <div class="container">
             <div class="header" id="slave-cluster-collapse">
                 <span>Show Cluster of nodes</span></div>
-            <div class="content">
+            <div class="cluster-content">
                 <div id="slave-cluster"></div>
             </div>
         </div>
         <div class="container">
             <div class="header" id="slave-monitor-collapse">
-                <span>Show Resource States of nodes</span></div>
+                <span>Show Resource States of nodes</span>
+            </div>
             <div class="content" id="monitor-main">
-                <div id="highstock-search" style="height: 300px; display:None "></div>
-                <div id="highstock-cpu" style="height: 300px; width:100%"></div>
-                <div id="highstock-mem" style="height: 300px"></div>
-                <div id="highstock-net" style="height: 300px"></div>
-                <div id="highstock-jvm" style="height: 300px"></div>
+                <div class="row">
+                    <div id="highstock-search" style="height: 300px; display:None "></div>
+                    <div id="highstock-cpu" class="col-md-3" style="height: 275px; width: 650px"></div>
+                    <div id="highstock-mem" class="col-md-3" style="height: 275px; width: 650px"></div>
+                </div>
+                <div class="row">
+                    <div id="highstock-net" class="col-md-3" style="height: 275px; width: 650px"></div>
+                    <div id="highstock-jvm" class="col-md-3" style="height: 275px; width: 650px"></div>
+                </div>
             </div>
         </div>
     </div>
 
 </div>
 
-<script src="/res/js/libs/require-jquery.js"></script>
-<script src="/res/js/resource-manager.js"></script>
+<script src="../res/js/libs/require-jquery.js"></script>
+<script src="../res/js/resource-manager.js"></script>
 
 </body>
 </html>

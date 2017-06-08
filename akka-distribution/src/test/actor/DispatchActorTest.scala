@@ -1,13 +1,13 @@
-package com.baidu.bpit.akka.actor
+package org.hdm.akka.actor
 
-import com.baidu.bpit.akka.configuration.DispatchConfig
-import com.baidu.bpit.akka.messages.{StopMsg, SmsMessage, InitMsg}
+import org.hdm.akka.configuration.DispatchConfig
+import org.hdm.akka.messages.{StopMsg, SmsMessage, InitMsg}
 import akka.actor.Props
-import com.baidu.bpit.akka.actors.worker.ProxyActor
-import com.baidu.bpit.akka.configuration.ProxyConfig
-import com.baidu.bpit.akka.actors.worker.DispatchActor
-import com.baidu.bpit.akka.configuration.QueConfig
-import com.baidu.bpit.akka.actors.worker.QueActor
+import org.hdm.akka.actors.worker.ProxyActor
+import org.hdm.akka.configuration.ProxyConfig
+import org.hdm.akka.actors.worker.DispatchActor
+import org.hdm.akka.configuration.QueConfig
+import org.hdm.akka.actors.worker.QueActor
 
 class DispatchActorTest extends AbstractActorSuite {
 

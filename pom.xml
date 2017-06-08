@@ -3,8 +3,8 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 <modelVersion>4.0.0</modelVersion>
 
-<groupId>org.nicta</groupId>
-<artifactId>HDM_2.10</artifactId>
+<groupId>org.hdm</groupId>
+<artifactId>scala_2.10</artifactId>
 <version>0.0.1</version>
 <packaging>pom</packaging>
 
@@ -25,7 +25,7 @@
 
 <modules>
     <module>akka-distribution</module>
-    <module>HDM-core</module>
+    <module>hdm-core</module>
     <module>hdm-benchmark</module>
     <module>hdm-console</module>
     <!--<module>hdm-model-converter</module>-->
@@ -140,10 +140,10 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.1</version>
+                <version>3.6.1</version>
                 <configuration>
-                    <source>1.6</source>
-                    <target>1.6</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                     <encoding>UTF-8</encoding>
                 </configuration>
             </plugin>

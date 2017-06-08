@@ -16,7 +16,7 @@ Highcharts.theme = {
         plotBackgroundColor: 'rgba(255, 255, 255, .9)',
         plotShadow: true,
         plotBorderWidth: 3,
-        width:1200
+        width:650
     },
     title: {
         style: {

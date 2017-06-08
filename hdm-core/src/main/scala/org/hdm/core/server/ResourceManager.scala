@@ -1,0 +1,122 @@
+package org.hdm.core.server
+
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.{ConcurrentHashMap, Semaphore}
+
+import org.hdm.core.io.Path
+import org.hdm.core.scheduling.Scheduler
+
+import scala.collection.JavaConversions._
+import scala.collection.mutable
+
+/**
+ * Created by tiantian on 24/08/15.
+ */
+trait ResourceManager {
+
+  def init()
+  
+  def addResource(resId:String, defaultVal:Int)
+
+  def incResource(resId:String, value:Int)
+
+  def decResource(resId:String, value:Int)
+
+  def removeResource(resId:String)
+
+  def getResource(resId:String):(String, AtomicInteger)
+  
+  def getAllResources():mutable.Map[String, AtomicInteger]
+
+  def require(value:Int)
+
+  def release(value:Int)
+
+  def waitForNonEmpty()
+
+  def hasAvailableResource():Boolean = {
+    val seq = Scheduler.getAllAvailableWorkers(getAllResources())
+    seq.size > 0
+  }
+
+
+}
+
+/**
+ *
+ */
+class DefResourceManager extends ResourceManager{
+
+  val followerMap: java.util.Map[String, AtomicInteger] = new ConcurrentHashMap[String, AtomicInteger]
+
+  val workingSize = new Semaphore(0)
+
+
+  def init(): Unit = {
+    followerMap.clear()
+  }
+
+
+  override def getResource(resId: String): (String, AtomicInteger) = {
+    (resId, followerMap.get(resId))
+  }
+
+  override def addResource(resId: String, defaultVal: Int): Unit = {
+    val oldValue = if(followerMap.containsKey(resId)) followerMap.get(resId).get()
+                   else 0
+    followerMap.put(resId, new AtomicInteger(defaultVal))
+    if(defaultVal > oldValue){
+      workingSize.release(defaultVal - oldValue)
+    }
+  }
+
+  override def removeResource(resId: String): Unit = {
+    if(followerMap.containsKey(resId)){
+      val value = followerMap.remove(resId).get()
+      workingSize.acquire(value)
+      //    workingSize.tryAcquire()
+    }
+  }
+
+  override def decResource(resId: String, value: Int): Unit = {
+    if(followerMap.containsKey(resId)){
+      workingSize.acquire(value)
+      if(value < 2)
+        followerMap.get(resId).decrementAndGet()
+      else {
+        followerMap.get(resId).getAndAdd(0 - value)
+      }
+    }
+  }
+
+  override def incResource(resId: String, value: Int): Unit = {
+    if(followerMap.containsKey(resId)){
+      if(value < 2)
+        followerMap.get(resId).incrementAndGet()
+      else {
+        followerMap.get(resId).getAndAdd(value)
+      }
+      workingSize.release(value)
+    }
+  }
+
+  override def getAllResources(): mutable.Map[String, AtomicInteger] = {
+    followerMap
+  }
+
+  override def require(value:Int) = {
+    workingSize.acquire(value)
+  }
+
+  override def release(value:Int) = {
+    workingSize.release(value)
+  }
+
+  override def waitForNonEmpty(): Unit = {
+    while (Scheduler.getAllAvailableWorkers(getAllResources()).size <= 0) {
+      Thread.sleep(100)
+    }
+  }
+
+
+}

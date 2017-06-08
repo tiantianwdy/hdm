@@ -3,14 +3,14 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>HDM_2.10</artifactId>
-        <groupId>org.nicta</groupId>
+        <artifactId>scala_2.10</artifactId>
+        <groupId>org.hdm</groupId>
         <version>0.0.1</version>
     </parent>
 
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>HDM-benchmark</artifactId>
+    <artifactId>hdm-benchmark</artifactId>
 
     <properties>
         <mesos.version>0.13.0</mesos.version>
@@ -156,7 +156,7 @@
                         <manifest>
                             <addClasspath>true</addClasspath>
                             <classpathPrefix>lib/</classpathPrefix>
-                            <mainClass>org.nicta.wdy.hdm.benchmark.HDMBenchmark</mainClass>
+                            <mainClass>org.hdm.core.benchmark.HDMBenchmark</mainClass>
                         </manifest>
                     </archive>
                 </configuration>
@@ -209,8 +209,8 @@
 
     <dependencies>
         <dependency>
-            <groupId>org.nicta</groupId>
-            <artifactId>HDM-core</artifactId>
+            <groupId>org.hdm</groupId>
+            <artifactId>hdm-core</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
 
@@ -247,6 +247,7 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
         </dependency>
 
         <dependency>

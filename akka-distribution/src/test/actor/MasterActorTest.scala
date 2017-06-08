@@ -1,16 +1,16 @@
-package com.baidu.bpit.akka.test.actor
+package org.hdm.akka.test.actor
 
 import akka.actor.ActorSystem
 import akka.actor.Props
-import com.baidu.bpit.akka.actors.MasterActor
+import org.hdm.akka.actors.MasterActor
 import junit.framework.TestCase
 import akka.actor.ActorRef
-import com.baidu.bpit.akka.actors.SlaveActor
-import com.baidu.bpit.akka.messages.JoinMsg
-import com.baidu.bpit.akka.configuration.ProxyConfig
-import com.baidu.bpit.akka.messages.AddMsg
-import com.baidu.bpit.akka.configuration.QueConfig
-import com.baidu.bpit.akka.configuration.DispatchConfig
+import org.hdm.akka.actors.SlaveActor
+import org.hdm.akka.messages.JoinMsg
+import org.hdm.akka.configuration.ProxyConfig
+import org.hdm.akka.messages.AddMsg
+import org.hdm.akka.configuration.QueConfig
+import org.hdm.akka.configuration.DispatchConfig
 
 class MasterActorTest {
 
