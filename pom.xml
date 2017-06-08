@@ -5,7 +5,7 @@
 
 <groupId>org.hdm</groupId>
 <artifactId>scala_2.10</artifactId>
-<version>0.0.1</version>
+<version>0.1-SNAPSHOT</version>
 <packaging>pom</packaging>
 
 <name>hdm-cluster</name>
