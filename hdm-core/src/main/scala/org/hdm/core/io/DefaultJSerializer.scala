@@ -8,7 +8,7 @@ import akka.util.ClassLoaderObjectInputStream
  * Created by Tiantian on 2014/12/9.
  * Default Java Serializer
  */
-class DefaultJSerializer(val classLoader:ClassLoader = ClassLoader.getSystemClassLoader) extends  Serializer{
+class DefaultJSerializer(val classLoader:ClassLoader = ClassLoader.getSystemClassLoader) extends  Serializer {
 
   def includeManifest: Boolean = false
 

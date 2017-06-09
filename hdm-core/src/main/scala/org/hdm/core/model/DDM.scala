@@ -143,6 +143,29 @@ object DDM {
       context.declareHdm(ddms)
     ddms
   }
+
+  def sources[T:ClassTag](urls: Seq[Path], hdmContext:HDMContext, appContext:AppContext, broadcast:Boolean = false): Seq[DDM[T, T]] = {
+    val context = if(hdmContext == null) HDMContext.defaultHDMContext
+    else hdmContext
+    val ddms =
+      urls.map { url =>
+        val id = HDMContext.newLocalId()
+        val d = synchronized {
+          //need to be thread safe for reflection
+          new DDM[T, T](id = id,
+            func = new NullFunc[T],
+            blocks = Buffer(url.toString),
+            blockSize = 1,
+            state = Computed,
+            location = url,
+            appContext = appContext)
+        }
+        d
+      }
+    if(broadcast)
+      context.declareHdm(ddms)
+    ddms
+  }
 }
 
 

@@ -54,6 +54,10 @@ object Path {
 
   val NETTY = "netty://"
 
+  val HTTP = "http://"
+
+  val HTTPS = "https://"
+
   def apply(protocol:String, host:String, port:Int, localPath:String) = {
     val path = if(localPath.startsWith("/")) localPath
                 else "/" + localPath

@@ -4,7 +4,7 @@ import org.hdm.akka.monitor.SystemMonitorService
 import org.junit.{Before, After, Test}
 import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.io.hdfs.HDFSUtils
-import org.hdm.core.io.{HdfsParser, DataParser, Path}
+import org.hdm.core.io.{HDFSParser, DataParser, Path}
 import org.hdm.core.model.HDM
 import org.hdm.core.planing.StaticPlaner
 import org.hdm.core.storage.Block
@@ -67,7 +67,7 @@ class HDFSDataParserTest {
     while (!locs.isEmpty){
       val start = System.currentTimeMillis()
       val  blocks = locs.take(step) map { ddm =>
-        val data = new HdfsParser().readBlock(ddm.location, ClassLoader.getSystemClassLoader)
+        val data = new HDFSParser().readBlock(ddm.location, ClassLoader.getSystemClassLoader)
         data
       }
       locs = locs.drop(step)
@@ -88,7 +88,7 @@ class HDFSDataParserTest {
   def testReadBatch(): Unit ={
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings")
     val locations = DataParser.explainBlocks(path, hDMContext).take(10).map(_.location)
-    new HdfsParser().readBatch(locations) foreach (b => println(b.size))
+    new HDFSParser().readBatch(locations) foreach (b => println(b.size))
   }
 
   @After
