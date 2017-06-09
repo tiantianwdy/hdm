@@ -1,7 +1,6 @@
 package org.hdm.core.executor
 
 
-import java.io.{File, InputStreamReader, BufferedReader}
 import java.lang.{ProcessBuilder => JProcess}
 
 import org.junit.Test

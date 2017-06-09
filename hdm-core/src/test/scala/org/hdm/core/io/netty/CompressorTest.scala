@@ -1,12 +1,11 @@
 package org.hdm.core.io.netty
 
 import java.nio.ByteBuffer
-import org.junit.{After, Before,Test}
 
 import org.hdm.core.executor.HDMContext
-import org.hdm.core.io.netty.NettyBlockServer
 import org.hdm.core.serializer.JavaSerializer
-import org.hdm.core.storage.{Block, HDMBlockManager}
+import org.hdm.core.storage.Block
+import org.junit.Test
 
 import scala.collection.mutable.ArrayBuffer
 

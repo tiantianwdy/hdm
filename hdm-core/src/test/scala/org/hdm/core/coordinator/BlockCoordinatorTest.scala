@@ -1,9 +1,8 @@
 package org.hdm.core.coordinator
 
-import org.junit.Test
-import org.hdm.core.executor.ClusterTestSuite
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.executor.{AppContext, ClusterTestSuite, HDMContext}
 import org.hdm.core.model.HDM
+import org.junit.Test
 
 /**
  * Created by tiantian on 9/03/15.

@@ -1,11 +1,11 @@
 package org.hdm.core.server
 
-import java.util.concurrent.{ExecutorService, CountDownLatch, Executors}
+import java.util.concurrent.{CountDownLatch, ExecutorService, Executors}
 
 import org.hdm.core.scheduling.Scheduler
-import org.hdm.core.server.{TreeResourceManager, DefResourceManager, ResourceManager, SingleClusterResourceManager}
-import org.junit.{Test, Before}
 import org.hdm.core.utils.Utils
+import org.junit.{Before, Test}
+
 import scala.util.Random
 
 /**

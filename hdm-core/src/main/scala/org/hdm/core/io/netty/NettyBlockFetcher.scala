@@ -1,19 +1,14 @@
 package org.hdm.core.io.netty
 
-import java.util.concurrent.atomic.{AtomicInteger, AtomicBoolean, AtomicReference}
-import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingDeque, Semaphore, TimeUnit}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
+import java.util.concurrent.{ConcurrentHashMap, LinkedBlockingDeque, Semaphore}
 
 import io.netty.bootstrap.Bootstrap
 import io.netty.buffer.ByteBufAllocator
+import io.netty.channel._
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioSocketChannel
-import io.netty.channel._
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder
-import io.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
-import io.netty.handler.codec.string.StringEncoder
-import io.netty.util.ReferenceCountUtil
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.io.CompressionCodec
 import org.hdm.core.message.{FetchSuccessResponse, NettyFetchRequest, QueryBlockMsg}
 import org.hdm.core.serializer.SerializerInstance
@@ -63,7 +58,7 @@ class NettyBlockFetcher(val nThreads:Int, val serializerInstance: SerializerInst
           channel.writeAndFlush(msg).addListener(NettyChannelListener(channel, System.currentTimeMillis()))
 //          Thread.sleep(100)
         } catch {
-          case e =>
+          case e : Throwable =>
             log.error("send block request failed to address:" + address)
             channel.close()
             e.printStackTrace()

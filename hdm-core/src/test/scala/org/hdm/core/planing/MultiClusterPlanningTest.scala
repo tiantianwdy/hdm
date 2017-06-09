@@ -1,12 +1,9 @@
 package org.hdm.core.planing
 
-import breeze.linalg.DenseVector
 import org.hdm.core.examples.KVBasedPrimitiveBenchmark
 import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
-import org.hdm.core.planing.StaticMultiClusterPlanner
-
 import org.junit.Test
 /**
  * Created by tiantian on 12/05/16.

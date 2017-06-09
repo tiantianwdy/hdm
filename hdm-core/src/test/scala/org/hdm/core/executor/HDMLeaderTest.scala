@@ -1,18 +1,15 @@
 package org.hdm.core.executor
 
-import org.junit.{After, Test}
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.akka.messages.Query
 import org.hdm.akka.server.SmsSystem
-import org.hdm.akka.messages.{AddMsg, Query}
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
 import org.hdm.core.planing.FunctionFusion
+import org.junit.{After, Test}
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import ExecutionContext.Implicits.global
-import scala.util.{Success, Failure}
-import akka.actor.{Props, Actor}
-import akka.pattern.{ask, pipe}
-import akka.actor.Actor.Receive
+import scala.util.{Failure, Success}
 
 /**
  * Created by Tiantian on 2014/12/19.

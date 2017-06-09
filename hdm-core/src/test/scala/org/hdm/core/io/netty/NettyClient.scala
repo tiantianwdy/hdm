@@ -1,11 +1,9 @@
 package org.hdm.core.io.netty
 
 import org.hdm.core.executor.HDMContext
-import org.hdm.core.io.Path
-import org.hdm.core.io.netty.{NettyConnectionManager, NettyBlockFetcher}
 import org.hdm.core.message.{FetchSuccessResponse, QueryBlockMsg}
 import org.hdm.core.serializer.JavaSerializer
-import org.hdm.core.storage.{HDMBlockManager, Block}
+import org.hdm.core.storage.{Block, HDMBlockManager}
 
 /**
  * Created by tiantian on 27/05/15.

@@ -1,12 +1,11 @@
 package org.hdm.core.executor
 
 import org.hdm.akka.server.SmsSystem
-import org.junit.Test
-import org.hdm.core.executor._
 import org.hdm.core.functions.ParallelFunction
 import org.hdm.core.io.Path
 import org.hdm.core.model._
 import org.hdm.core.storage.HDMBlockManager
+import org.junit.Test
 
 import scala.util.{Failure, Success}
 

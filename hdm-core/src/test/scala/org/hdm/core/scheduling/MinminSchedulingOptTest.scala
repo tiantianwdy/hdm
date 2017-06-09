@@ -1,7 +1,6 @@
 package org.hdm.core.scheduling
 
 import org.junit.{Before, Test}
-import org.hdm.core.scheduling.{MinCostOptimization, MinminSchedulingOpt}
 
 /**
  * Created by Tiantian on 2016/7/25.

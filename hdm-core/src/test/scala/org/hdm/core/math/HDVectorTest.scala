@@ -1,12 +1,8 @@
 package org.hdm.core.math
 
-import org.hdm.core.executor.{AppContext, HDMContext}
-import org.hdm.core.model.HDM
-
 import org.hdm.core.math.HDMatrix._
-
-
-import org.junit.{Before, Test}
+import org.hdm.core.model.HDM
+import org.junit.Test
 
 /**
  * Created by tiantian on 30/11/16.

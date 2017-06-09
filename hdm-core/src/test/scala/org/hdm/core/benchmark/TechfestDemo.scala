@@ -1,15 +1,14 @@
 package org.hdm.core.benchmark
 
-import org.junit.{After, Test}
-import org.hdm.core.examples.{UservisitsSQLBenchmark, IterationBenchmark, KVBasedPrimitiveBenchmark}
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.examples.{IterationBenchmark, KVBasedPrimitiveBenchmark, UservisitsSQLBenchmark}
 import org.hdm.core.executor.HDMContext._
-import org.hdm.akka.messages.{AddMsg, Query}
+import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.io.Path
-import org.hdm.core.model.{HDM}
+import org.hdm.core.model.HDM
+import org.junit.{After, Test}
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
-import ExecutionContext.Implicits.global
-import scala.util.{Success, Failure}
 
 /**
  * Created by tiantian on 17/02/15.

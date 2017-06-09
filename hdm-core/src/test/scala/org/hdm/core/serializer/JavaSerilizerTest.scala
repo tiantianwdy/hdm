@@ -1,12 +1,10 @@
 package org.hdm.core.serializer
 
-import com.typesafe.config.Config
 import io.netty.buffer.Unpooled
-import org.junit.Test
 import org.hdm.core.collections.CompactBuffer
 import org.hdm.core.executor.HDMContext
-import org.hdm.core.serializer.JavaSerializer
 import org.hdm.core.storage.Block
+import org.junit.Test
 
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer

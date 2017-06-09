@@ -1,13 +1,9 @@
 package org.hdm.core.planing
 
-import org.junit.Test
 import org.hdm.core.executor.{AppContext, HDMContext}
-import org.hdm.core.Arr
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
-import org.hdm.core.planing.{FunctionFusion, StaticPlaner}
-
-import scala.collection.mutable
+import org.junit.Test
 
 /**
  * Created by Tiantian on 2014/12/10.

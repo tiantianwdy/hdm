@@ -1,9 +1,9 @@
 package org.hdm.core.math
 
 import breeze.linalg.{DenseVector, norm => bNorm}
-import org.junit.Test
+import org.hdm.core.math.HDMatrix.hdmToMatrix
 import org.hdm.core.model.HDM
-import org.hdm.core.math.HDMatrix.{hdmToMatrix}
+import org.junit.Test
 
 import scala.util.Random
 

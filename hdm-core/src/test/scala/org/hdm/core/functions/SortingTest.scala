@@ -2,13 +2,11 @@ package org.hdm.core.functions
 
 import java.util
 
-import org.junit.Test
 import org.hdm.core.Buf
-import org.hdm.core.functions.SortFunc
 import org.hdm.core.utils.SortingUtils
+import org.junit.Test
 
-import scala.collection.mutable
-import scala.util.{Sorting, Random}
+import scala.util.{Random, Sorting}
 
 /**
  * Created by tiantian on 28/09/15.

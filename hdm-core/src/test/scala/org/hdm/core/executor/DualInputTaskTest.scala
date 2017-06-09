@@ -1,14 +1,12 @@
 package org.hdm.core.executor
 
 import org.hdm.core.Arr
-import org.hdm.core.executor._
-import org.hdm.core.functions.{ParMapAllFunc, CoGroupFunc, ParallelFunction}
-import org.hdm.core.model.{NToOne, ParHDM, DDM}
+import org.hdm.core.functions.{CoGroupFunc, ParMapAllFunc}
+import org.hdm.core.model.{DDM, NToOne, ParHDM}
 import org.hdm.core.storage.{Block, HDMBlockManager}
+import org.junit.Test
 
 import scala.collection.mutable.ArrayBuffer
-
-import org.junit.Test
 /**
  * Created by tiantian on 28/03/16.
  */

@@ -3,7 +3,6 @@ package org.hdm.core.server
 import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
-import org.hdm.core.server.HDMServer
 
 import scala.concurrent.ExecutionContext
 import scala.util.{Failure, Success}

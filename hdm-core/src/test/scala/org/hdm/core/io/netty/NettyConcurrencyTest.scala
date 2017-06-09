@@ -3,12 +3,11 @@ package org.hdm.core.io.netty
 import java.util.concurrent._
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 
-import org.junit.Test
 import org.hdm.core.Buf
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.io.Path
 import org.hdm.core.message.FetchSuccessResponse
 import org.hdm.core.storage.{Block, HDMBlockManager}
+import org.junit.Test
 
 /**
  * Created by tiantian on 4/12/15.

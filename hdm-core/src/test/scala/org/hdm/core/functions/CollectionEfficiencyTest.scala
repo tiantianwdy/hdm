@@ -1,13 +1,10 @@
 package org.hdm.core.functions
 
-import breeze.linalg.{Vector, DenseVector}
+import breeze.linalg.{DenseVector, Vector}
+import org.hdm.core.Buf
 import org.junit.Test
-import org.hdm.core.{Arr, Buf}
-import org.hdm.core.functions._
 
-import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-import scala.collection.parallel.ParSeq
 import scala.math._
 import scala.util.Random
 

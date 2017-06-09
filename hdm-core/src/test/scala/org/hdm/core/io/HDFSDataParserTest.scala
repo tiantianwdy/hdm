@@ -1,15 +1,12 @@
 package org.hdm.core.io
 
 import org.hdm.akka.monitor.SystemMonitorService
-import org.junit.{Before, After, Test}
 import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.io.hdfs.HDFSUtils
-import org.hdm.core.io.{HDFSParser, DataParser, Path}
 import org.hdm.core.model.HDM
 import org.hdm.core.planing.StaticPlaner
 import org.hdm.core.storage.Block
-
-import scala.collection.mutable.ListBuffer
+import org.junit.{After, Before, Test}
 
 /**
  * Created by tiantian on 25/12/14.

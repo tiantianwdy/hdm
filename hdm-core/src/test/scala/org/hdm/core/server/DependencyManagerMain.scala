@@ -3,7 +3,6 @@ package org.hdm.core.server
 import java.io.File
 
 import org.hdm.core.executor.{DynamicDependencyThreadFactory, HDMContext}
-import org.hdm.core.server.DependencyManager
 
 /**
  * Created by tiantian on 8/03/16.

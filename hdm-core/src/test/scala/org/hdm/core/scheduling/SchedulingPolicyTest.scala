@@ -1,18 +1,17 @@
 package org.hdm.core.scheduling
 
+import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.concurrent.{CopyOnWriteArrayList, LinkedBlockingQueue}
 
-import org.junit.Test
 import org.hdm.core.executor.HDMContext
 import org.hdm.core.io.Path
 import org.hdm.core.model.OneToOne
-import org.hdm.core.scheduling._
+import org.junit.Test
 
-import scala.util.Random
 import scala.collection.JavaConversions._
 import scala.collection.mutable
 import scala.concurrent.{ExecutionContext, Future}
-import java.util.concurrent.locks.ReentrantReadWriteLock
+import scala.util.Random
 
 /**
  * Created by tiantian on 1/09/15.

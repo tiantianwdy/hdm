@@ -1,8 +1,7 @@
 package org.hdm.core.planing
 
-import org.junit.Test
 import org.hdm.core.io.Path
-import org.hdm.core.planing.PlanningUtils
+import org.junit.Test
 
 /**
  * Created by tiantian on 19/04/15.

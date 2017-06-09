@@ -4,8 +4,8 @@ import akka.actor.Actor
 import akka.event.Logging
 import org.hdm.akka.actors.worker.WorkActor
 
-class MyActor extends Actor{
-  val log = Logging(context.system,this)
+class MyActor extends Actor {
+  val log = Logging(context.system, this)
   val data = "12,23,34"
   val lstData = List(
     "12,23,34",
@@ -13,35 +13,36 @@ class MyActor extends Actor{
     "1222,4,5,6,8886"
   )
 
-	override def preStart() {
-	  log.info("Actor:" + context.self)
-	}
-	
-	def receive = {
-	  case "askMsg" =>sender ! "return"
-    case f:(String => Array[String] ) =>
-      println(f);println(data.split(",").toList); println(f(data).toList)
-    case f2:(List[String] => List[Any] ) =>
+  override def preStart() {
+    log.info("Actor:" + context.self)
+  }
+
+  def receive = {
+    case "askMsg" => sender ! "return"
+    case f: (String => Array[String]) =>
+      println(f); println(data.split(",").toList); println(f(data).toList)
+    case f2: (List[String] => List[Any]) =>
       println(f2); println(f2(lstData).toString())
-    case ft: FuncTask[Any,Any] =>
-      println(ft.func.toString()); val result = ft.func(lstData.iterator)
-      println(result.asInstanceOf[Iterator[_]].mkString("[",",","]"))
-	  case str:String => {
-		  log.info("received test String:" + str)
-	  	}
-//	  case obj: AnyRef => log.info("received a Object:" + obj.getClass)
-	  case x =>unhandled(x);log.info("received a unhandled Object")
-	}
-	
-	override def postStop() {
-	  log.info("Actor:" + context.self + "has been stopped")
-	}
+    case ft: FuncTask[Any, Any] =>
+      println(ft.func.toString());
+      val result = ft.func(lstData.iterator)
+      println(result.asInstanceOf[Iterator[_]].mkString("[", ",", "]"))
+    case str: String => {
+      log.info("received test String:" + str)
+    }
+    //	  case obj: AnyRef => log.info("received a Object:" + obj.getClass)
+    case x => unhandled(x); log.info("received a unhandled Object")
+  }
+
+  override def postStop() {
+    log.info("Actor:" + context.self + "has been stopped")
+  }
 }
 
-class MyClusterActor extends WorkActor{
-  
+class MyClusterActor extends WorkActor {
+
   def process = {
-    case msg:Any => log.info(s"receive a $msg")
+    case msg: Any => log.info(s"receive a $msg")
   }
 }
 

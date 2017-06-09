@@ -1,7 +1,6 @@
 package org.hdm.core.functions
 
 import org.junit.Test
-import org.hdm.core.functions.CoGroupFunc
 
 import scala.collection.mutable
 

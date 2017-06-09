@@ -1,8 +1,8 @@
 package org.hdm.core.coordinator
 
 import org.hdm.akka.server.SmsSystem
-import org.junit.Test
 import org.hdm.core.message.AskCollaborateMsg
+import org.junit.Test
 
 /**
  * Created by tiantian on 10/05/16.

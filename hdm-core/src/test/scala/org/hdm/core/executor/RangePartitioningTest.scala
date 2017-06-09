@@ -1,8 +1,7 @@
 package org.hdm.core.executor
 
-import org.junit.Test
-import org.hdm.core.executor.RangePartitioner
 import org.hdm.core.functions.RangePartitioning
+import org.junit.Test
 
 import scala.util.Random
 

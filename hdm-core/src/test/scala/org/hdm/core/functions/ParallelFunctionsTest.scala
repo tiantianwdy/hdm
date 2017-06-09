@@ -1,8 +1,7 @@
 package org.hdm.core.functions
 
-import org.junit.Test
 import org.hdm.core.Buf
-import org.hdm.core.functions._
+import org.junit.Test
 
 /**
  * Created by Tiantian on 2014/12/16.

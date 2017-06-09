@@ -1,10 +1,8 @@
 package org.hdm.core.io
 
-import java.nio.file.{StandardOpenOption, OpenOption, Paths, Files}
+import java.nio.file.{Files, Paths, StandardOpenOption}
 
-import org.apache.hadoop.hdfs.web.JsonUtil
 import org.junit.Test
-import org.hdm.core.io.{JacksonUtils, JsonObjectSerializer}
 
 import scala.beans.BeanProperty
 

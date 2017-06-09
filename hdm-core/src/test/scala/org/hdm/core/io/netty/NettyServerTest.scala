@@ -1,11 +1,9 @@
 package org.hdm.core.io.netty
 
-import org.junit.{Before, Test}
-
 import org.hdm.core.executor.HDMContext
-import org.hdm.core.io.netty.NettyBlockServer
 import org.hdm.core.serializer.JavaSerializer
-import org.hdm.core.storage.{Block, HDMBlockManager}
+import org.hdm.core.storage.HDMBlockManager
+import org.junit.{Before, Test}
 
 /**
  * Created by tiantian on 28/05/15.

@@ -2,11 +2,9 @@ package org.hdm.core.io
 
 import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.functions.NullFunc
-import org.hdm.core.io.{BufferedBlockIterator, Path}
 import org.hdm.core.model.DDM
-
-import org.junit.{Before, Test}
-import org.hdm.core.storage.{Computed, Block}
+import org.hdm.core.storage.Computed
+import org.junit.Test
 
 import scala.collection.mutable
 

@@ -1,8 +1,7 @@
 package org.hdm.core.storage
 
 
-import org.junit.{After, Before,Test}
-import org.hdm.core.storage.{Block, HDMBlockManager}
+import org.junit.Test
 
 import scala.collection.mutable.ArrayBuffer
 

@@ -1,16 +1,14 @@
 package org.hdm.core.io
 
-import org.junit.Test
-import org.hdm.core.scheduling.SchedulingTestData
 import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.functions.NullFunc
-import org.hdm.core.io.{Path, DataParser}
 import org.hdm.core.model.DDM
 import org.hdm.core.planing.{DDMGroupUtils, PlanningUtils}
+import org.hdm.core.scheduling.SchedulingTestData
+import org.junit.Test
 
 import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
-import scala.util.Random
 
 /**
  * Created by tiantian on 4/01/15.

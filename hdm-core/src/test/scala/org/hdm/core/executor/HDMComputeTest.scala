@@ -1,8 +1,7 @@
 package org.hdm.core.executor
 
-import org.junit.Test
 import org.hdm.core.model.HDM
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.junit.Test
 
 /**
  * Created by Tiantian on 2014/12/16.
@@ -34,7 +33,7 @@ class HDMComputeTest {
 
     import scala.concurrent._
     import ExecutionContext.Implicits.global
-    import scala.util.{Success, Failure}
+    import scala.util.{Failure, Success}
 
     hDMContext.init()
     val hdm = HDM.horizontal(appContext, hDMContext, text, text2)

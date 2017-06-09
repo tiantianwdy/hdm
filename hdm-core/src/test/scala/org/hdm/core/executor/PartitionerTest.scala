@@ -1,7 +1,6 @@
 package org.hdm.core.executor
 
 import org.junit.Test
-import org.hdm.core.executor.HashPartitioner
 
 import scala.util.Random
 

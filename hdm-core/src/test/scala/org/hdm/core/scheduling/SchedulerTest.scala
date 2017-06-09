@@ -1,11 +1,6 @@
 package org.hdm.core.scheduling
 
-import java.util.concurrent.atomic.AtomicInteger
-
 import org.junit.Test
-import org.hdm.core.scheduling.Scheduler
-
-import scala.collection.mutable
 
 /**
  * Created by tiantian on 28/04/15.

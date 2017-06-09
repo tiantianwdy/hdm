@@ -1,10 +1,8 @@
 package org.hdm.core.executor
 
-import org.hdm.akka.messages.Query
 import org.hdm.akka.server.SmsSystem
-import org.junit.Test
-import org.hdm.core.executor.{HDMContext, AppContext}
 import org.hdm.core.model.DDM
+import org.junit.Test
 
 /**
  * Created by tiantian on 3/01/15.
