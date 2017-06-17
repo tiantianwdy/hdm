@@ -85,7 +85,7 @@ class HDFSDataParserTest {
   def testReadBatch(): Unit ={
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings")
     val locations = DataParser.explainBlocks(path, hDMContext).take(10).map(_.location)
-    new HDFSParser().readBatch(locations) foreach (b => println(b.size))
+    new HDFSParser().readBatch[String](locations) foreach (b => println(b.size))
   }
 
   @After

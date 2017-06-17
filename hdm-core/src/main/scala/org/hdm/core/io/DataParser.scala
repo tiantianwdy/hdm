@@ -9,6 +9,7 @@ import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.functions.NullFunc
 import org.hdm.core.io.hdfs.HDFSUtils
 import org.hdm.core.io.http.HTTPDataParser
+import org.hdm.core.io.reader.BlockReader
 import org.hdm.core.model.{DDM, HDMInfo}
 import org.hdm.core.storage.{Block, HDMBlockManager}
 import org.hdm.core.utils.Logging
@@ -27,15 +28,15 @@ trait DataParser {
   def protocol:String
 
   def readBlock[T: ClassTag](path:Path,
-                             classLoader: ClassLoader)(implicit serializer:BlockSerializer[T]):Block[T]
+                             classLoader: ClassLoader)(implicit serializer:BlockReader):Block[T]
 
   def readBlock[T: ClassTag, R:ClassTag](path:Path,
                                          func:Iterator[T] => Iterator[R],
-                                         classLoader: ClassLoader)(implicit serializer:BlockSerializer[T]):Buf[R]
+                                         classLoader: ClassLoader)(implicit serializer:BlockReader):Buf[R]
 
-  def readBatch[T: ClassTag](path:Seq[Path])(implicit serializer:BlockSerializer[T]):Seq[Block[T]] = ???
+  def readBatch[T: ClassTag](path:Seq[Path])(implicit serializer:BlockReader):Seq[Block[T]] = ???
 
-  def writeBlock[T: ClassTag](path:Path, bl:Block[T])(implicit serializer:BlockSerializer[T]):Unit
+  def writeBlock[T: ClassTag](path:Path, bl:Block[T])(implicit serializer:BlockReader):Unit
 
 }
 

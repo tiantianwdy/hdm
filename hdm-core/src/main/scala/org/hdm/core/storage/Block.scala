@@ -2,15 +2,16 @@ package org.hdm.core.storage
 
 import java.nio.ByteBuffer
 import java.util.UUID
-import _root_.io.netty.buffer.{Unpooled, ByteBuf}
-import org.hdm.core.{Blk, Arr}
+
+import _root_.io.netty.buffer.{ByteBuf, Unpooled}
+import org.hdm.core.{Arr, Blk}
 import org.hdm.core.executor.HDMContext
 import org.hdm.core.message.FetchSuccessResponse
-import org.hdm.core.serializer.SerializerInstance
+import org.hdm.core.serializer.{DefaultJSerializer, SerializerInstance}
 
 import scala.reflect._
 import akka.serialization.{JavaSerializer, Serializer}
-import org.hdm.core.io.{CompressionCodec, DefaultJSerializer}
+import org.hdm.core.io.CompressionCodec
 
 /**
  * Created by Tiantian on 2014/12/1.

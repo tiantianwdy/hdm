@@ -1,14 +1,14 @@
-package org.hdm.core.io
+package org.hdm.core.serializer
 
-import akka.serialization.{JavaSerializer, Serializer}
-import java.io.{ByteArrayInputStream, ObjectOutputStream, ByteArrayOutputStream}
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, ObjectOutputStream}
+
 import akka.util.ClassLoaderObjectInputStream
 
 /**
  * Created by Tiantian on 2014/12/9.
  * Default Java Serializer
  */
-class DefaultJSerializer(val classLoader:ClassLoader = ClassLoader.getSystemClassLoader) extends  Serializer {
+class DefaultJSerializer(val classLoader:ClassLoader = ClassLoader.getSystemClassLoader) extends  akka.serialization.Serializer {
 
   def includeManifest: Boolean = false
 

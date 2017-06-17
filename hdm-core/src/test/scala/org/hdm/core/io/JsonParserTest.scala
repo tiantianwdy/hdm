@@ -2,6 +2,7 @@ package org.hdm.core.io
 
 import java.nio.file.{Files, Paths, StandardOpenOption}
 
+import org.hdm.core.io.reader.JsonObjectReader
 import org.junit.Test
 
 import scala.beans.BeanProperty
@@ -11,7 +12,7 @@ import scala.beans.BeanProperty
  */
 class JsonParserTest {
 
-  val parser = new JsonObjectSerializer[Ranking]()
+  val parser = new JsonObjectReader()
 
 
   @Test
@@ -35,7 +36,7 @@ class JsonParserTest {
     val fileOutputStream = Files.newOutputStream(path, StandardOpenOption.TRUNCATE_EXISTING)
 //    val jsonWriter = JacksonUtils.getJSONWriter(fileOutputStream)
 //    data foreach {jsonWriter.writeObject(_)}
-    parser.toOutputStream(data, fileOutputStream)
+    parser.toOutputStream[Ranking](data, fileOutputStream)
   }
 
 

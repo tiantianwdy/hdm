@@ -4,7 +4,9 @@ import java.io.{BufferedReader, InputStreamReader}
 
 import org.apache.commons.io.IOUtils
 import org.hdm.core.Buf
-import org.hdm.core.io.{BlockSerializer, DataParser, Path}
+import org.hdm.core.executor.HDMContext
+import org.hdm.core.io.reader.{BlockReader, ByteBlockReader, ObjectBlockReader}
+import org.hdm.core.io.{DataParser, Path}
 import org.hdm.core.storage.Block
 import org.hdm.core.utils.Logging
 
@@ -19,7 +21,8 @@ class HTTPDataParser extends DataParser with Logging {
 
   override def protocol: String = "http://"
 
-  override def readBlock[T: ClassTag](path: Path, classLoader: ClassLoader)(implicit serializer: BlockSerializer[T]  = null): Block[T] = {
+  override def readBlock[T: ClassTag](path: Path, classLoader: ClassLoader)
+                                     (implicit serializer: BlockReader  = ObjectBlockReader(HDMContext.defaultHDMContext.defaultSerializer, classLoader)): Block[T] = {
     require(path.protocol == "http://" || path.protocol == "https://")
 
     val res = httpClient.sendGet(path.toString,
@@ -30,19 +33,20 @@ class HTTPDataParser extends DataParser with Logging {
     Block(res)
   }
 
-  override def readBlock[T: ClassTag, R: ClassTag](path: Path, func: (Iterator[T]) => Iterator[R], classLoader: ClassLoader)(implicit serializer: BlockSerializer[T] = null): Buf[R] = {
+  override def readBlock[T: ClassTag, R: ClassTag](path: Path, func: (Iterator[T]) => Iterator[R], classLoader: ClassLoader)
+                                                  (implicit serializer: BlockReader = ObjectBlockReader(HDMContext.defaultHDMContext.defaultSerializer, classLoader)): Buf[R] = {
 
     require(path.protocol == "http://" || path.protocol == "https://")
 
     val res = httpClient.sendGet(path.toString,
       entity => {
         val is = entity.getContent
-        serializer.fromInputStream(is)
+        serializer.fromInputStream[T](is)
       })
     func(res.toIterator).toBuffer
   }
 
-  override def writeBlock[T: ClassTag](path: Path, bl: Block[T])(implicit serializer: BlockSerializer[T]): Unit = {
+  override def writeBlock[T: ClassTag](path: Path, bl: Block[T])(implicit serializer: BlockReader): Unit = {
     require(path.protocol == "http://" || path.protocol == "https://")
     val contents = bl.data.map(serializer.toBinary(_)).flatten.toArray
     val res  = httpClient.postBytes(path.toString, contents)
