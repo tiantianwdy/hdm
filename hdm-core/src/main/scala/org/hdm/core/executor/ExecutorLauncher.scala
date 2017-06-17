@@ -2,7 +2,7 @@ package org.hdm.core.executor
 
 import java.io.{InputStreamReader, BufferedReader, File}
 
-import org.hdm.core.utils.DefaultProcessLogger
+import org.hdm.core.utils.{Logging, DefaultProcessLogger}
 import java.lang.{ProcessBuilder => JProcess}
 
 import scala.collection.JavaConversions._
@@ -10,7 +10,7 @@ import scala.collection.JavaConversions._
 /**
   * Created by tiantian on 10/05/17.
   */
-class ExecutorLauncher {
+class ExecutorLauncher extends Logging {
 
   import scala.sys.process._
 
@@ -78,8 +78,10 @@ class ExecutorLauncher {
 
 
   def launchExecutor(hdmHome:String, master:String, host:String, port:Int, numOfCores:Int,  mem:String, blockServerPort:Int) ={
+    val hdmVersion = HDMContext.HDM_VERSION
     val executorPath  = s"akka.tcp://slaveSys@$host:$port/user/smsSlave/ClusterExecutor"
-    val cmd = s"""java -Xms$mem  -Xmx$mem -Dfile.encoding=UTF-8 -jar $hdmHome/hdm-core-0.0.1.jar -P $master -m false -p $port  -s $numOfCores -b $blockServerPort"""
+    val cmd = s"""java -Xms$mem  -Xmx$mem -Dfile.encoding=UTF-8 -jar $hdmHome/hdm-core-$hdmVersion.jar -P $master -m false -p $port  -s $numOfCores -b $blockServerPort"""
+    log.info(s"Launching executor with cmd: [$cmd].")
 //    val cmd = s"$hdmHome/startup.sh slave $port $master $numOfCores $mem $blockServerPort"
     val process = launchProcess(cmd, "hdm-executor.log")
     process

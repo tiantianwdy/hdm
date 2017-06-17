@@ -407,6 +407,10 @@ object HDMContext extends Logging {
 
   lazy val defaultHDMContext = apply()
 
+  val HDM_VERSION = Try {
+    defaultConf.getString("hdm.version")
+  } getOrElse ("0.1-SNAPSHOT")
+
   val CLUSTER_RESOURCE_MANAGER_NAME = "ClusterResourceLeader"
 
   val CLUSTER_RESOURCE_WORKER_NAME = "ClusterResourceWorker"
