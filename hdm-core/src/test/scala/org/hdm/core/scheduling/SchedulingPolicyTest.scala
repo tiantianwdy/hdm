@@ -212,7 +212,7 @@ class SchedulingPolicyTest extends SchedulingTestData {
 
   @Test
   def testSchedulingComparison: Unit ={
-    val numTask = 6000
+    val numTask = 1000
     val inputEachTask = 1
     val hostNum = 20
     val workerPerHost = 8

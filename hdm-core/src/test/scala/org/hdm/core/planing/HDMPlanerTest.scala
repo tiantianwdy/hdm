@@ -1,18 +1,21 @@
 package org.hdm.core.planing
 
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.executor.{ClusterTestSuite, AppContext, HDMContext}
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
-import org.junit.Test
+import org.junit.{After, Before, Ignore, Test}
 
 /**
  * Created by Tiantian on 2014/12/10.
  */
-class HDMPlanerTest {
+class HDMPlanerTest extends ClusterTestSuite {
 
-  val hDMContext = HDMContext.defaultHDMContext
 
-  val appContext = new AppContext()
+  @Before
+  def beforeTest(): Unit ={
+    hDMContext.init()
+  }
+
 
   @Test
   def testWordCountPlan(){
@@ -33,7 +36,6 @@ class HDMPlanerTest {
       """.split("\\s+")
     println(text.length)
 //    text.foreach(println(_))
-    hDMContext.init()
     val hdm = HDM.horizontal(appContext, hDMContext, text, text2)
     val wordCount = hdm.map(d=> (d,1))
       .groupBy(_._1).map(t => (t._1, t._2.map(_._2))).reduce((t1,t2) => (t1._1, t1._2))
@@ -42,9 +44,9 @@ class HDMPlanerTest {
     hdms.foreach(println(_))
   }
 
+  @Ignore("Require local HDFS.")
   @Test
   def testClusterPlanner(): Unit ={
-    hDMContext.init()
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/1node/rankings")
     val hdm = HDM(path)
     val wordCount = hdm.map{ w =>
@@ -66,9 +68,9 @@ class HDMPlanerTest {
 
   }
 
+  @Ignore("Require local HDFS.")
   @Test
   def testSortPlanner(): Unit ={
-    hDMContext.init()
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/rankings")
     val hdm = HDM(path)
     val topk = hdm.map{ w =>
@@ -80,9 +82,9 @@ class HDMPlanerTest {
 
   }
 
+  @Ignore("Require local HDFS.")
   @Test
   def testCachePlaner(): Unit ={
-    hDMContext.init()
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
     val hdm = HDM(path)
     val cache = hdm.map{ w =>
@@ -95,9 +97,9 @@ class HDMPlanerTest {
 
   }
 
+  @Ignore("Require local HDFS.")
   @Test
   def testCogroupPlanning(): Unit ={
-    hDMContext.init()
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
     val hdm = HDM(path)
     val data1 = hdm.map{ w =>
@@ -116,4 +118,8 @@ class HDMPlanerTest {
 //    HDMContext.explain(res, 1).foreach(println(_))
   }
 
+  @After
+  def afterTest(): Unit ={
+    hDMContext.shutdown(appContext)
+  }
 }

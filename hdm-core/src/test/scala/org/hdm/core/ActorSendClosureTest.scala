@@ -14,7 +14,7 @@ import akka.pattern.ask
 import akka.pattern.pipe
 import akka.util.Timeout
 
-import org.junit.Test
+import org.junit.{After, Before, Test}
 
 /**
  * Created by Tiantian on 2014/5/27.
@@ -23,6 +23,12 @@ class ActorSendClosureTest {
 
 
 
+  var actorSystem: ActorSystem = null;
+
+  @Before
+  def beforeTest(): Unit ={
+    actorSystem = ActorSystem("scalaActorTest")
+  }
 
   @Test
   def testMyActor() {
@@ -34,8 +40,7 @@ class ActorSendClosureTest {
     implicit val timeout = Timeout(5 seconds)
 
     val foo = Promise.successful("foo")
-    val system = ActorSystem("scalaActorTest")
-    val myActor = system.actorOf(Props[MyActor], name = "myActor")
+    val myActor = actorSystem.actorOf(Props[MyActor], name = "myActor")
     // functional packing
     ClosureCleaner.apply(f2)
     val func = f2.asInstanceOf[Iterator[_] => _]
@@ -48,7 +53,12 @@ class ActorSendClosureTest {
     f1 pipeTo myActor
 
     Thread.sleep(2000)
-    //  system.stop(myActor)
+
+  }
+
+  @After
+  def afterTest(): Unit ={
+    actorSystem.shutdown()
   }
 
 }

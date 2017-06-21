@@ -9,8 +9,6 @@ class MinminSchedulingOptTest {
 
   val minminScheduler = new MinminSchedulingOpt
 
-
-
   val taskSize = 9
 
   val workerSize = 4

@@ -1,32 +1,36 @@
 package org.hdm.core.model
 
 
-import org.hdm.core.executor.{AppContext, HDMContext}
-import org.junit.Test
+import org.hdm.core.executor.{ClusterTestSuite, AppContext, HDMContext}
+import org.junit.{Before, Test}
 
 import scala.util.Random
 
 /**
  * Created by tiantian on 30/11/16.
  */
-class HDMTest {
+class HDMTest extends ClusterTestSuite {
 
 
   val data = Seq.fill[Double](10000){
     Random.nextDouble()
   }
 
-  val hdmContext = HDMContext.defaultHDMContext
-  AppContext.defaultAppContext.masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+
   implicit val parallelism = 1
+
+  @Before
+  def beforeTest(): Unit ={
+    appContext.setMasterPath("akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
+    hDMContext.clusterExecution.set(false)
+    hDMContext.init()
+    Thread.sleep(1000)
+  }
 
   @Test
   def testParallelize(): Unit ={
     import HDMContext._
-    hdmContext.init()
-    Thread.sleep(1000)
-
-    val input = HDM.parallelize(elems = data, numOfPartitions = 20)
+    val input = HDM.parallelize(elems = data, hdmContext = hDMContext,  appContext = appContext, numOfPartitions = 20)
     println( input.children.size)
     val res = input.map(d => (d, 1)).mapValues(_ + 1)
 //    hdmContext.explain(res, parallelism).logicalPlanOpt
@@ -38,4 +42,9 @@ class HDMTest {
     Thread.sleep(5000)
   }
 
+
+  @Test
+  def afterTest(): Unit ={
+    hDMContext.shutdown(appContext)
+  }
 }

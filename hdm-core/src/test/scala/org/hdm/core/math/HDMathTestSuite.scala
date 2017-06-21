@@ -1,6 +1,6 @@
 package org.hdm.core.math
 
-import org.junit.Before
+import org.junit.{After, Before}
 import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.model.HDM
 
@@ -16,6 +16,7 @@ class HDMathTestSuite {
   }
 
   val hdmContext = HDMContext.defaultHDMContext
+  hdmContext.clusterExecution.set(false)
 //  val appContext = AppContext(masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
   AppContext.defaultAppContext.masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
   implicit val parallelism = 1
@@ -32,4 +33,9 @@ class HDMathTestSuite {
     }
   }
 
+
+  @After
+  def afterTest(): Unit ={
+    hdmContext.shutdown(AppContext.defaultAppContext)
+  }
 }

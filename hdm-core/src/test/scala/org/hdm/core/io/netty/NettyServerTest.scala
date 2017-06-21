@@ -3,7 +3,7 @@ package org.hdm.core.io.netty
 import org.hdm.core.executor.HDMContext
 import org.hdm.core.serializer.JavaSerializer
 import org.hdm.core.storage.HDMBlockManager
-import org.junit.{Before, Test}
+import org.junit.{After, Before, Test}
 
 /**
  * Created by tiantian on 28/05/15.
@@ -31,7 +31,7 @@ class NettyServerTest {
 
   }
 
-  @Test
+  @After
   def testShutDown(): Unit ={
     blockServer.shutdown()
   }

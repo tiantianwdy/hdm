@@ -72,9 +72,13 @@ object Block {
     else sizeOf(elems.head) * elems.size
   }
 
-  def encodeToBuf(blk:Block[_])(implicit serializer:SerializerInstance = HDMContext.DEFAULT_SERIALIZER):ByteBuf = {
+  def encodeToBuf(blk:Block[_], compressor:CompressionCodec = null)(implicit serializer:SerializerInstance = HDMContext.DEFAULT_SERIALIZER):ByteBuf = {
     val idBuf = serializer.serialize(blk.id).array()
-    val dataBuf = serializer.serialize(blk).array()
+    val dataBuf = if(compressor == null) {
+      serializer.serialize(blk).array()
+    } else {
+      compressor.compress(serializer.serialize(blk).array())
+    }
     println(s"id length: ${idBuf.length}; default id length: ${HDMContext.DEFAULT_BLOCK_ID_LENGTH}")
     val length = idBuf.length + dataBuf.length + 8
     val byteBuf = Unpooled.buffer(length)

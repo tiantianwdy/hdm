@@ -1,4 +1,4 @@
-package org.hdm.core.io
+package org.hdm.core.io.hdfs
 
 /**
  * Created by Tiantian on 2014/12/22.
@@ -10,8 +10,10 @@ import java.nio.ByteBuffer
 
 import org.apache.hadoop.conf._
 import org.apache.hadoop.fs.FileSystem
-import org.junit.Test
+import org.junit.{Ignore, Test}
 
+
+@Ignore("Require local HDFS installed.")
 class HadoopIOTest {
   type HPath = org.apache.hadoop.fs.Path
 

@@ -3,7 +3,7 @@ package org.hdm.core.io.http
 import java.io.StringWriter
 
 import org.apache.commons.io.IOUtils
-import org.junit.Test
+import org.junit.{Ignore, Test}
 
 /**
   * Created by wu056 on 13/06/17.
@@ -24,6 +24,7 @@ class HTTPConnectorTest {
   }
 
 
+  @Ignore("need a testing http server which support http post.")
   @Test
   def testSendPost(): Unit ={
     connector.sendPost("http://google.com.au/search", Seq(("q", "data61"), ("op", "data61") ), (entity) => {

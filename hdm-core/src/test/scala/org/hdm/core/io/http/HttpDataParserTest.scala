@@ -15,7 +15,7 @@ class HttpDataParserTest {
 
   @Test
   def testReadStringBlock(): Unit ={
-    val blk = parser.readBlock(Path("http://google.com.au"), null)
+    val blk = parser.readBlock[String](Path("http://google.com.au"), null)
     blk.data.foreach(println(_))
   }
 

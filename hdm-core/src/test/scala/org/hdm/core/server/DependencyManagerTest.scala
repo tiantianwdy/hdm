@@ -5,11 +5,12 @@ import java.io.File
 import org.hdm.akka.server.SmsSystem
 import org.hdm.core.executor.{AppContext, DynamicDependencyThreadFactory, HDMContext}
 import org.hdm.core.message.SerializedJobMsg
-import org.junit.Test
+import org.junit.{Ignore, Test}
 
 /**
  * Created by tiantian on 8/03/16.
  */
+@Ignore("Require local files.")
 class DependencyManagerTest {
 
   val hDMContext = HDMContext.defaultHDMContext

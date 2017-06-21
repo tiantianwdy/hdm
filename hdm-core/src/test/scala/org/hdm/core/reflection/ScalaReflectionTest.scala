@@ -1,10 +1,11 @@
 package org.hdm.core.reflection
 
-import org.junit.Test
+import org.junit.{Ignore, Test}
 
 /**
  * Created by Tiantian on 2014/11/14.
  */
+@Ignore("Not used yet.")
 class ScalaReflectionTest {
 
   val elems = Seq("1", "DY", "29", "late")

@@ -25,15 +25,15 @@ class JavaSerilizerTest {
 
   val data = ArrayBuffer.empty[String] ++= text
 
-  val data2 = ArrayBuffer.fill[Product2[String, Seq[Double]]](1000000){
+  val data2 = ArrayBuffer.fill[Product2[String, Seq[Double]]](100000){
     ("test", new ArrayBuffer[Double](2)) //initail size = 2
   }
 
-  val data3 = ArrayBuffer.fill[(String, Seq[Double])](1000000){
+  val data3 = ArrayBuffer.fill[(String, Seq[Double])](100000){
     ("test", mutable.Buffer(1D))
   }
 
-  val data4 = ArrayBuffer.fill[Product2[String, Double]](1000000){
+  val data4 = ArrayBuffer.fill[Product2[String, Double]](100000){
     ("test",1D)
   }
 
@@ -74,7 +74,7 @@ class JavaSerilizerTest {
     val blk = Block(HDMContext.newLocalId(), data2)
     //test direct serialization
     val t1 = System.currentTimeMillis()
-    val buf = Block.encodeToBuf(blk)
+    val buf = Block.encodeToBuf(blk, HDMContext.DEFAULT_COMPRESSOR)
     val t2 = System.currentTimeMillis()
     println(s"encode data ${buf.readableBytes()} bytes, finished in ${t2 - t1} ms.")
     val len = buf.readInt() - 4

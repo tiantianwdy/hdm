@@ -3,7 +3,7 @@ package org.hdm.core.server
 import org.hdm.akka.configuration.ActorConfig
 import org.hdm.akka.messages.{Reply, Query}
 import org.hdm.akka.server.SmsSystem
-import org.junit.Test
+import org.junit.{After, Before, Test}
 import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.io.Path
 import org.hdm.core.message._
@@ -18,6 +18,13 @@ class ServerQueryTest {
   val appContext = new AppContext()
 
   val masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster/ClusterExecutor"
+
+  @Before
+  def beforeTest(): Unit ={
+    hDMContext.init()
+    appContext.setMasterPath(masterPath)
+    Thread.sleep(1000)
+  }
 
   @Test
   def testAppListQuery (): Unit ={
@@ -119,6 +126,11 @@ class ServerQueryTest {
     val msg2 = new JobStagesQuery(appId, "0.0.1")
     val resp2 = SmsSystem.askSync(masterPath, msg2).get.asInstanceOf[JobStageResp]
     println(resp2.results)
+  }
+
+  @After
+  def afterTest(): Unit ={
+    hDMContext.shutdown(appContext)
   }
 
 }

@@ -27,11 +27,11 @@ class KryoSerilizerTest {
 
   val data = ArrayBuffer.empty[String] ++= text
 
-  val data2 = ArrayBuffer.fill[(String, Seq[Double])](1000000){
+  val data2 = ArrayBuffer.fill[(String, Seq[Double])](100000){
     ("test", Seq(1D))
   }
 
-  val data3 = ArrayBuffer.fill[(String, mutable.Buffer[Double])](1000000){
+  val data3 = ArrayBuffer.fill[(String, mutable.Buffer[Double])](100000){
     ("test", mutable.Buffer(1D))
   }
 
@@ -44,7 +44,7 @@ class KryoSerilizerTest {
     val buf = serilizer.serialize(blk)
     val nBlk = serilizer.deserialize[Block[_]](buf)
 
-    nBlk.data.foreach(println(_))
+    nBlk.data.take(10) foreach (println(_))
 
 
 
@@ -69,15 +69,18 @@ class KryoSerilizerTest {
     val blk = Block(HDMContext.newLocalId(), data2)
     //test direct serialization
     val t1 = System.currentTimeMillis()
-    val buf = Block.encodeToBuf(blk)
+    val buf = Block.encodeToBuf(blk, HDMContext.DEFAULT_COMPRESSOR)
     val t2 = System.currentTimeMillis()
     println(s"encode finished in ${t2 - t1} ms.")
     val len = buf.readInt() - 4
-    val nBuf = Unpooled.buffer(len)
-    buf.readBytes(nBuf, 4, len)
+    val buffer = buf.nioBuffer(4, len)
+    val nBuf = Unpooled.wrappedBuffer(buffer)
+//    val nBuf = Unpooled.buffer(len)
+//    buf.readBytes(nBuf, 4, len)
     val nBlk = Block.decodeResponse(nBuf, HDMContext.DEFAULT_COMPRESSOR)
     val t3 = System.currentTimeMillis()
     println(s"encoded size : ${buf.array().length} bytes.")
+    println(s"decode size : ${nBlk.length} bytes,finished in ${t3 - t2} ms.")
     println(s"decode finished in ${t3 - t2} ms.")
   }
 

@@ -12,11 +12,11 @@ import org.junit.Test
 /**
  * Created by tiantian on 4/12/15.
  */
-class NettyConcurrencyTest {
+class NettyConcurrencyTest extends NettyTestSuite {
 
   val numOfClients = 160
   val numOfParititonsPerRequest = 8
-  val blockServerAddr = "netty://tiantian-HP-EliteBook-Folio-9470m:9091"
+  val blockServerAddr = "netty://127.0.1.1:9091"
   val executor = Executors.newFixedThreadPool(32)
   val blks = for (i <- 0 until numOfClients) yield {
     for (j <- 0 until numOfParititonsPerRequest) yield {
