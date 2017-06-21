@@ -5,14 +5,17 @@ import org.hdm.core.executor.HDMContext._
 import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
-import org.junit.{After, Test}
+import org.junit.{Ignore, After, Test}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
 
 /**
+ *
+ *
  * Created by tiantian on 17/02/15.
  */
+@Ignore("Require HDFS running cannot be tested locally.")
 class TechfestDemo {
 
   val text =
@@ -54,7 +57,7 @@ class TechfestDemo {
     val hdm = HDM(path)
 
     val wordCount = hdm.map{ w =>
-      val as = w.split(",");
+      val as = w.split(",")
       (as(0).substring(0,3), as(1).toFloat)
     }
 //      .groupBy(_._1)

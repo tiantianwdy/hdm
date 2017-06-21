@@ -2,7 +2,7 @@ package org.hdm.core.coordinator
 
 import org.hdm.core.executor.{AppContext, ClusterTestSuite, HDMContext}
 import org.hdm.core.model.HDM
-import org.junit.Test
+import org.junit.{After, Before, Test}
 
 /**
  * Created by tiantian on 9/03/15.
@@ -25,11 +25,8 @@ class BlockCoordinatorTest extends ClusterTestSuite {
         this is line 7
     """.split("\\s+")
 
-  val hDMContext = HDMContext.defaultHDMContext
 
-  val appContext = new AppContext()
-
-
+  @Before
   def beforeTest(): Unit = {
     hDMContext.init(slots = 0) // start master
   }
@@ -45,7 +42,7 @@ class BlockCoordinatorTest extends ClusterTestSuite {
   }
 
 
-
+  @After
   def afterTest(): Unit = {
     hDMContext.shutdown()
   }

@@ -3,10 +3,11 @@ package org.hdm.core.executor
 
 import java.lang.{ProcessBuilder => JProcess}
 
-import org.junit.Test
+import org.junit.{Ignore, Test}
 /**
   * Created by tiantian on 10/05/17.
   */
+@Ignore("require a ready HDM_HOME, don't need to be tested in building.")
 class ExecutorLauncherTest {
 
   val launcher = new ExecutorLauncher

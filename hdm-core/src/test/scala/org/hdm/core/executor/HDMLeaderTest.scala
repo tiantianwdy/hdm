@@ -5,7 +5,7 @@ import org.hdm.akka.server.SmsSystem
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
 import org.hdm.core.planing.FunctionFusion
-import org.junit.{After, Test}
+import org.junit.{After, Ignore, Test}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
@@ -15,6 +15,7 @@ import scala.util.{Failure, Success}
  * Created by Tiantian on 2014/12/19.
  */
 class HDMLeaderTest extends ClusterTestSuite {
+
 
   val text =
     """
@@ -32,9 +33,6 @@ class HDMLeaderTest extends ClusterTestSuite {
         this is line 7
     """.split("\\s+")
 
-  val hDMContext = HDMContext.defaultHDMContext
-
-  val appContext = new AppContext()
 
   def testForDebugging {
     hDMContext.startAsMaster(port = 8999, conf = testMasterConf)
@@ -67,13 +65,16 @@ class HDMLeaderTest extends ClusterTestSuite {
 
   @Test
   def testLocalExecution() {
+    hDMContext.clusterExecution.set(false)
     hDMContext.init(leader = "localhost", slots = 4)
+    appContext.setMasterPath("akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1000)
     val hdm = HDM.horizontal(appContext, hDMContext, text, text2)
     val wordCount = hdm.map(w => (w, 1))
       //.groupReduce(_._1, (t1, t2) => (t1._1, t1._2 + t2._2))
 
-    wordCount.compute(1) onComplete {
+    val future = wordCount.compute(1)
+    future onComplete {
       case Success(hdm) =>
         println("Job completed and received response:" + hdm)
 //        hdm.asInstanceOf[HDM[_, _]].sample(10).foreach(println(_))
@@ -81,10 +82,10 @@ class HDMLeaderTest extends ClusterTestSuite {
         println("Job failed because of: " + t)
         t.printStackTrace()
     }
-
-    Thread.sleep(5000000)
+    Await.ready(future, maxWaitResponseTime)
   }
 
+  @Ignore("require hdfs installed locally.")
   @Test
   def testHDFSExecution(): Unit = {
     hDMContext.init(leader = "localhost", slots = 4)
@@ -101,7 +102,8 @@ class HDMLeaderTest extends ClusterTestSuite {
     //.groupReduce(d => d._1, (t1,t2) => (t1._1, t1._2 + t2._2))
     val wordCountOpt = new FunctionFusion().optimize(wordCount)
 
-    wordCountOpt.compute(4) onComplete {
+    val res = wordCountOpt.compute(4)
+    res onComplete {
       case Success(hdm) =>
         println("Job completed and received response:" + hdm)
 //        hdm.asInstanceOf[HDM[_, _]].sample(10).foreach(println(_))
@@ -110,13 +112,13 @@ class HDMLeaderTest extends ClusterTestSuite {
         t.printStackTrace()
     }
 
-    Thread.sleep(50000000)
+    Await.ready(res, maxWaitResponseTime)
   }
 
 
   @After
   def after() {
-    hDMContext.shutdown()
+    hDMContext.shutdown(appContext)
   }
 }
 

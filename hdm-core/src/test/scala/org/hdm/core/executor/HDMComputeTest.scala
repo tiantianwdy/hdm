@@ -1,12 +1,12 @@
 package org.hdm.core.executor
 
 import org.hdm.core.model.HDM
-import org.junit.Test
+import org.junit.{After, Before, Test}
 
 /**
  * Created by Tiantian on 2014/12/16.
  */
-class HDMComputeTest {
+class HDMComputeTest extends ClusterTestSuite {
 
   val text =
     """
@@ -24,9 +24,13 @@ class HDMComputeTest {
         this is line 7
     """.split("\\s+")
 
-  val hDMContext = HDMContext.defaultHDMContext
-
-  val appContext = new AppContext()
+  @Before
+  def beforeTest(): Unit ={
+    hDMContext.clusterExecution.set(false)
+    hDMContext.init()
+    appContext.setMasterPath("akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
+    Thread.sleep(1000)
+  }
 
   @Test
   def HDMComputeTest(){
@@ -35,19 +39,21 @@ class HDMComputeTest {
     import ExecutionContext.Implicits.global
     import scala.util.{Failure, Success}
 
-    hDMContext.init()
     val hdm = HDM.horizontal(appContext, hDMContext, text, text2)
     val wordCount = hdm.map(w => (w,1)).groupReduce(_._1, (t1,t2) => (t1._1, t1._2 + t2._2))
 
-    wordCount.compute(4) onComplete  {
+    val future = wordCount.compute(1)
+    future onComplete  {
       case Success(hdm) =>
 //        hdm.asInstanceOf[HDM[_,_]].sample(10).foreach(println(_))
       case Failure(t) => t.printStackTrace()
     }
-//    val hdms = HDMContext.explain(wordCount)
-//    hdms.foreach(println(_))
+    Await.ready(future, maxWaitResponseTime)
+  }
 
-//    Thread.sleep(1000)
+  @After
+  def afterTest(): Unit ={
+    hDMContext.shutdown(appContext)
   }
 
 }

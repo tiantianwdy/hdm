@@ -1,7 +1,7 @@
 package org.hdm.core.executor
 
 import java.util.UUID
-import java.util.concurrent.atomic.{AtomicInteger, AtomicReference}
+import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.hdm.akka.server.SmsSystem
@@ -143,6 +143,8 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
 
   val slot = new AtomicInteger(1)
 
+  val clusterExecution = new AtomicBoolean(true)
+
   val isLinux = System.getProperty("os.name").toLowerCase().contains("linux")
 
   val planer = new StaticPlaner(this)
@@ -184,6 +186,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
 
 
   def startAsMaster(host:String = "", port: Int = 8999, conf: Config = defaultConf, slots: Int = 0, mode: String = "single-cluster") {
+    this.slot.set(slots)
     SmsSystem.startAsMaster(host, port, isLinux, conf)
     //    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.hdm.core.coordinator.ClusterExecutorLeader", slots)
     //    SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost","org.hdm.core.coordinator.HDMClusterLeaderActor", slots)
@@ -279,8 +282,8 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
       case Some(promise) => promise.asInstanceOf[Promise[HDM[_]]]
       case none => null
     }
-    //    val masterURL = master + "/" + HDMContext.CLUSTER_EXECUTOR_NAME
-    val masterURL = master + "/" + HDMContext.CLUSTER_RESOURCE_MANAGER_NAME
+    val masterURL = if (clusterExecution.get()) master + "/" + HDMContext.CLUSTER_RESOURCE_MANAGER_NAME
+                    else  master + "/" + HDMContext.CLUSTER_EXECUTOR_NAME
     val start = System.currentTimeMillis()
     val jobBytes = HDMContext.JOB_SERIALIZER.serialize(hdm).array
     val end = System.currentTimeMillis()
@@ -307,7 +310,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
       hdm, parallelism)
   }
 
-  def clean(appId: String): Unit = {
+  def clean(appId: String) = {
     //todo clean all the resources used by this application
     val masterURL = leaderPath.get() + "/" + HDMContext.CLUSTER_RESOURCE_MANAGER_NAME
     SmsSystem.askAsync(masterURL, ApplicationShutdown(appId))

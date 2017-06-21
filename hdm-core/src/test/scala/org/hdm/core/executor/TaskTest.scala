@@ -5,18 +5,15 @@ import org.hdm.core.functions.ParallelFunction
 import org.hdm.core.io.Path
 import org.hdm.core.model._
 import org.hdm.core.storage.HDMBlockManager
-import org.junit.Test
+import org.junit.{Ignore, Test}
 
 import scala.util.{Failure, Success}
 
 /**
  * Created by tiantian on 27/12/14.
  */
+@Ignore("Need hdfs locally installed.")
 class TaskTest extends ClusterTestSuite {
-
-  val hDMContext = HDMContext.defaultHDMContext
-
-  val appContext = new AppContext()
 
   @Test
   def testHDFSLoadTask(): Unit = {

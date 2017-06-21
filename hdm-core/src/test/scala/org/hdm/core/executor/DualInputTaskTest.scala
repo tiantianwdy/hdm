@@ -4,13 +4,13 @@ import org.hdm.core.Arr
 import org.hdm.core.functions.{CoGroupFunc, ParMapAllFunc}
 import org.hdm.core.model.{DDM, NToOne, ParHDM}
 import org.hdm.core.storage.{Block, HDMBlockManager}
-import org.junit.Test
+import org.junit.{After, Before, Test}
 
 import scala.collection.mutable.ArrayBuffer
 /**
  * Created by tiantian on 28/03/16.
  */
-class DualInputTaskTest {
+class DualInputTaskTest extends ClusterTestSuite {
 
   val data1 =
     """
@@ -33,9 +33,6 @@ class DualInputTaskTest {
 
   val blkSize = 10
 
-  val hDMContext = HDMContext.defaultHDMContext
-
-  val appContext = new AppContext()
 
   def getNettyBlockLocations(prefix:String, blkSize:Int): Seq[String] ={
     val url = "netty://tiantian-HP-EliteBook-Folio-9470m:9091"
@@ -44,10 +41,14 @@ class DualInputTaskTest {
     }
   }
 
+  @Before
+  def beforeTest(): Unit ={
+    hDMContext.init()
+  }
+
   @Test
   def localDualInputTaskTest(): Unit ={
     implicit val executorContext = ClusterExecutorContext()
-    hDMContext.init()
 
     val data1Prefix = "Blk1"
     val data2Prefix = "Blk2"
@@ -96,5 +97,10 @@ class DualInputTaskTest {
     }
     println(s"Finished in ${end - start} ms.")
 
+  }
+
+  @After
+  def after(): Unit ={
+    hDMContext.shutdown(appContext)
   }
 }

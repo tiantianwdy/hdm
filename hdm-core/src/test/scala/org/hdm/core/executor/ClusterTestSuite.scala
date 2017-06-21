@@ -1,6 +1,11 @@
 package org.hdm.core.executor
 
+import java.util.concurrent.TimeUnit
+
 import com.typesafe.config.ConfigFactory
+import org.junit.{After, Before}
+
+import scala.concurrent.duration.Duration
 
 /**
  * Created by Tiantian on 2014/12/19.
@@ -46,5 +51,12 @@ trait ClusterTestSuite {
 		  }
 		}
                                                 """)
+
+  implicit val maxWaitResponseTime = Duration(20, TimeUnit.SECONDS)
+
+  val hDMContext = HDMContext.defaultHDMContext
+
+  val appContext = new AppContext()
+
 
 }

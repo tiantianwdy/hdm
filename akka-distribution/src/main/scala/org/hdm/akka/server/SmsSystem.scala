@@ -204,7 +204,7 @@ object SmsSystem {
    * @return Future[Any]
    */
   def askAsync(actorPath: String, msg: Any) = {
-    if (system eq null) {
+    if ((system eq null) || system.isTerminated) {
       val port:Int = (15001 + Random.nextFloat()*5000).toInt
       val conf = ConfigFactory.parseString(s"""akka.remote.netty.tcp.port = "$port" """)
         .withFallback(ConfigFactory.load())
