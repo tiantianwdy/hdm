@@ -3,14 +3,15 @@ package org.hdm.core.executor
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.concurrent.{LinkedBlockingDeque, TimeUnit}
 
+import org.hdm.core.context.{HDMContext, AppContext}
 import org.hdm.core.functions.{Aggregator, ParCombinedFunc, ParallelFunction}
 import org.hdm.core.io.{BufferedBlockIterator, DataParser, Path}
 import org.hdm.core.message.FetchSuccessResponse
 import org.hdm.core.model._
-import org.hdm.core.server.DependencyManager
+import org.hdm.core.server.{HDMServerContext, DependencyManager}
 import org.hdm.core.storage.{Block, HDMBlockManager}
 import org.hdm.core.utils.Utils
-import org.hdm.core.{Arr, Buf}
+import org.hdm.core.{context, Arr, Buf}
 
 import scala.collection.mutable.Buffer
 import scala.concurrent._
@@ -31,7 +32,7 @@ case class Task[I: ClassTag, R: ClassTag](appId: String, version: String,
                                           keepPartition: Boolean = true,
                                           partitioner: Partitioner[R] = null,
                                           appContext: AppContext,
-                                          var blockContext:BlockContext) extends ParallelTask[R] {
+                                          var blockContext:context.BlockContext) extends ParallelTask[R] {
 
   final val inType = classTag[I]
 

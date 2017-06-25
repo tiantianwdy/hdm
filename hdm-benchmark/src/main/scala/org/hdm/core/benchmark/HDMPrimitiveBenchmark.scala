@@ -1,6 +1,6 @@
 package org.hdm.core.benchmark
 
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.context.{HDMContext, HDMAppContext, AppContext}
 import org.hdm.core.model.ParHDM
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -27,7 +27,7 @@ object HDMBenchmark {
     AppContext.defaultAppContext.appName = "hdm-examples"
     AppContext.defaultAppContext.version = "0.0.1"
     AppContext.defaultAppContext.masterPath = context
-    val hDMContext = HDMContext.defaultHDMContext
+    val hDMContext = HDMAppContext.defaultContext
     hDMContext.init(leader = context, slots = 0)
     Thread.sleep(64)
 

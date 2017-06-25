@@ -1,10 +1,11 @@
 package org.hdm.core.io.hdfs
 
 import org.hdm.akka.monitor.SystemMonitorService
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.context.AppContext
 import org.hdm.core.io.{DataParser, HDFSParser, Path}
 import org.hdm.core.model.HDM
 import org.hdm.core.planing.StaticPlaner
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.Block
 import org.junit.{Ignore, After, Before, Test}
 
@@ -14,7 +15,7 @@ import org.junit.{Ignore, After, Before, Test}
 @Ignore("Require local HDFS installed.")
 class HDFSDataParserTest {
 
-  val hDMContext = HDMContext.defaultHDMContext
+  val hDMContext = HDMServerContext.defaultContext
 
   val appContext = new AppContext()
 

@@ -7,9 +7,9 @@ import io.netty.buffer.PooledByteBufAllocator
 import io.netty.channel.ChannelInboundHandlerAdapter
 import io.netty.handler.codec.{LengthFieldPrepender, MessageToByteEncoder, ByteToMessageDecoder, LengthFieldBasedFrameDecoder}
 import io.netty.util.internal.PlatformDependent
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.io.CompressionCodec
 import org.hdm.core.serializer.SerializerInstance
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.utils.Logging
 import scala.collection.JavaConversions._
 import org.hdm.core.io.netty.NettyBlockFetcher
@@ -76,11 +76,11 @@ class NettyConnectionManager(val connectionNumPerPeer:Int,
 object NettyConnectionManager extends Logging{
 
   lazy val defaultManager = {
-    val compressor = if (HDMContext.defaultHDMContext.BLOCK_COMPRESS_IN_TRANSPORTATION) HDMContext.defaultHDMContext.compressor
+    val compressor = if (HDMServerContext.defaultContext.BLOCK_COMPRESS_IN_TRANSPORTATION) HDMServerContext.defaultContext.compressor
     else null
-    new NettyConnectionManager(HDMContext.defaultHDMContext.NETTY_CLIENT_CONNECTIONS_PER_PEER,
-    HDMContext.defaultHDMContext.NETTY_BLOCK_CLIENT_THREADS,
-    HDMContext.defaultHDMContext.defaultSerializer, compressor)
+    new NettyConnectionManager(HDMServerContext.defaultContext.NETTY_CLIENT_CONNECTIONS_PER_PEER,
+    HDMServerContext.defaultContext.NETTY_BLOCK_CLIENT_THREADS,
+    HDMServerContext.defaultContext.defaultSerializer, compressor)
   }
 
   val localHost = InetAddress.getLocalHost.getHostName

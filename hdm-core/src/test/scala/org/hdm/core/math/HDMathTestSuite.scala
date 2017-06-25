@@ -1,7 +1,8 @@
 package org.hdm.core.math
 
+import org.hdm.core.context.AppContext
+import org.hdm.core.server.HDMServerContext
 import org.junit.{After, Before}
-import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.model.HDM
 
 import scala.util.Random
@@ -15,7 +16,7 @@ class HDMathTestSuite {
     Random.nextDouble()
   }
 
-  val hdmContext = HDMContext.defaultHDMContext
+  val hdmContext = HDMServerContext.defaultContext
   hdmContext.clusterExecution.set(false)
 //  val appContext = AppContext(masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
   AppContext.defaultAppContext.masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"

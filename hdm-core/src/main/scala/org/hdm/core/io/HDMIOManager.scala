@@ -1,6 +1,6 @@
 package org.hdm.core.io
 
-import org.hdm.core.executor.HDMContext
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.{HDMBlockManager, Block, BlockRef}
 import scala.concurrent.{Promise, Future}
 import org.hdm.akka.server.SmsSystem
@@ -27,7 +27,7 @@ trait HDMIOManager {
 
 object HDMIOManager {
 
-  lazy val defaultIOManager = new AkkaIOManager(HDMContext.defaultHDMContext) // todo change to load config
+  lazy val defaultIOManager = new AkkaIOManager(HDMServerContext.defaultContext) // todo change to load config
 
   def apply():HDMIOManager = {
     defaultIOManager
@@ -38,7 +38,7 @@ object HDMIOManager {
 /**
  *
  */
-class AkkaIOManager(hDMContext: HDMContext) extends HDMIOManager {
+class AkkaIOManager(hDMContext: HDMServerContext) extends HDMIOManager {
 
   val promiseMap = new ConcurrentHashMap[String, Promise[_]]()
 

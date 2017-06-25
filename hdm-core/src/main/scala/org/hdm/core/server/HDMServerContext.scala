@@ -1,42 +1,29 @@
-package org.hdm.core.executor
+package org.hdm.core.server
 
 import java.util.UUID
-import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
+import java.util.concurrent.atomic.AtomicBoolean
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.{ConfigFactory, Config}
 import org.hdm.akka.server.SmsSystem
+import org.hdm.core.context.{HDMContext, AppContext, BlockContext}
 import org.hdm.core.coordinator.{ClusterResourceWorkerSpec, HDMWorkerParams}
-import org.hdm.core.functions.SerializableFunction
-import org.hdm.core.io.netty.NettyConnectionManager
-import org.hdm.core.io.{CompressionCodec, SnappyCompressionCodec}
+import org.hdm.core.executor.{ClusterExecutorContext, Task}
+import org.hdm.core.io.CompressionCodec
 import org.hdm.core.message._
-import org.hdm.core.model.{GroupedSeqHDM, HDM, KvHDM, ParHDM}
+import org.hdm.core.model.{HDM, ParHDM}
 import org.hdm.core.planing.{StaticMultiClusterPlanner, StaticPlaner}
 import org.hdm.core.scheduling.{AdvancedScheduler, MultiClusterScheduler, SchedulingPolicy}
-import org.hdm.core.serializer.{JavaSerializer, KryoSerializer, SerializerInstance}
-import org.hdm.core.server._
+import org.hdm.core.serializer.{JavaSerializer, SerializerInstance}
 import org.hdm.core.storage.{Block, HDMBlockManager}
 import org.hdm.core.utils.Logging
 
 import scala.concurrent.{Future, Promise}
-import scala.reflect.ClassTag
 import scala.util.Try
 
 /**
- * Created by Tiantian on 2014/11/4.
- */
-trait Context {
-
-  def findHDM(id: String): ParHDM[_, _] = ???
-
-  def sendFunc[T, R](target: ParHDM[_, T], func: SerializableFunction[T, R]): Future[ParHDM[T, R]] = ???
-
-  def receiveFunc[T, R](target: ParHDM[_, T], func: SerializableFunction[T, R]): Future[ParHDM[T, R]] = ???
-
-  def runTask[T, R](target: ParHDM[_, T], func: SerializableFunction[T, R]): Future[ParHDM[T, R]] = ???
-}
-
-class HDMContext(defaultConf: Config) extends Serializable with Logging {
+  * Created by tiantian on 23/06/17.
+  */
+class HDMServerContext(defaultConf: Config) extends HDMContext with Serializable with Logging {
 
   val HDM_HOME = Try {
     defaultConf.getString("hdm.home")
@@ -96,7 +83,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
     defaultConf.getString("hdm.io.network.protocol")
   } getOrElse ("netty")
 
-  var NETTY_BLOCK_SERVER_PORT = Try {
+  var NETTY_BLOCK_SERVER_PORT:Int = Try {
     defaultConf.getInt("hdm.io.netty.server.port")
   } getOrElse (9091)
 
@@ -135,17 +122,10 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
 
 //  val jobSerializer: SerializerInstance = new KryoSerializer(defaultConf).newInstance()
 
-  val compressor = HDMContext.DEFAULT_COMPRESSOR
-
   val cores = HDMContext.CORES
 
   implicit lazy val executionContext = ClusterExecutorContext((cores * parallelismFactor).toInt)
 
-  val slot = new AtomicInteger(1)
-
-  val clusterExecution = new AtomicBoolean(true)
-
-  val isLinux = System.getProperty("os.name").toLowerCase().contains("linux")
 
   val planer = new StaticPlaner(this)
 
@@ -156,11 +136,10 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
 
   //  val scheduler = new SimpleFIFOScheduler
 
-  val leaderPath: AtomicReference[String] = new AtomicReference[String]()
 
-  def blockContext() = {
-    BlockContext(leaderPath.get() + "/" + HDMContext.BLOCK_MANAGER_NAME, BLOCK_SERVER_PROTOCOL, NETTY_BLOCK_SERVER_PORT)
-  }
+//  def blockContext() = {
+//    BlockContext(leaderPath.get() + "/" + HDMContext.BLOCK_MANAGER_NAME, BLOCK_SERVER_PROTOCOL, NETTY_BLOCK_SERVER_PORT)
+//  }
 
 
   def startAsClusterMaster(host:String = "", port: Int = 8999, conf: Config = defaultConf,  mode: String = "stand-alone"): Unit = {
@@ -267,7 +246,7 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
         val promiseManager = new DefPromiseManager
         val resourceManager = new MultiClusterResourceManager
         val schedulingPolicy = Class.forName(SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
-        val multiPlanner = new StaticMultiClusterPlanner(planer, HDMContext.defaultHDMContext)
+        val multiPlanner = new StaticMultiClusterPlanner(planer, HDMServerContext.defaultContext)
         val scheduler = new MultiClusterScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, DependencyManager(), multiPlanner, schedulingPolicy, this)
         hdmBackEnd = new MultiClusterBackend(blockManager, scheduler, multiPlanner, resourceManager, promiseManager, DependencyManager(), this)
         log.info(s"created new MultiClusterBackend with scheduling: ${SCHEDULING_POLICY_CLASS}")
@@ -310,41 +289,6 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
       hdm, parallelism)
   }
 
-  def clean(appId: String) = {
-    //todo clean all the resources used by this application
-    val masterURL = leaderPath.get() + "/" + HDMContext.CLUSTER_RESOURCE_MANAGER_NAME
-    SmsSystem.askAsync(masterURL, ApplicationShutdown(appId))
-  }
-
-  def shutdown(appContext: AppContext = AppContext.defaultAppContext) {
-    clean(appContext.appName + "#" + appContext.version)
-    SmsSystem.shutDown()
-  }
-
-  def declareHdm(hdms: Seq[ParHDM[_, _]], declare: Boolean = true) = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, AddRefMsg(hdms, declare))
-  }
-
-  def addBlock(block: Block[_], declare: Boolean) = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, AddBlockMsg(block, declare))
-  }
-
-  def queryBlock(id: String, location: String) = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, QueryBlockMsg(Seq(id), location))
-  }
-
-  def removeBlock(id: String): Unit = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, RemoveBlockMsg(id))
-  }
-
-  def removeRef(id: String): Unit = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, RemoveRefMsg(id))
-  }
-
-  def addTask(task: Task[_, _]) = {
-    SmsSystem.askAsync(leaderPath.get() + "/" + HDMContext.CLUSTER_EXECUTOR_NAME, AddTaskMsg(task))
-  }
-
   @Deprecated
   def submitTasks(appId: String, hdms: Seq[ParHDM[_, _]]): Future[ParHDM[_, _]] = {
     val rootPath = SmsSystem.rootPath
@@ -359,17 +303,6 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
     else throw new Exception("add job dispatcher failed.")
   }
 
-
-  def clusterBlockPath = {
-    leaderPath.get() + "/" + HDMContext.BLOCK_MANAGER_NAME
-  }
-
-  def localBlockPath = {
-    BLOCK_SERVER_PROTOCOL match {
-      case "akka" => SmsSystem.physicalRootPath + "/" + HDMContext.BLOCK_MANAGER_NAME
-      case "netty" => s"netty://${NettyConnectionManager.localHost}:${NETTY_BLOCK_SERVER_PORT}"
-    }
-  }
 
 
   def getCompressor(): CompressionCodec = {
@@ -401,106 +334,21 @@ class HDMContext(defaultConf: Config) extends Serializable with Logging {
 
 }
 
+object HDMServerContext {
 
-object HDMContext extends Logging {
 
-  val _defaultConf = new AtomicReference[Config]()
+  lazy val defaultContext = apply()
 
-  private val jobSerializer = new ThreadLocal[SerializerInstance]()
-
-  lazy val defaultHDMContext = apply()
-
-  val HDM_VERSION = Try {
-    defaultConf.getString("hdm.version")
-  } getOrElse ("0.1-SNAPSHOT")
-
-  val CLUSTER_RESOURCE_MANAGER_NAME = "ClusterResourceLeader"
-
-  val CLUSTER_RESOURCE_WORKER_NAME = "ClusterResourceWorker"
-
-  val CLUSTER_EXECUTOR_NAME: String = "ClusterExecutor"
-
-  val BLOCK_MANAGER_NAME: String = "BlockManager"
-
-  val JOB_RESULT_DISPATCHER: String = "ResultDispatcher"
-
-  val DEFAULT_SERIALIZER: SerializerInstance = new JavaSerializer(defaultConf).newInstance()
-
-  val DEFAULT_SERIALIZER_FACTORY = new JavaSerializer(defaultConf)
-
-  def JOB_SERIALIZER: SerializerInstance = {
-    if(jobSerializer.get() == null){
-      jobSerializer.set(new KryoSerializer(defaultConf).newInstance())
-    }
-    jobSerializer.get()
-  }
-
-  def reNewJobSerializer(ser:SerializerInstance): Unit = {
-    jobSerializer.set(ser)
-  }
-
-  val DEFAULT_COMPRESSOR = new SnappyCompressionCodec(defaultConf)
-
-  lazy val DEFAULT_BLOCK_ID_LENGTH = DEFAULT_SERIALIZER.serialize(newLocalId()).array().length
-
-  val CORES = Runtime.getRuntime.availableProcessors
-
-  def defaultConf() = _defaultConf.get()
-
-  def setDefaultConf(conf: Config) = _defaultConf.set(conf)
-
-  def newClusterId(): String = {
-    UUID.randomUUID().toString
-  }
-
-  def newLocalId(): String = {
-    UUID.randomUUID().toString
-  }
 
   def apply() = {
-    if (defaultConf == null) {
-      setDefaultConf(ConfigFactory.load("hdm-core.conf"))
+    if (HDMContext.defaultConf == null) {
+      HDMContext.setDefaultConf(ConfigFactory.load("hdm-core.conf"))
     }
-    new HDMContext(defaultConf)
+    new HDMServerContext(HDMContext.defaultConf )
   }
 
   def apply(conf: Config) = {
-    setDefaultConf(conf)
-    new HDMContext(conf)
-  }
-
-  def declareHdm(hdms: Seq[ParHDM[_, _]], declare: Boolean = true) = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, AddRefMsg(hdms, declare))
-  }
-
-  def addBlock(block: Block[_], declare: Boolean) = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, AddBlockMsg(block, declare))
-  }
-
-  def queryBlock(id: String, location: String) = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, QueryBlockMsg(Seq(id), location))
-  }
-
-  def removeBlock(id: String): Unit = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, RemoveBlockMsg(id))
-  }
-
-  def removeRef(id: String): Unit = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, RemoveRefMsg(id))
-  }
-
-  /**
-   *
-   * @param hdm
-   * @tparam K
-   * @tparam V
-   * @return
-   */
-  implicit def hdmToKVHDM[K: ClassTag, V: ClassTag](hdm: HDM[(K, V)]): KvHDM[K, V] = {
-    new KvHDM(hdm)
-  }
-
-  implicit def hdmToGroupedSeqHDM[K: ClassTag, V: ClassTag](hdm: ParHDM[_, (K, Iterable[V])]): GroupedSeqHDM[K, V] = {
-    new GroupedSeqHDM[K, V](hdm)
+    HDMContext.setDefaultConf(conf)
+    new HDMServerContext(conf)
   }
 }

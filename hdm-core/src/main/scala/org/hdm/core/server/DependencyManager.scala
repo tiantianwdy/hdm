@@ -5,10 +5,11 @@ import java.nio.charset.Charset
 import java.util.concurrent.{ConcurrentHashMap, Executors}
 
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.executor.{HDMContext, DynamicDependencyThreadFactory}
+import org.hdm.core.executor.DynamicDependencyThreadFactory
 import org.hdm.core.message.{AddDependency, AddApplication}
 import org.hdm.core.model.HDM
 import org.hdm.core.planing.HDMPlans
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.server.provenance.{ExecutionInstance, ApplicationTrace}
 import org.hdm.core.utils.{DynamicURLClassLoader, Logging}
 
@@ -91,7 +92,8 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
   }
 
   /**
-   * Load the dependency data from given path, if the file doesn't exist then create it. 
+   * Load the dependency data from given path, if the file doesn't exist then create it.
+ *
    * @param path
    * @param autoCreate
    */
@@ -121,7 +123,8 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
 
   /**
    * write the dependency data into a file, create the file if it doesn't exist.
-   * @param appName
+    *
+    * @param appName
    * @param version
    * @param urls
    * @param path
@@ -147,7 +150,8 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
 
   /**
    * add depended classes to a associated classloader for future job execution
-   * @param appName
+    *
+    * @param appName
    * @param version
    * @param urls
    * @return
@@ -163,7 +167,8 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
 
   /**
    * get the associated class loader to a given version of an application
-   * @param appName
+    *
+    * @param appName
    * @param version
    * @return
    */
@@ -222,7 +227,8 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
 
   /**
    * submit a job dependency from local files
-   * @param appName
+    *
+    * @param appName
    * @param version
    * @param srcFile
    * @param author
@@ -242,7 +248,8 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
 
   /**
    * submit a job dependency with bytes
-   * @param appName
+    *
+    * @param appName
    * @param version
    * @param depBytes
    * @param author
@@ -274,7 +281,7 @@ class DependencyManager (val dependencyBasePath:String, val historyManager: Prov
 
 object DependencyManager {
 
-  lazy val defaultDepManager = new DependencyManager(HDMContext.defaultHDMContext.DEFAULT_DEPENDENCY_BASE_PATH, ProvenanceManager()).init()
+  lazy val defaultDepManager = new DependencyManager(HDMServerContext.defaultContext.DEFAULT_DEPENDENCY_BASE_PATH, ProvenanceManager()).init()
 
   def apply() = {
     defaultDepManager
@@ -294,7 +301,8 @@ object DependencyManager {
 
   /**
    * an un-recommended way of loading class depdendencies to system class loader.
-   * @param urls
+    *
+    * @param urls
    * @throws IOException when unable to load the urls
    */
   @throws("Couldn't add URLs to class loader")
@@ -311,7 +319,8 @@ object DependencyManager {
    *
    * submit dependency of a job from a file and send it as a message to the master
    * it is the recommended method for client program to submit the dependencies to a remote master node
-   * @param master
+    *
+    * @param master
    * @param appName
    * @param version
    * @param filePath

@@ -1,6 +1,7 @@
 package org.hdm.core.benchmark
 
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.context.AppContext
+import org.hdm.core.server.HDMServerContext
 import org.junit.Ignore
 
 /**
@@ -9,7 +10,7 @@ import org.junit.Ignore
 @Ignore("Not ready yet.")
 class MatrixTest {
 
-  val hDMContext = HDMContext.defaultHDMContext
+  val hDMContext = HDMServerContext.defaultContext
 
   val appContext = new AppContext(masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
 

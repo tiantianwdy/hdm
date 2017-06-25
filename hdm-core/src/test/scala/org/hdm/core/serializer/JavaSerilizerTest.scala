@@ -2,7 +2,8 @@ package org.hdm.core.serializer
 
 import io.netty.buffer.Unpooled
 import org.hdm.core.collections.CompactBuffer
-import org.hdm.core.executor.HDMContext
+import org.hdm.core.context.HDMContext
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.Block
 import org.junit.Test
 

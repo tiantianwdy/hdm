@@ -1,9 +1,10 @@
 package org.hdm.core.benchmark
 
 import breeze.linalg.{Vector, DenseVector}
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.context.{HDMAppContext, HDMContext, AppContext}
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
+import HDMContext._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.math._
 import scala.util.Random
@@ -14,7 +15,7 @@ import scala.util.Random
  */
 class MultiClusterBenchmark(val master1:String, val master2:String) extends Serializable {
 
-  val hDMContext = HDMContext.defaultHDMContext
+  val hDMContext = HDMAppContext.defaultContext
 
   val appContext1 = new AppContext(appName = "hdm-examples", version = "0.0.1", masterPath = master1)
 
@@ -22,7 +23,6 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
 
 
   def testParallelExecution(dataPath1:String, dataPath2:String)(implicit parallelism:Int): Unit ={
-    import HDMContext._
     hDMContext.init(leader = master1, 0)
     Thread.sleep(200)
 
@@ -51,7 +51,6 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
   }
 
   def testShuffleTask(dataPath1:String, dataPath2:String)(implicit parallelism:Int): Unit ={
-    import HDMContext._
     hDMContext.init(leader = master1, 0)
     Thread.sleep(200)
 
@@ -86,7 +85,6 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
 
 
   def testMultiPartyLR(dataPath1:String, dataPath2:String, vectorLen: Int, iteration:Int)(implicit parallelism:Int) = {
-    import HDMContext._
     hDMContext.init(leader = master1, 0)
     Thread.sleep(200)
 

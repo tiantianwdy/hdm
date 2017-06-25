@@ -1,9 +1,11 @@
 package org.hdm.core.model
 
 import org.hdm.akka.server.SmsSystem
+import org.hdm.core.context.{HDMContext, BlockContext, AppContext}
 import org.hdm.core.executor._
 import org.hdm.core.functions.{NullFunc, ParallelFunction}
 import org.hdm.core.io.Path
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.{Block, _}
 
 import scala.collection.mutable.Buffer
@@ -16,20 +18,20 @@ import scala.reflect.ClassTag
  *
  */
 class DDM[T: ClassTag, R:ClassTag](val id: String = HDMContext.newLocalId(),
-                           val elems: Seq[T] = null,
-                           val dependency: DataDependency = OneToOne,
-                           val func: ParallelFunction[T, R] = null,
-                           val blocks: Buffer[String],
-                           val distribution: Distribution = Horizontal,
-                           val location: Path,
-                           val preferLocation:Path = null,
-                           var blockSize:Long = -1,
-                           var isCache:Boolean = false,
-                           val state: BlockState = Computed,
-                           var parallelism:Int = 1,
-                           val keepPartition:Boolean = true,
-                           val partitioner: Partitioner[R] = new KeepPartitioner[R](1),
-                           val appContext: AppContext) extends ParHDM[T, R] {
+                                   val elems: Seq[T] = null,
+                                   val dependency: DataDependency = OneToOne,
+                                   val func: ParallelFunction[T, R] = null,
+                                   val blocks: Buffer[String],
+                                   val distribution: Distribution = Horizontal,
+                                   val location: Path,
+                                   val preferLocation:Path = null,
+                                   var blockSize:Long = -1,
+                                   var isCache:Boolean = false,
+                                   val state: BlockState = Computed,
+                                   var parallelism:Int = 1,
+                                   val keepPartition:Boolean = true,
+                                   val partitioner: Partitioner[R] = new KeepPartitioner[R](1),
+                                   val appContext: AppContext) extends ParHDM[T, R] {
 
 
 
@@ -97,8 +99,8 @@ object DDM {
 //    this.apply(id, elems.toSeq, broadcast)
 //  }
 
-  def apply[T: ClassTag](id:String, elems: Seq[T], appContext:AppContext, blockContext:BlockContext, hdmContext:HDMContext = HDMContext.defaultHDMContext,   broadcast:Boolean = false): DDM[T,T] = {
-    val context = if(hdmContext == null) HDMContext.defaultHDMContext
+  def apply[T: ClassTag](id:String, elems: Seq[T], appContext:AppContext, blockContext:BlockContext, hdmContext:HDMContext = HDMServerContext.defaultContext, broadcast:Boolean = false): DDM[T,T] = {
+    val context = if(hdmContext == null) HDMServerContext.defaultContext
      else hdmContext
     val ddm = new DDM[T,T](id= id,
       func = new NullFunc[T],
@@ -119,8 +121,8 @@ object DDM {
     this.apply(id, elems, appContext, hdmContext.blockContext, hdmContext,  false)
   }
 
-  def apply[T: ClassTag](elems: Seq[Seq[T]], hdmContext:HDMContext, appContext:AppContext,  blockContext:BlockContext, broadcast:Boolean = false): Seq[DDM[T, T]] = {
-    val context = if(hdmContext == null) HDMContext.defaultHDMContext
+  def apply[T: ClassTag](elems: Seq[Seq[T]], hdmContext:HDMContext, appContext:AppContext, blockContext:BlockContext, broadcast:Boolean = false): Seq[DDM[T, T]] = {
+    val context = if(hdmContext == null) HDMServerContext.defaultContext
     else hdmContext
     val (ddms, blocks:Seq[Block[T]]) =
       elems.map { seq =>
@@ -145,7 +147,7 @@ object DDM {
   }
 
   def sources[T:ClassTag](urls: Seq[Path], hdmContext:HDMContext, appContext:AppContext, broadcast:Boolean = false): Seq[DDM[T, T]] = {
-    val context = if(hdmContext == null) HDMContext.defaultHDMContext
+    val context = if(hdmContext == null) HDMServerContext.defaultContext
     else hdmContext
     val ddms =
       urls.map { url =>

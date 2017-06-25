@@ -1,6 +1,6 @@
 package org.hdm.core.planing
 
-import org.hdm.core.executor.{ClusterTestSuite, AppContext, HDMContext}
+import org.hdm.core.executor.ClusterTestSuite
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
 import org.junit.{After, Before, Ignore, Test}

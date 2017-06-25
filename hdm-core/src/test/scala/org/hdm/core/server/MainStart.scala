@@ -1,6 +1,6 @@
 package org.hdm.core.server
 
-import org.hdm.core.executor.HDMContext
+import org.hdm.core.server.HDMServerContext
 
 /**
  * Created by tiantian on 17/02/15.

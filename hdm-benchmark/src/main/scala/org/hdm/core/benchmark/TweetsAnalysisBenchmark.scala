@@ -1,6 +1,6 @@
 package org.hdm.core.benchmark
 
-import org.hdm.core.executor.HDMContext
+import org.hdm.core.context.HDMContext
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
 
@@ -9,7 +9,7 @@ import org.hdm.core.model.HDM
  */
 class TweetsAnalysisBenchmark (val context:String, val kIndex:Int = 0, val vIndex:Int = 1) extends  Serializable {
 
-  import org.hdm.core.executor.HDMContext._
+  import HDMContext._
 
 
   def testFindingTweets(dataPath:String, keyLen:Int = 3, parallelism:Int = 4, key:String):HDM[_] = {
@@ -53,6 +53,7 @@ class TweetsAnalysisBenchmark (val context:String, val kIndex:Int = 0, val vInde
 
 /**
  * Tweet entity for each record
+ *
  * @param author
  * @param contents
  * @param hashTag

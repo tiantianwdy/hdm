@@ -1,8 +1,9 @@
 package org.hdm.core.io
 
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.context.AppContext
 import org.hdm.core.functions.NullFunc
 import org.hdm.core.model.DDM
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.Computed
 import org.junit.Test
 
@@ -22,7 +23,7 @@ class BufferIteratorTest {
        blockSize = 0,
        state = Computed,
        location = Path("hdm://tiantian-HP-EliteBook-Folio-9470m:9091/" + id),
-       blocks = mutable.Buffer(HDMContext.defaultHDMContext.localBlockPath + "/" + id),
+       blocks = mutable.Buffer(HDMServerContext.defaultContext.localBlockPath + "/" + id),
        appContext = AppContext())
    }
    val start = System.currentTimeMillis()

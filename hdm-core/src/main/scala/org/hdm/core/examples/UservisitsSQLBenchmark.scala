@@ -1,17 +1,18 @@
 package org.hdm.core.examples
 
-import org.hdm.core.executor.HDMContext
-import org.hdm.core.executor.HDMContext._
+import org.hdm.core.context.HDMContext
+import HDMContext._
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
+import org.hdm.core.server.HDMServerContext
 
 /**
  * Created by tiantian on 26/11/15.
  */
 class UservisitsSQLBenchmark extends Serializable {
 
-  def init(context:String, localCores:Int = 0): HDMContext ={
-    val hDMContext = HDMContext.defaultHDMContext
+  def init(context:String, localCores:Int = 0): HDMServerContext ={
+    val hDMContext = HDMServerContext.defaultContext
     hDMContext.init(leader = context, slots = localCores)
     Thread.sleep(100)
     hDMContext

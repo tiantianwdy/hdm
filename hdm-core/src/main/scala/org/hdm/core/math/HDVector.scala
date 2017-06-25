@@ -1,8 +1,10 @@
 package org.hdm.core.math
 
+import org.hdm.core.context.HDMContext
 import org.hdm.core.math.HDMatrix.hdmToVector
-import org.hdm.core.executor.HDMContext._
+import HDMContext._
 import org.hdm.core.model.HDM
+import org.hdm.core.server.HDMServerContext
 
 import scala.reflect.ClassTag
 import scala.{specialized => types}

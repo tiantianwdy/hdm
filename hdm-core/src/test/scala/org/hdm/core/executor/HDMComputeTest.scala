@@ -1,5 +1,6 @@
 package org.hdm.core.executor
 
+import org.hdm.core.context.HDMAppContext
 import org.hdm.core.model.HDM
 import org.junit.{After, Before, Test}
 

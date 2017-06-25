@@ -1,9 +1,11 @@
 package org.hdm.core.model
 
 import org.hdm.core.Arr
+import org.hdm.core.context.{HDMAppContext, HDMContext, AppContext}
 import org.hdm.core.executor._
 import org.hdm.core.functions._
 import org.hdm.core.io.Path
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.BlockState
 import org.hdm.core.utils.{ClosureCleaner, SampleUtils}
 
@@ -19,7 +21,7 @@ import scala.util.{Left, Random}
 abstract class HDM[R: ClassTag] extends Serializable{
 
   @transient
-  var hdmContext: HDMContext = HDMContext.defaultHDMContext
+  var hdmContext: HDMContext = HDMAppContext.defaultContext
 
   @transient
   implicit val executionContext = hdmContext.executionContext //todo to changed to get from dynamic hdm context
@@ -530,12 +532,12 @@ abstract class HDM[R: ClassTag] extends Serializable{
 object HDM {
 
   def apply[T: ClassTag](elems: Array[T], appContext: AppContext): DDM[_, T] = {
-    DDM(elems, HDMContext.defaultHDMContext, appContext)
+    DDM(elems, HDMServerContext.defaultContext, appContext)
   }
 
   def apply(path: Path,
             appContext: AppContext = AppContext.defaultAppContext,
-            hdmContext: HDMContext = HDMContext.defaultHDMContext,
+            hdmContext: HDMContext = HDMAppContext.defaultContext,
             keepPartition: Boolean = true): DFM[_, String] = {
     new DFM(children = null,
       location = path,
@@ -546,7 +548,7 @@ object HDM {
 
 
   def parallelize[T: ClassTag](elems: Seq[T],
-                               hdmContext: HDMContext = HDMContext.defaultHDMContext,
+                               hdmContext: HDMContext = HDMServerContext.defaultContext,
                                appContext: AppContext = AppContext.defaultAppContext,
                                numOfPartitions: Int = ClusterExecutor.CORES): HDM[T] = {
     require(elems.length > numOfPartitions)
@@ -560,7 +562,7 @@ object HDM {
 
 
   def parallelWithIndex[T: ClassTag](elems: Seq[T],
-                                     hdmContext: HDMContext = HDMContext.defaultHDMContext,
+                                     hdmContext: HDMContext = HDMServerContext.defaultContext,
                                      appContext: AppContext = AppContext.defaultAppContext,
                                      numOfPartitions: Int = ClusterExecutor.CORES): HDM[(Long, T)] = {
     require(elems.length > numOfPartitions)
@@ -576,7 +578,7 @@ object HDM {
   }
 
   def jParallelize[T](elems: Array[T],
-                      hdmContext: HDMContext = HDMContext.defaultHDMContext,
+                      hdmContext: HDMContext = HDMServerContext.defaultContext,
                       appContext: AppContext = AppContext.defaultAppContext,
                       numOfPartitions: Int = ClusterExecutor.CORES): HDM[T] = {
     require(elems.length > numOfPartitions)
@@ -590,7 +592,7 @@ object HDM {
 
   def fromURL[T:ClassTag](urls: Array[Path],
                           appContext: AppContext = AppContext.defaultAppContext,
-                          hdmContext: HDMContext = HDMContext.defaultHDMContext,
+                          hdmContext: HDMContext = HDMServerContext.defaultContext,
                           func: Arr[Byte] => Arr[T],
                           keepPartition: Boolean = true): HDM[T] = {
 

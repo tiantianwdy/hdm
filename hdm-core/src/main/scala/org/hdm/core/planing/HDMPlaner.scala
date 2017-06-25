@@ -1,7 +1,7 @@
 package org.hdm.core.planing
 
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.model._
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.HDMBlockManager
 
 import scala.util.Try
@@ -36,7 +36,7 @@ trait DynamicPlaner {
 /**
  *
  */
-class StaticPlaner(hDMContext: HDMContext) extends HDMPlaner {
+class StaticPlaner(hDMContext: HDMServerContext) extends HDMPlaner {
 
   val physicalPlaner = new DefaultPhysicalPlanner(HDMBlockManager(), isStatic = true, hDMContext)
 

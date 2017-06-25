@@ -1,10 +1,11 @@
 package org.hdm.core.io
 
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.context.{HDMContext, AppContext}
 import org.hdm.core.functions.NullFunc
 import org.hdm.core.model.DDM
 import org.hdm.core.planing.{DDMGroupUtils, PlanningUtils}
 import org.hdm.core.scheduling.SchedulingTestData
+import org.hdm.core.server.HDMServerContext
 import org.junit.Test
 
 import scala.collection.mutable
@@ -42,7 +43,7 @@ class PathTest extends SchedulingTestData{
   )
 
 
-  val hDMContext = HDMContext.defaultHDMContext
+  val hDMContext = HDMServerContext.defaultContext
 
   val appContext = new AppContext()
 
@@ -185,7 +186,7 @@ class PathTest extends SchedulingTestData{
       preferLocation = path,
       func = new NullFunc[String],
       blockSize = blockSize.toLong,
-      blocks = mutable.Buffer(HDMContext.defaultHDMContext.localBlockPath + "/" + id),
+      blocks = mutable.Buffer(hDMContext.localBlockPath + "/" + id),
       appContext = AppContext())
     }
     val weights = ddms.map(ddm => ddm.blockSize / 1024F)

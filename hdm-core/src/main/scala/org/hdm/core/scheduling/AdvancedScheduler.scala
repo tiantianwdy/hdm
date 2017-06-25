@@ -7,13 +7,14 @@ import akka.actor.{ActorPath, ActorSystem}
 import akka.pattern._
 import akka.util.Timeout
 import org.hdm.akka.server.SmsSystem
+import org.hdm.core.context.HDMContext
 import org.hdm.core.executor._
 import org.hdm.core.functions.{DualInputFunction, ParUnionFunc, ParallelFunction}
 import org.hdm.core.io.Path
 import org.hdm.core.message.{TaskCompleteMsg, SerializedTaskMsg}
 import org.hdm.core.model._
 import org.hdm.core.server.provenance.ExecutionTrace
-import org.hdm.core.server.{PromiseManager, ProvenanceManager, ResourceManager}
+import org.hdm.core.server.{HDMServerContext, PromiseManager, ProvenanceManager, ResourceManager}
 import org.hdm.core.storage.{Computed, HDMBlockManager}
 import org.hdm.core.utils.{NotifyLock, Logging}
 
@@ -73,9 +74,9 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 //    log.info(s"in scheduleOnResource get task with size ${tasks.size}...")
     val start = System.currentTimeMillis()
     val plans = schedulingPolicy.plan(tasks, candidates,
-      HDMContext.defaultHDMContext.SCHEDULING_FACTOR_CPU,
-      HDMContext.defaultHDMContext.SCHEDULING_FACTOR_IO ,
-      HDMContext.defaultHDMContext.SCHEDULING_FACTOR_NETWORK)
+      HDMServerContext.defaultContext.SCHEDULING_FACTOR_CPU,
+      HDMServerContext.defaultContext.SCHEDULING_FACTOR_IO ,
+      HDMServerContext.defaultContext.SCHEDULING_FACTOR_NETWORK)
     val end = System.currentTimeMillis() - start
     totalScheduleTime.addAndGet(end)
     log.trace(s"in scheduleOnResource get task with size ${tasks.size}...")
@@ -180,7 +181,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           idx = hdm.index,
           partitioner = h.partitioner.asInstanceOf[Partitioner[hdm.outType.type]],
           appContext = hdm.appContext,
-          blockContext = HDMContext.defaultHDMContext.blockContext())
+          blockContext = HDMServerContext.defaultContext.blockContext())
         addTask(task)
 
       case dualDFM: DualDFM[_, _ ,_] =>
@@ -196,7 +197,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
           idx = dualDFM.index,
           partitioner = h.partitioner.asInstanceOf[Partitioner[dualDFM.outType.type]],
           appContext = dualDFM.appContext,
-          blockContext = HDMContext.defaultHDMContext.blockContext())
+          blockContext = HDMServerContext.defaultContext.blockContext())
         addTask(task)
       }
     }
@@ -319,7 +320,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
 
   protected def runLocalTask[ R: ClassTag](task: ParallelTask[R]) = {
-    val leaderPath = HDMContext.defaultHDMContext.leaderPath.get()
+    val leaderPath = HDMServerContext.defaultContext.leaderPath.get()
     val workerPath = ActorPath.fromString(s"$leaderPath/${HDMContext.CLUSTER_EXECUTOR_NAME}").toStringWithAddress(SmsSystem.localAddress)
     val startTime = System.currentTimeMillis()
     val future  = ClusterExecutor.runTask(task)
@@ -343,7 +344,8 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
 
   /**
    * find next tasks which are available to be executed
-   * @param appId
+    *
+    * @param appId
    */
   private def triggerTasks(appId: String) = { //todo replace with planner.findNextTask
     if (appBuffer.containsKey(appId)) synchronized {

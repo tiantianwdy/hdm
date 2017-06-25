@@ -3,9 +3,8 @@ package org.hdm.core.coordinator
 import akka.remote.RemotingLifecycleEvent
 import org.hdm.akka.actors.worker.WorkActor
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.message.{CoordinatingMsg, DependencyMsg, QueryMsg, SchedulingMsg}
-import org.hdm.core.server.ServerBackend
+import org.hdm.core.server.{HDMServerContext, ServerBackend}
 
 import scala.concurrent.ExecutionContext
 
@@ -14,7 +13,7 @@ import scala.concurrent.ExecutionContext
  */
 abstract class AbstractHDMLeader (val hdmBackend:ServerBackend,
                                   val cores:Int ,
-                                  val hDMContext:HDMContext) extends WorkActor
+                                  val hDMContext:HDMServerContext) extends WorkActor
                                                               with QueryReceiver
                                                               with SchedulingMsgReceiver
                                                               with DepMsgReceiver
@@ -83,7 +82,7 @@ abstract class AbstractHDMLeader (val hdmBackend:ServerBackend,
  */
 class SingleCoordinationLeader(override val hdmBackend:ServerBackend,
                                override val cores:Int,
-                               override val hDMContext:HDMContext)
+                               override val hDMContext:HDMServerContext)
                             extends AbstractHDMLeader(hdmBackend, cores, hDMContext)
                             with DefQueryMsgReceiver
                             with DefDepReceiver
@@ -92,7 +91,7 @@ class SingleCoordinationLeader(override val hdmBackend:ServerBackend,
                             with RemoteExecutorMonitor {
 
   def this(cores: Int) {
-    this(HDMContext.defaultHDMContext.getServerBackend(), cores, HDMContext.defaultHDMContext)
+    this(HDMServerContext.defaultContext.getServerBackend(), cores, HDMServerContext.defaultContext)
   }
 
 }

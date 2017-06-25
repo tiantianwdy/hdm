@@ -4,9 +4,9 @@ package org.hdm.core.planing
  * Created by tiantian on 9/04/15.
  */
 
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.model.DDM
 import org.hdm.core.scheduling.{MinMinScheduling, SchedulingTask}
+import org.hdm.core.server.HDMServerContext
 
 import scala.collection.mutable.Buffer
 import org.hdm.core.io.Path
@@ -57,6 +57,7 @@ object PlanningUtils {
 
   /**
     * group a set of input path into n group based on their location boundary
+ *
     * @param paths addresses of inputs
     * @param n  number of group
     * @param boundary location boundary calculated by IP address
@@ -108,7 +109,7 @@ object PlanningUtils {
     }
   }
 
-  def groupDDMByMinminScheduling[R](ddms: Seq[DDM[_, R]], candidates: Seq[Path], hDMContext: HDMContext) = {
+  def groupDDMByMinminScheduling[R](ddms: Seq[DDM[_, R]], candidates: Seq[Path], hDMContext: HDMServerContext) = {
     val ddmMap = ddms.map(d => (d.id -> d)).toMap[String, DDM[_, R]]
     val tasks = ddms.map { ddm =>
       val id = ddm.id

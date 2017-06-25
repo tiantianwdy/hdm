@@ -2,10 +2,10 @@ package org.hdm.core.scheduling
 
 import java.util.concurrent.locks.ReentrantReadWriteLock
 import java.util.concurrent.{CopyOnWriteArrayList, LinkedBlockingQueue}
-
-import org.hdm.core.executor.HDMContext
+import org.hdm.core.context.HDMContext
 import org.hdm.core.io.Path
 import org.hdm.core.model.OneToOne
+import org.hdm.core.server.HDMServerContext
 import org.junit.Test
 
 import scala.collection.JavaConversions._

@@ -2,9 +2,11 @@ package org.hdm.core.math
 
 import breeze.linalg.DenseVector
 import breeze.math.Semiring
-import org.hdm.core.executor.HDMContext._
+import org.hdm.core.context.HDMContext
+import HDMContext._
 import HDMatrix._
 import org.hdm.core.model.HDM
+import org.hdm.core.server.HDMServerContext
 
 import scala.reflect.ClassTag
 import scala.{specialized => types}

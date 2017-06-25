@@ -5,10 +5,11 @@ import java.nio.ByteBuffer
 import akka.actor.ActorPath
 import akka.remote.{DisassociatedEvent, RemotingLifecycleEvent}
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.executor.HDMContext
+import org.hdm.core.context.HDMContext
 import org.hdm.core.io.Path
 import org.hdm.core.message._
 import org.hdm.core.model.{HDM, HDMInfo}
+import org.hdm.core.server.HDMServerContext
 
 import scala.collection.mutable
 import scala.util.{Failure, Success, Try}

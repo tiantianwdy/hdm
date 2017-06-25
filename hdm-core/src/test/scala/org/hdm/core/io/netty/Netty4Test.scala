@@ -1,8 +1,9 @@
 package org.hdm.core.io.netty
 
-import org.hdm.core.executor.HDMContext
+import org.hdm.core.context.HDMContext
 import org.hdm.core.message.QueryBlockMsg
 import org.hdm.core.serializer.JavaSerializer
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.{Block, HDMBlockManager}
 import org.junit.{After, Before, Test}
 
@@ -14,7 +15,7 @@ import scala.collection.mutable.ArrayBuffer
 class Netty4Test {
 
   val serializer = new JavaSerializer(HDMContext.defaultConf).newInstance()
-  val compressor = HDMContext.defaultHDMContext.getCompressor()
+  val compressor = HDMServerContext.defaultContext.getCompressor()
   val blockServer = new NettyBlockServer(9091,
     4,
     HDMBlockManager(),

@@ -1,6 +1,6 @@
 package org.hdm.core.server
 
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.context.AppContext
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
 
@@ -42,7 +42,7 @@ object JobRunningTest{
 
   import ExecutionContext.Implicits.global
 
-  val hDMContext = HDMContext.defaultHDMContext
+  val hDMContext = HDMServerContext.defaultContext
 
   val appContext = new AppContext()
 

@@ -4,7 +4,8 @@ import java.io.File
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.executor.HDMContext
+import org.hdm.core.context.HDMContext
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.utils.Logging
 
 import scala.util.Try
@@ -74,7 +75,7 @@ object HDMServer extends Logging {
     })
 
 //    val hDMContext = new HDMContext(defaultConf)
-    val hDMContext = HDMContext.defaultHDMContext
+    val hDMContext = HDMServerContext.defaultContext
 
     if (isMaster){
       log.info(s"starting master at $host:$port, with mode: $mode, " +

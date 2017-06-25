@@ -1,7 +1,8 @@
 package org.hdm.core.io.netty
 
-import org.hdm.core.executor.HDMContext
+import org.hdm.core.context.HDMContext
 import org.hdm.core.serializer.JavaSerializer
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.HDMBlockManager
 import org.junit.{After, Before, Test}
 
@@ -11,7 +12,7 @@ import org.junit.{After, Before, Test}
 class NettyServerTest {
 
   val serializer = new JavaSerializer(HDMContext.defaultConf).newInstance()
-  val compressor = HDMContext.defaultHDMContext.getCompressor()
+  val compressor = HDMServerContext.defaultContext.getCompressor()
   val blockServer = new NettyBlockServer(9091,
     4,
     HDMBlockManager(),

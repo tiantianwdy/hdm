@@ -3,7 +3,7 @@ package org.hdm.core.scheduling
 import java.util.concurrent._
 
 import akka.actor.ActorSystem
-import org.hdm.core.executor.{ClusterExecutor, HDMContext, Partitioner, ParallelTask}
+import org.hdm.core.executor.{ClusterExecutor, Partitioner, ParallelTask}
 import org.hdm.core.functions.ParallelFunction
 import org.hdm.core.io.Path
 import org.hdm.core.model.{DDM, ParHDM, DFM, HDM}
@@ -31,7 +31,7 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
                             val dependencyManager:DependencyManager,
                             val planner: MultiClusterPlaner,
                             override val schedulingPolicy:SchedulingPolicy,
-                            val hDMContext: HDMContext)
+                            val hDMContext: HDMServerContext)
                            (implicit override val executorService:ExecutionContext)
                             extends AdvancedScheduler(blockManager,
                                                       promiseManager,
@@ -67,9 +67,9 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
 
     val start = System.currentTimeMillis()
     val plans = schedulingPolicy.plan(tasks, candidates,
-      HDMContext.defaultHDMContext.SCHEDULING_FACTOR_CPU,
-      HDMContext.defaultHDMContext.SCHEDULING_FACTOR_IO ,
-      HDMContext.defaultHDMContext.SCHEDULING_FACTOR_NETWORK)
+      HDMServerContext.defaultContext.SCHEDULING_FACTOR_CPU,
+      HDMServerContext.defaultContext.SCHEDULING_FACTOR_IO ,
+      HDMServerContext.defaultContext.SCHEDULING_FACTOR_NETWORK)
     val end = System.currentTimeMillis() - start
     totalScheduleTime.addAndGet(end)
 

@@ -1,9 +1,10 @@
 package org.hdm.core.examples
 
-import org.hdm.core.executor.HDMContext
-import org.hdm.core.executor.HDMContext._
+import org.hdm.core.context.{HDMAppContext, HDMContext}
+import HDMContext._
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
+import org.hdm.core.server.HDMServerContext
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -11,6 +12,7 @@ import scala.util.{Failure, Success}
 
 /**
  * consider the input is text files with columns separated by ","
+ *
  * @param context context for running this benchmark
  * @param kIndex
  * @param vIndex
@@ -18,7 +20,7 @@ import scala.util.{Failure, Success}
 class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vIndex:Int = 1) extends  Serializable{
 
    def init(context:String, localCores:Int = 0): HDMContext ={
-     val hDMContext = HDMContext.defaultHDMContext
+     val hDMContext = HDMAppContext.defaultContext
      hDMContext.init(leader = context, slots = localCores)
      Thread.sleep(100)
      hDMContext

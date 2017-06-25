@@ -1,7 +1,8 @@
 package org.hdm.core.model
 
 import akka.actor.FSM.NullFunction
-import org.hdm.core.executor.{RandomPartitioner, HDMContext, Partitioner, Context}
+import org.hdm.core.context.HDMContext
+import org.hdm.core.executor.{RandomPartitioner, Partitioner}
 import org.hdm.core.functions.{NullParFunc, ParUnionFunc, NullFunc, ParallelFunction}
 import org.hdm.core.io.Path
 import org.hdm.core.storage.BlockState
@@ -38,7 +39,7 @@ abstract class ParHDM[T:ClassTag, R:ClassTag]() extends  HDM[R] {
 
   def repeat(num:Int, f: ParHDM[_,R] => Any): Unit = ???
 
-  def repeatWhile(condition: (ParHDM[_,R], Context) => Boolean, f: (ParHDM[T,R], Context) => Any): Unit = ???
+  def repeatWhile(condition: (ParHDM[_,R], HDMContext) => Boolean, f: (ParHDM[T,R], HDMContext) => Any): Unit = ???
 
   // function alias
 

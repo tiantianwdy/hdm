@@ -4,8 +4,9 @@ import java.nio.ByteBuffer
 import java.util.UUID
 
 import _root_.io.netty.buffer.{ByteBuf, Unpooled}
+import org.hdm.core.context.HDMContext
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.{Arr, Blk}
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.message.FetchSuccessResponse
 import org.hdm.core.serializer.{DefaultJSerializer, SerializerInstance}
 

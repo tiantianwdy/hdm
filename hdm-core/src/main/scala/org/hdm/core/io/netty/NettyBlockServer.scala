@@ -5,19 +5,15 @@ import java.util.concurrent.TimeUnit
 
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.buffer.ByteBufAllocator
+import io.netty.channel._
 import io.netty.channel.nio.NioEventLoopGroup
 import io.netty.channel.socket.SocketChannel
 import io.netty.channel.socket.nio.NioServerSocketChannel
-import io.netty.channel._
-import io.netty.handler.codec.LengthFieldBasedFrameDecoder
-import io.netty.handler.codec.protobuf.{ProtobufDecoder, ProtobufEncoder}
-import io.netty.handler.codec.string.StringDecoder
 import io.netty.util.ReferenceCountUtil
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.io.CompressionCodec
 import org.hdm.core.message.QueryBlockMsg
 import org.hdm.core.serializer.SerializerInstance
-import org.hdm.core.storage.{HDMBlockManager, BlockManager, Block}
+import org.hdm.core.storage.HDMBlockManager
 import org.hdm.core.utils.Logging
 
 /**

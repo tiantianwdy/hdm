@@ -1,10 +1,10 @@
 package org.hdm.core.planing
 
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.functions.{NullFunc, ParUnionFunc, ParallelFunction}
 import org.hdm.core.io.{DataParser, Path}
 import org.hdm.core.model._
 import org.hdm.core.scheduling.Scheduler
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.HDMBlockManager
 import org.hdm.core.utils.Logging
 
@@ -31,7 +31,7 @@ trait PhysicalPlanner extends Serializable{
  * {id of the ith block of a dfm } := dfm.id + "_b" + i
  *
  */
-class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hDMContext: HDMContext) extends PhysicalPlanner with Logging{
+class DefaultPhysicalPlanner(blockManager: HDMBlockManager, isStatic:Boolean, hDMContext: HDMServerContext) extends PhysicalPlanner with Logging{
 
   def resourceManager = hDMContext.getServerBackend().resourceManager
 

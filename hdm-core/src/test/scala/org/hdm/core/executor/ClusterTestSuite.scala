@@ -3,6 +3,8 @@ package org.hdm.core.executor
 import java.util.concurrent.TimeUnit
 
 import com.typesafe.config.ConfigFactory
+import org.hdm.core.context.{HDMAppContext, AppContext}
+import org.hdm.core.server.HDMServerContext
 import org.junit.{After, Before}
 
 import scala.concurrent.duration.Duration
@@ -54,9 +56,11 @@ trait ClusterTestSuite {
 
   implicit val maxWaitResponseTime = Duration(20, TimeUnit.SECONDS)
 
-  val hDMContext = HDMContext.defaultHDMContext
+  val hDMContext = HDMServerContext.defaultContext
 
   val appContext = new AppContext()
+
+  HDMAppContext.defaultContext.clusterExecution.set(false)
 
 
 }

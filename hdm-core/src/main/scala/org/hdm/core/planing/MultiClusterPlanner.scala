@@ -1,7 +1,7 @@
 package org.hdm.core.planing
 
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.model.HDM
+import org.hdm.core.server.HDMServerContext
 
 import scala.collection.mutable
 
@@ -15,11 +15,11 @@ trait MultiClusterPlaner extends HDMPlaner {
 
   def plan(hdm:HDM[_], parallelism:Int):HDMPlans
 
-  def hDMcontext:HDMContext
+  def hDMcontext:HDMServerContext
 
 }
 
-class StaticMultiClusterPlanner(hdmPlanner:HDMPlaner, val hDMcontext: HDMContext) extends MultiClusterPlaner {
+class StaticMultiClusterPlanner(hdmPlanner:HDMPlaner, val hDMcontext: HDMServerContext) extends MultiClusterPlaner {
 
   override def planStages(hdm: HDM[_], parallelism: Int): Seq[JobStage] = {
     val context = hDMcontext.leaderPath.get()

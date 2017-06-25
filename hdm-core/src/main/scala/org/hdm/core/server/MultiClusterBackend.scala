@@ -1,9 +1,10 @@
 package org.hdm.core.server
 
-import org.hdm.core.executor.{ParallelTask, HDMContext}
+import org.hdm.core.executor.ParallelTask
 import org.hdm.core.model.{HDM, ParHDM}
 import org.hdm.core.planing.{MultiClusterPlaner, HDMPlaner}
 import org.hdm.core.scheduling.{MultiClusterScheduler}
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.HDMBlockManager
 
 import scala.concurrent.{Promise, Future}
@@ -17,7 +18,7 @@ class MultiClusterBackend (val blockManager: HDMBlockManager,
                            override val resourceManager: MultiClusterResourceManager,
                            val eventManager: PromiseManager,
                            val dependencyManager:DependencyManager,
-                           val hDMContext: HDMContext) extends ServerBackend {
+                           val hDMContext: HDMServerContext) extends ServerBackend {
 
 
   def init(): Unit = {

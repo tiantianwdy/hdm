@@ -1,7 +1,7 @@
 package org.hdm.core.planing
 
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.model._
+import org.hdm.core.server.HDMServerContext
 
 /**
  * Created by tiantian on 7/01/15.

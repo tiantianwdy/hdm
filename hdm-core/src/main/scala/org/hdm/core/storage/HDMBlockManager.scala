@@ -5,7 +5,7 @@ import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.concurrent.{BlockingQueue, ConcurrentHashMap}
 
 import org.hdm.akka.monitor.SystemMonitorService
-import org.hdm.core.executor.HDMContext
+import org.hdm.core.context.{HDMAppContext, HDMContext}
 import org.hdm.core.io.netty.{NettyBlockServer, NettyConnectionManager}
 import org.hdm.core.io.{DataParser, Path}
 import org.hdm.core.message.{FetchSuccessResponse, QueryBlockMsg}
@@ -178,10 +178,10 @@ class DefaultHDMBlockManager(hDMContext: HDMContext) extends HDMBlockManager wit
 
 object HDMBlockManager extends Logging{
 
-  var defaultManager = new DefaultHDMBlockManager(HDMContext.defaultHDMContext) // todo change to loading according to the config
+  var defaultManager = new DefaultHDMBlockManager(HDMAppContext.defaultContext) // todo change to loading according to the config
 
   var defaultBlockServer =  {
-    val hDMContext = HDMContext.defaultHDMContext
+    val hDMContext = HDMAppContext.defaultContext
     val compressor = if (hDMContext.BLOCK_COMPRESS_IN_TRANSPORTATION) hDMContext.compressor
     else null
     new NettyBlockServer(hDMContext.NETTY_BLOCK_SERVER_PORT,
@@ -193,7 +193,7 @@ object HDMBlockManager extends Logging{
 
 
   def localBlockServerAddress:String = {
-    val localAddr = new InetSocketAddress(NettyConnectionManager.localHost, HDMContext.defaultHDMContext.NETTY_BLOCK_SERVER_PORT)
+    val localAddr = new InetSocketAddress(NettyConnectionManager.localHost, HDMAppContext.defaultContext.NETTY_BLOCK_SERVER_PORT)
     localAddr.getHostString  + ":" + localAddr.getPort
   }
 

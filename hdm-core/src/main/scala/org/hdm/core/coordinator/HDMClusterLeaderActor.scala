@@ -5,11 +5,11 @@ import java.nio.ByteBuffer
 import akka.actor.ActorPath
 import org.hdm.akka.actors.worker.WorkActor
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.executor.HDMContext
+import org.hdm.core.context.HDMContext
 import org.hdm.core.io.Path
 import org.hdm.core.message._
 import org.hdm.core.model.{HDMInfo, HDM}
-import org.hdm.core.server.ServerBackend
+import org.hdm.core.server.{HDMServerContext, ServerBackend}
 
 import scala.collection.mutable
 import scala.concurrent.ExecutionContext
@@ -18,10 +18,10 @@ import scala.util.{Failure, Success}
 /**
  * Created by tiantian on 7/09/15.
  */
-class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hDMContext:HDMContext) extends WorkActor {
+class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hDMContext:HDMServerContext) extends WorkActor {
 
   def this(cores:Int) {
-    this(HDMContext.defaultHDMContext.getServerBackend(), cores, HDMContext.defaultHDMContext)
+    this(HDMServerContext.defaultContext.getServerBackend(), cores, HDMServerContext.defaultContext)
   }
 
   implicit val executorService: ExecutionContext = hDMContext.executionContext
@@ -136,6 +136,7 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
   }
   /**
    * handle dependency related msg
+ *
    * @return
    */
   protected def processDepMsg: PartialFunction[DependencyMsg, Unit] = {
@@ -160,7 +161,7 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
 
   /**
    * handle coordination messages
- *
+   *
    * @return
    */
   protected def processClusterMsg: PartialFunction[CoordinatingMsg, Unit] = {
@@ -183,7 +184,7 @@ class HDMClusterLeaderActor(val hdmBackend:ServerBackend, val cores:Int , val hD
 
   /**
    * handle Scheduling messages
- *
+   *
    * @return
    */
   protected def processScheduleMsg: PartialFunction[SchedulingMsg, Unit] = {

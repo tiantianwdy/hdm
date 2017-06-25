@@ -1,11 +1,10 @@
 package org.hdm.core.examples
 
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.context.{HDMContext, HDMAppContext, AppContext}
 import org.junit.Test
 import org.hdm.core.message.{AddHDMsMsg, SerializedJobMsg}
 import org.hdm.core.model.ParHDM
-import org.hdm.core.serializer.SerializableByteBuffer
 import scala.concurrent.{Promise, ExecutionContext}
 import ExecutionContext.Implicits.global
 
@@ -15,7 +14,7 @@ import ExecutionContext.Implicits.global
 class RemoteDependencySubmitTest {
 
   type Benchmark = org.hdm.core.benchmark.KVBasedPrimitiveBenchmark
-  val hDMContext = HDMContext.defaultHDMContext
+  val hDMContext = HDMAppContext.defaultContext
   val appContext = AppContext.defaultAppContext
 
   @Test

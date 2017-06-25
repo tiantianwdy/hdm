@@ -3,8 +3,10 @@ package org.hdm.core.executor
 import java.util.concurrent.Callable
 
 import org.hdm.core._
+import org.hdm.core.context.{BlockContext, AppContext}
 import org.hdm.core.functions.SerializableFunction
 import org.hdm.core.model.{HDMInfo, HDM, DDM, DataDependency}
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.utils.Logging
 
 import scala.reflect.ClassTag
@@ -41,9 +43,9 @@ abstract class ParallelTask [R : ClassTag] extends Serializable with Callable[Se
   var blockContext:BlockContext
 
   @transient
-  protected var hdmContext: HDMContext = HDMContext.defaultHDMContext
+  protected var hdmContext: HDMServerContext = HDMServerContext.defaultContext
 
-  def setHDMContext(hdmContext: HDMContext): ParallelTask[R] ={
+  def setHDMContext(hdmContext: HDMServerContext): ParallelTask[R] ={
     this.hdmContext = hdmContext
     this
   }

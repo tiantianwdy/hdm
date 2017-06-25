@@ -1,16 +1,17 @@
 package org.hdm.core.planing
 
+import org.hdm.core.context.{HDMContext, AppContext}
 import org.hdm.core.examples.KVBasedPrimitiveBenchmark
-import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
+import org.hdm.core.server.HDMServerContext
 import org.junit.Test
 /**
  * Created by tiantian on 12/05/16.
  */
 class MultiClusterPlanningTest {
 
-  val hDMContext = HDMContext.defaultHDMContext
+  val hDMContext = HDMServerContext.defaultContext
 
   val master1 = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
   val master2 = "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster"

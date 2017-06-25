@@ -1,9 +1,9 @@
 package org.hdm.core.io.netty
 
 import java.nio.ByteBuffer
-
-import org.hdm.core.executor.HDMContext
+import org.hdm.core.context.HDMContext
 import org.hdm.core.serializer.JavaSerializer
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.Block
 import org.junit.Test
 

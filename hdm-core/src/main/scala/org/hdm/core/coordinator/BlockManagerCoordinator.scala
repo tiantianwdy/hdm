@@ -4,8 +4,9 @@ import akka.actor.ActorPath
 import akka.pattern._
 
 import org.hdm.akka.actors.worker.WorkActor
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.context.{HDMContext, AppContext}
 import org.hdm.core.io.{HDMIOManager, Path}
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.{Computed, HDMBlockManager}
 import org.hdm.core.message._
 import org.hdm.core.model.{ParHDM, DDM}
@@ -27,7 +28,7 @@ class BlockManagerLeader extends WorkActor {
 
   val ioManager = HDMIOManager()
 
-  val hDMContext = HDMContext.defaultHDMContext
+  val hDMContext = HDMServerContext.defaultContext
 
   val followerMap: java.util.Map[String, AtomicInteger] = new ConcurrentHashMap[String, AtomicInteger]
 
@@ -120,7 +121,7 @@ class BlockManagerLeader extends WorkActor {
 
 class BlockManagerFollower(val leaderPath: String) extends WorkActor {
 
-  val hDMContext = HDMContext.defaultHDMContext
+  val hDMContext = HDMServerContext.defaultContext
 
   val blockManager = HDMBlockManager()
 

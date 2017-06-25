@@ -11,7 +11,7 @@ import org.hdm.core.functions.{ParUnionFunc, ParallelFunction}
 import org.hdm.core.io.Path
 import org.hdm.core.message.AddTaskMsg
 import org.hdm.core.model._
-import org.hdm.core.server.{PromiseManager, ResourceManager}
+import org.hdm.core.server.{HDMServerContext, PromiseManager, ResourceManager}
 import org.hdm.core.storage.{Computed, HDMBlockManager}
 import org.hdm.core.utils.Logging
 
@@ -121,7 +121,7 @@ class DefScheduler(val blockManager:HDMBlockManager,
           dep = h.dependency,
           partitioner = h.partitioner.asInstanceOf[Partitioner[h.outType.type]],
           appContext = hdm.appContext,
-          blockContext = HDMContext.defaultHDMContext.blockContext())
+          blockContext = HDMServerContext.defaultContext.blockContext())
         addTask(task)
       }
     }.last.future
@@ -137,7 +137,7 @@ class DefScheduler(val blockManager:HDMBlockManager,
         ddm.copy(state = Computed)
     }
     blockManager.addRef(ref)
-    HDMContext.defaultHDMContext.declareHdm(Seq(ref))
+    HDMServerContext.defaultContext.declareHdm(Seq(ref))
     log.info(s"A task is succeeded : [${taskId + "_" + func}}] ")
     val promise = promiseManager.removePromise(taskId).asInstanceOf[Promise[ParHDM[_, _]]]
     if (promise != null && !promise.isCompleted ){

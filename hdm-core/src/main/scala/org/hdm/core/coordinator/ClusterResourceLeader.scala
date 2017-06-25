@@ -3,16 +3,17 @@ package org.hdm.core.coordinator
 import java.util.concurrent.{ConcurrentHashMap, TimeUnit}
 
 import akka.util.Timeout
+import org.hdm.core.context.HDMContext
 
 import scala.collection.JavaConversions._
 import akka.pattern._
 import akka.remote.{DisassociatedEvent, RemotingLifecycleEvent}
 import org.hdm.akka.actors.worker.WorkActor
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.executor.{ExecutorLauncher, HDMContext}
+import org.hdm.core.executor.ExecutorLauncher
 import org.hdm.core.io.Path
 import org.hdm.core.message._
-import org.hdm.core.server.{HDMServerBackend, ServerBackend, SingleResourceManager}
+import org.hdm.core.server.{HDMServerContext, ServerBackend, SingleResourceManager}
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.util.{Failure, Success, Try}
@@ -22,7 +23,7 @@ import scala.concurrent.duration.{Duration, DurationInt}
 /**
   * Created by tiantian on 10/05/17.
   */
-class ClusterResourceLeader(hdmBackend:ServerBackend, val hDMContext:HDMContext, val clusterMode:String = "single-cluster", val appMasterMode:String = "stand-alone") extends WorkActor
+class ClusterResourceLeader(hdmBackend:ServerBackend, val hDMContext:HDMServerContext, val clusterMode:String = "single-cluster", val appMasterMode:String = "stand-alone") extends WorkActor
   with DepMsgReceiver
   with SchedulingMsgReceiver
   with CoordinationReceiver
@@ -43,7 +44,7 @@ class ClusterResourceLeader(hdmBackend:ServerBackend, val hDMContext:HDMContext,
 
 
   def this() {
-    this(HDMContext.defaultHDMContext.getServerBackend(), HDMContext.defaultHDMContext)
+    this(HDMServerContext.defaultContext.getServerBackend(), HDMServerContext.defaultContext)
   }
 
 

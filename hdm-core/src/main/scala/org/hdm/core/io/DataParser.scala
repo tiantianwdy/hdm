@@ -5,12 +5,13 @@ import java.util.concurrent.TimeUnit
 
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileSystem
-import org.hdm.core.executor.{AppContext, HDMContext}
+import org.hdm.core.context.AppContext
 import org.hdm.core.functions.NullFunc
 import org.hdm.core.io.hdfs.HDFSUtils
 import org.hdm.core.io.http.HTTPDataParser
 import org.hdm.core.io.reader.BlockReader
 import org.hdm.core.model.{DDM, HDMInfo}
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.{Block, HDMBlockManager}
 import org.hdm.core.utils.Logging
 import org.hdm.core.{Arr, Buf}
@@ -52,7 +53,7 @@ object DataParser extends Logging{
     * @param appContext
     * @return
     */
-  def explainBlocks(path:Path, hDMContext: HDMContext, appContext:AppContext = AppContext()): Seq[DDM[String,String]] = {
+  def explainBlocks(path:Path, hDMContext: HDMServerContext, appContext:AppContext = AppContext()): Seq[DDM[String,String]] = {
     path.protocol match {
       case "hdm://" =>
         Seq(new DDM(id = path.name, location = path, func = new NullFunc[String], appContext = appContext, blocks = mutable.Buffer(hDMContext.localBlockPath + "/" + path.name)))

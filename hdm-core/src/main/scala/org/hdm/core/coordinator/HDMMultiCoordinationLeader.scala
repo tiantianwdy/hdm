@@ -3,18 +3,17 @@ package org.hdm.core.coordinator
 import java.nio.ByteBuffer
 import java.util.concurrent.{TimeUnit, ConcurrentHashMap}
 
-import akka.actor.ActorPath
 import akka.util.Timeout
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.executor.{ParallelTask, HDMContext}
+import org.hdm.core.context.HDMContext
+import org.hdm.core.executor.ParallelTask
 import org.hdm.core.io.Path
 import org.hdm.core.message._
 import org.hdm.core.model.{HDMInfo, HDM}
-import org.hdm.core.server.{MultiClusterBackend, ServerBackend}
+import org.hdm.core.server.{HDMServerContext, MultiClusterBackend}
 
 import scala.collection.mutable
 import scala.concurrent.Await
-import scala.concurrent.duration.Duration
 import scala.util.{Failure, Success}
 import scala.collection.JavaConversions._
 
@@ -31,7 +30,7 @@ import scala.collection.JavaConversions._
  */
 class HDMMultiCoordinationLeader(override val hdmBackend:MultiClusterBackend,
                                  override val cores:Int,
-                                 override val hDMContext:HDMContext)
+                                 override val hDMContext:HDMServerContext)
                             extends AbstractHDMLeader(hdmBackend, cores, hDMContext)
                             with MultiClusterQueryReceiver
                             with MultiCLusterDepReceiver
@@ -41,7 +40,7 @@ class HDMMultiCoordinationLeader(override val hdmBackend:MultiClusterBackend,
 
 
   def this(cores: Int) {
-    this(HDMContext.defaultHDMContext.getServerBackend("multiple").asInstanceOf[MultiClusterBackend], cores, HDMContext.defaultHDMContext)
+    this(HDMServerContext.defaultContext.getServerBackend("multiple").asInstanceOf[MultiClusterBackend], cores, HDMServerContext.defaultContext)
   }
 
 }

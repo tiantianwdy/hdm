@@ -1,12 +1,14 @@
 package org.hdm.core.benchmark
 
-import org.hdm.core.executor.{AppContext, HDMContext}
-import org.hdm.core.executor.HDMContext._
+import org.hdm.core.context.HDMContext
+import HDMContext._
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
+import org.hdm.core.server.HDMServerContext
 
 /**
  * consider the input is text files with columns separated by ","
+ *
  * @param context context for running this benchmark
  * @param kIndex
  * @param vIndex
@@ -14,7 +16,7 @@ import org.hdm.core.model.HDM
 class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vIndex:Int = 1) extends  Serializable{
 
    def init(context:String, localCores:Int = 0): Unit ={
-     val hDMContext = HDMContext.defaultHDMContext
+     val hDMContext = HDMServerContext.defaultContext
      hDMContext.init(leader = context, slots = localCores)
      Thread.sleep(100)
      hDMContext

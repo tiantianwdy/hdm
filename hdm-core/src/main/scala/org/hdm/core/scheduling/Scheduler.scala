@@ -11,7 +11,7 @@ import org.hdm.core.functions.{ParUnionFunc, ParallelFunction}
 import org.hdm.core.io.{AkkaIOManager, Path}
 import org.hdm.core.message.AddTaskMsg
 import org.hdm.core.model._
-import org.hdm.core.server.AppManager
+import org.hdm.core.server.{HDMServerContext, AppManager}
 import org.hdm.core.storage.{Computed, HDMBlockManager}
 import org.hdm.core.utils.Logging
 
@@ -57,7 +57,7 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
 
   import scala.collection.JavaConversions._
 
-  val hdmContext = HDMContext.defaultHDMContext
+  val hdmContext = HDMServerContext.defaultContext
 
   val blockManager = HDMBlockManager() //todo get from HDMContext
 
@@ -203,7 +203,7 @@ class SimpleActorBasedScheduler(val candidatesMap: java.util.Map[String, AtomicI
           dep = h.dependency,
           partitioner = h.partitioner.asInstanceOf[Partitioner[h.outType.type]],
           appContext = hdm.appContext,
-          blockContext = HDMContext.defaultHDMContext.blockContext())
+          blockContext = HDMServerContext.defaultContext.blockContext())
         addTask(task)
      }
     }.last.future

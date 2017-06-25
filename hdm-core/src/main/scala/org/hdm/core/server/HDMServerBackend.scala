@@ -1,9 +1,10 @@
 package org.hdm.core.server
 
-import org.hdm.core.executor.{HDMContext, ParallelTask}
+import org.hdm.core.executor.ParallelTask
 import org.hdm.core.model.{HDM, ParHDM}
 import org.hdm.core.planing.HDMPlaner
 import org.hdm.core.scheduling.Scheduler
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.HDMBlockManager
 
 import scala.concurrent.{Future, Promise}
@@ -17,7 +18,7 @@ class HDMServerBackend(val blockManager: HDMBlockManager,
                        val resourceManager: ResourceManager,
                        val eventManager: PromiseManager,
                        val dependencyManager:DependencyManager,
-                       val hDMContext: HDMContext) extends ServerBackend {
+                       val hDMContext: HDMServerContext) extends ServerBackend {
 
 
 

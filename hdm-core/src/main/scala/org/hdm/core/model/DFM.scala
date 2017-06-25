@@ -1,5 +1,6 @@
 package org.hdm.core.model
 
+import org.hdm.core.context.{HDMContext, AppContext}
 import org.hdm.core.executor._
 import org.hdm.core.functions._
 import org.hdm.core.io.Path
@@ -12,20 +13,20 @@ import org.hdm.core.storage.{Declared, BlockState, BlockRef}
  * Created by Tiantian on 2014/5/25.
  */
 case class DFM[T: ClassTag, R: ClassTag](val children: Seq[_ <: HDM[T]],
-                                       val id: String = HDMContext.newClusterId(),
-                                       val dependency: DataDependency = OneToOne,
-                                       val func: ParallelFunction[T, R] = null,
-                                       val blocks: Seq[String] = null,
-                                       val distribution: Distribution = Horizontal,
-                                       val location: Path,
-                                       val preferLocation:Path = null,
-                                       var blockSize:Long = -1,
-                                       var isCache:Boolean = false,
-                                       val state: BlockState = Declared,
-                                       var parallelism: Int = -1, // undefined
-                                       val keepPartition:Boolean = true,
-                                       val partitioner: Partitioner[R] = new KeepPartitioner[R](1),
-                                       val appContext:AppContext) extends ParHDM[T, R]{
+                                         val id: String = HDMContext.newClusterId(),
+                                         val dependency: DataDependency = OneToOne,
+                                         val func: ParallelFunction[T, R] = null,
+                                         val blocks: Seq[String] = null,
+                                         val distribution: Distribution = Horizontal,
+                                         val location: Path,
+                                         val preferLocation:Path = null,
+                                         var blockSize:Long = -1,
+                                         var isCache:Boolean = false,
+                                         val state: BlockState = Declared,
+                                         var parallelism: Int = -1, // undefined
+                                         val keepPartition:Boolean = true,
+                                         val partitioner: Partitioner[R] = new KeepPartitioner[R](1),
+                                         val appContext:AppContext) extends ParHDM[T, R]{
 
 
 

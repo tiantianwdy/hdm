@@ -5,9 +5,10 @@ import java.util.concurrent.atomic.AtomicInteger
 
 import org.hdm.akka.actors.worker.WorkActor
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.executor.{BlockContext, ParallelTask, ClusterExecutor, HDMContext}
+import org.hdm.core.context.{HDMContext, BlockContext}
+import org.hdm.core.executor.{ParallelTask, ClusterExecutor}
 import org.hdm.core.message._
-import org.hdm.core.server.DependencyManager
+import org.hdm.core.server.{HDMServerContext, DependencyManager}
 import org.hdm.core.storage.HDMBlockManager
 
 import scala.beans.BeanProperty
@@ -27,7 +28,7 @@ class HDMClusterWorkerActor(var leaderPath: String, slots:Int, blockContext: Blo
     this(params.master, params.slots, params.blockContext)
   }
 
-  implicit val executorService: ExecutionContext = HDMContext.defaultHDMContext.executionContext
+  implicit val executorService: ExecutionContext = HDMServerContext.defaultContext.executionContext
 
   val dependencyManager = DependencyManager()
 
@@ -66,7 +67,7 @@ class HDMClusterWorkerActor(var leaderPath: String, slots:Int, blockContext: Blo
     log.info(s"received a task: ${task.taskId + "_" + task.func}")
     runningTasks.incrementAndGet()
     val startTime = System.currentTimeMillis()
-    val future = if(!HDMContext.defaultHDMContext.mockExecution) {
+    val future = if(!HDMServerContext.defaultContext.mockExecution) {
       ClusterExecutor.runTask(task.setBlockContext(this.blockContext))
     } else {
       ClusterExecutor.runMockTask(task.setBlockContext(this.blockContext))

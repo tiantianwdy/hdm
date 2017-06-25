@@ -3,26 +3,24 @@ package org.hdm.core.server
 import org.hdm.akka.configuration.ActorConfig
 import org.hdm.akka.messages.{Reply, Query}
 import org.hdm.akka.server.SmsSystem
+import org.hdm.core.context.{HDMAppContext, AppContext}
+import org.hdm.core.executor.ClusterTestSuite
 import org.junit.{After, Before, Test}
-import org.hdm.core.executor.{AppContext, HDMContext}
 import org.hdm.core.io.Path
 import org.hdm.core.message._
 
 /**
  * Created by tiantian on 8/04/16.
  */
-class ServerQueryTest {
-
-  val hDMContext = HDMContext.defaultHDMContext
-
-  val appContext = new AppContext()
+class ServerQueryTest extends ClusterTestSuite {
 
   val masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster/ClusterExecutor"
 
   @Before
   def beforeTest(): Unit ={
-    hDMContext.init()
-    appContext.setMasterPath(masterPath)
+    HDMAppContext.defaultContext.clusterExecution.set(true)
+    hDMContext.startAsClusterMaster()
+    appContext.setMasterPath("akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
     Thread.sleep(1000)
   }
 

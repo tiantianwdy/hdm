@@ -1,7 +1,7 @@
 package org.hdm.core.benchmark
 
-import org.hdm.core.executor.HDMContext
-import org.hdm.core.executor.HDMContext._
+import org.hdm.core.context.{HDMContext, HDMAppContext}
+import HDMContext._
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
 
@@ -11,7 +11,7 @@ import org.hdm.core.model.HDM
 class UservisitsSQLBenchmark extends Serializable {
 
   def init(context:String, localCores:Int = 0): Unit ={
-    val hDMContext = HDMContext.defaultHDMContext
+    val hDMContext = HDMAppContext.defaultContext
     hDMContext.init(leader = context, slots = localCores)
     Thread.sleep(100)
     hDMContext

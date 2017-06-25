@@ -2,10 +2,9 @@ package org.hdm.core.io
 
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.concurrent.{LinkedBlockingDeque, Semaphore}
-
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.message.FetchSuccessResponse
 import org.hdm.core.model.HDM
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.{Block, HDMBlockManager}
 import org.hdm.core.utils.Logging
 
@@ -15,6 +14,7 @@ import scala.reflect.ClassTag
 /**
  * This iterator is used to read a set of distributed DDMs but acts as a local iterator
  * implemented as a cycle buffer with size factor
+ *
  * @param bufferSize
  * @param blockRefs
  * @tparam A
@@ -117,7 +117,7 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path],
     val block = received match {
       case resp:FetchSuccessResponse =>
         log.trace(s"Class loader: ${classLoader}")
-        HDMContext.defaultHDMContext.defaultSerializer.deserialize[Block[A]](resp.data, classLoader)
+        HDMServerContext.defaultContext.defaultSerializer.deserialize[Block[A]](resp.data, classLoader)
       case blk: Block[_] =>
         blk.asInstanceOf[Block[A]]
       case x:Any => Block(Seq.empty[A])

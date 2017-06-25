@@ -1,11 +1,11 @@
 package org.hdm.core.benchmark
 
+import org.hdm.core.context.{HDMAppContext, HDMContext, AppContext}
 import org.hdm.core.examples.{IterationBenchmark, KVBasedPrimitiveBenchmark, UservisitsSQLBenchmark}
-import org.hdm.core.executor.HDMContext._
-import org.hdm.core.executor.{AppContext, HDMContext}
+import HDMContext._
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
-import org.junit.{Ignore, After, Test}
+import org.junit.{Before, Ignore, After, Test}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent._
@@ -34,24 +34,24 @@ class TechfestDemo {
         this is line 7
     """.split("\\s+")
 
-  val hDMContext = HDMContext.defaultHDMContext
+  val hDMContext = HDMAppContext.defaultContext
   val appContext = AppContext.defaultAppContext
+  val master = "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster"
+  val parallelism = 1
 
-  appContext.setMasterPath("akka.tcp://masterSys@172.18.0.1:8998/user/smsMaster")
+  appContext.setMasterPath(master)
 
-
-  @Test
-  def testStartSlave(): Unit = {
-//    hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
-    hDMContext.startAsSlave(masterPath = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
-    Thread.sleep(50000000)
+  @Before
+  def beforeTest(): Unit ={
+    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
+    hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster")
+    Thread.sleep(1000)
   }
 
 
   @Test
   def testHDFSExecution(): Unit = {
-    hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster")
-    Thread.sleep(1000)
+
     val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings")
 //    val path = Path("hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits")
     val hdm = HDM(path)
@@ -74,12 +74,9 @@ class TechfestDemo {
 
   @Test
   def testIterations(): Unit ={
-    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
-    val parallelism = 2
-    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    hDMContext.init(leader = context)
     Thread.sleep(1500)
 
     val benchmark = new IterationBenchmark
@@ -89,22 +86,17 @@ class TechfestDemo {
 
   @Test
   def testPrimitiveBenchMark(): Unit ={
-    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
 //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
-    val parallelism = 1
     val len = 3
 //    val benchmark = new KVBasedPrimitiveBenchmark(context)
-    val benchmark = new KVBasedPrimitiveBenchmark(context = context, kIndex = 0, vIndex = 1)
-    hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    hDMContext.init(leader = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster", slots = 0)
-    Thread.sleep(1500)
+    val benchmark = new KVBasedPrimitiveBenchmark(context = master, kIndex = 0, vIndex = 1)
     val hdm =
 //    benchmark.testGroupBy(data,len, parallelism)
 //    benchmark.testMultipleMap(data,len, parallelism)
 //    benchmark.testMultiMapFilter(data,len, parallelism, "a")
-    benchmark.testFindByKey(data,len, parallelism, "a")
-//    benchmark.testReduceByKey(data,len, parallelism)
+//    benchmark.testFindByKey(data,len, parallelism, "a")
+    benchmark.testReduceByKey(data,len, parallelism)
 //    benchmark.testMap(data,len, parallelism)
 
     onEvent(hdm, "compute")(parallelism)
@@ -133,7 +125,7 @@ class TechfestDemo {
 
   @Test
   def testCache(): Unit ={
-    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+    val context = "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster"
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
     val parallelism = 1
@@ -148,7 +140,7 @@ class TechfestDemo {
 
   @Test
   def testCacheExplain(): Unit ={
-    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+    val context = "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster"
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
     implicit val parallelism = 1
@@ -186,7 +178,7 @@ class TechfestDemo {
 
   @Test
   def testRegression():Unit = {
-    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+    val context = "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster"
     val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
     //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
 //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/1node/weather"

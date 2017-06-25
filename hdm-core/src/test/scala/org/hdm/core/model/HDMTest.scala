@@ -1,7 +1,8 @@
 package org.hdm.core.model
 
-
-import org.hdm.core.executor.{ClusterTestSuite, AppContext, HDMContext}
+import org.hdm.core.context.HDMContext
+import org.hdm.core.executor.ClusterTestSuite
+import org.hdm.core.server.HDMServerContext
 import org.junit.{Before, Test}
 
 import scala.util.Random

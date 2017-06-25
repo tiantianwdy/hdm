@@ -1,10 +1,11 @@
 package org.hdm.core.serializer
 
 import io.netty.buffer.Unpooled
+import org.hdm.core.context.HDMContext
 import org.hdm.core.examples.KVBasedPrimitiveBenchmark
-import org.hdm.core.executor.HDMContext
 import org.hdm.core.functions.ParMapFunc
 import org.hdm.core.model.ParHDM
+import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.Block
 import org.junit.Test
 
