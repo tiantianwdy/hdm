@@ -1,7 +1,6 @@
 package org.hdm.core.functions
 
 import org.hdm.core._
-import org.hdm.core.executor.TaskContext
 import org.hdm.core.model.{FullDep, PartialDep}
 
 import scala.collection.mutable

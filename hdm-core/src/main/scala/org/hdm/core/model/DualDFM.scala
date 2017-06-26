@@ -1,8 +1,7 @@
 package org.hdm.core.model
 
 import org.hdm.core.context.{HDMContext, AppContext}
-import org.hdm.core.executor.{KeepPartitioner, Partitioner}
-import org.hdm.core.functions.{NullDualFunc, DualInputFunction, ParallelFunction}
+import org.hdm.core.functions._
 import org.hdm.core.io.Path
 import org.hdm.core.storage.{Declared, BlockState}
 

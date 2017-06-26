@@ -1,11 +1,9 @@
 package org.hdm.core.model
 
 import org.hdm.core.Arr
-import org.hdm.core.context.{HDMAppContext, HDMContext, AppContext}
-import org.hdm.core.executor._
+import org.hdm.core.context.{HDMEntry, HDMAppContext, HDMContext, AppContext}
 import org.hdm.core.functions._
 import org.hdm.core.io.Path
-import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.BlockState
 import org.hdm.core.utils.{ClosureCleaner, SampleUtils}
 
@@ -21,7 +19,7 @@ import scala.util.{Left, Random}
 abstract class HDM[R: ClassTag] extends Serializable{
 
   @transient
-  var hdmContext: HDMContext = HDMAppContext.defaultContext
+  var hdmContext: HDMContext = HDMContext.defaultContext
 
   @transient
   implicit val executionContext = hdmContext.executionContext //todo to changed to get from dynamic hdm context
@@ -282,7 +280,7 @@ abstract class HDM[R: ClassTag] extends Serializable{
     * @param parallelism parallelism for execution
     * @return
     */
-  def sorted(preSort: Boolean)(implicit ordering: Ordering[R], parallelism: Int): ParHDM[_, R] = {
+  def sorted(preSort: Boolean)(implicit ordering: Ordering[R], parallelism: Int, hDMEntry: HDMEntry): ParHDM[_, R] = {
     val hdm = this.cache()
     val reduceNumber = parallelism * hdmContext.PLANER_PARALLEL_NETWORK_FACTOR
     val sampleSize = (math.min(100.0 * reduceNumber, 1e6) / reduceNumber).toInt
@@ -336,13 +334,13 @@ abstract class HDM[R: ClassTag] extends Serializable{
     * @param parallelism parallelism for execution
     * @return
     */
-  def sortBy(f: (R, R) => Int, preSort: Boolean = false)(implicit parallelism: Int): ParHDM[_, R] = {
+  def sortBy(f: (R, R) => Int, preSort: Boolean = false)(implicit parallelism: Int, hDMEntry: HDMEntry): ParHDM[_, R] = {
     ClosureCleaner(f)
-    val ordering = new Ordering[R] {
+    implicit val ordering = new Ordering[R] {
 
       override def compare(x: R, y: R): Int = f(x, y)
     }
-    sorted(preSort)(ordering, parallelism)
+    sorted(preSort)
   }
 
   def partitionBy(func: R => Int): ParHDM[_, R] = {
@@ -366,7 +364,7 @@ abstract class HDM[R: ClassTag] extends Serializable{
     this
   }
 
-  def zipWithIndex(implicit parallelism: Int): HDM[(Long, R)] = {
+  def zipWithIndex(implicit parallelism: Int, hDMEntry: HDMEntry): HDM[(Long, R)] = {
     import scala.collection.mutable
 
     // get the start indices of each partition
@@ -448,22 +446,22 @@ abstract class HDM[R: ClassTag] extends Serializable{
 
   // actions
 
-  def compute(implicit parallelism: Int): Future[HDM[_]] = hdmContext.compute(this, parallelism)
+  def compute(implicit parallelism: Int, hDMEntry: HDMEntry): Future[HDM[_]] = hDMEntry.compute(this, parallelism)
 
 
-  def traverse(implicit parallelism: Int): Future[Iterator[R]] = {
-    compute(parallelism).map(hdm => HDMAction.traverse[R](hdm))
+  def traverse(implicit parallelism: Int, hDMEntry: HDMEntry): Future[Iterator[R]] = {
+    compute(parallelism, hDMEntry).map(hdm => HDMAction.traverse[R](hdm))
   }
 
-  def collect(maxWaiting: Long = hdmContext.JOB_DEFAULT_WAITING_TIMEOUT)(implicit parallelism: Int): Iterator[R] = {
+  def collect(maxWaiting: Long = hdmContext.JOB_DEFAULT_WAITING_TIMEOUT)(implicit parallelism: Int, hDMEntry: HDMEntry): Iterator[R] = {
     import scala.concurrent.duration._
-    Await.result(traverse(parallelism), maxWaiting millis)
+    Await.result(traverse(parallelism, hDMEntry), maxWaiting millis)
   }
 
 
-  def cached(implicit parallelism: Int, maxWaiting: Long = hdmContext.JOB_DEFAULT_WAITING_TIMEOUT): ParHDM[_, R] = {
+  def cached(implicit parallelism: Int, hDMEntry: HDMEntry, maxWaiting: Long = hdmContext.JOB_DEFAULT_WAITING_TIMEOUT): ParHDM[_, R] = {
     import scala.concurrent.duration._
-    Await.result(compute(parallelism), maxWaiting millis).asInstanceOf[ParHDM[_, R]]
+    Await.result(compute(parallelism, hDMEntry), maxWaiting millis).asInstanceOf[ParHDM[_, R]]
   }
 
 
@@ -473,35 +471,35 @@ abstract class HDM[R: ClassTag] extends Serializable{
   }
 
 
-  def sample(size: Int, maxWaiting: Long)(implicit parallelism: Int): Iterator[R] = {
+  def sample(size: Int, maxWaiting: Long)(implicit parallelism: Int, hDMEntry: HDMEntry): Iterator[R] = {
     import scala.concurrent.duration._
     Await.result(sample(Right(size)), maxWaiting millis)
   }
 
-  def sample(percentage: Double, maxWaiting: Long)(implicit parallelism: Int): Iterator[R] = {
+  def sample(percentage: Double, maxWaiting: Long)(implicit parallelism: Int, hDMEntry: HDMEntry): Iterator[R] = {
     import scala.concurrent.duration._
     Await.result(sample(Left(percentage)), maxWaiting millis)
   }
 
-  def sample(proportion: Either[Double, Int])(implicit parallelism: Int): Future[Iterator[R]] = {
+  def sample(proportion: Either[Double, Int])(implicit parallelism: Int, hDMEntry: HDMEntry): Future[Iterator[R]] = {
     proportion match {
       case Left(percentage) =>
         val sampleFunc = (in: Arr[R]) => {
           val size = (percentage * in.size).toInt
           Random.shuffle(in).take(size)
         }
-        sample(sampleFunc)(parallelism)
+        sample(sampleFunc)
       case Right(size) =>
         val sizePerPartition = Math.max(1, Math.round(size.toFloat / (parallelism)))
         val sampleFunc = (in: Arr[R]) => {
           in.take(sizePerPartition)
         }
-        sample(sampleFunc)(parallelism).map { arr => arr.take(size) }
+        sample(sampleFunc).map { arr => arr.take(size) }
     }
   }
 
-  def sample(sampleFunc: Arr[R] => Arr[R])(implicit parallelism: Int): Future[Iterator[R]] = {
-    this.mapPartitions(sampleFunc).traverse(parallelism)
+  def sample(sampleFunc: Arr[R] => Arr[R])(implicit parallelism: Int, hDMEntry: HDMEntry): Future[Iterator[R]] = {
+    this.mapPartitions(sampleFunc).traverse(parallelism, hDMEntry)
   }
 
   def toSerializable(): HDM[R]
@@ -532,12 +530,12 @@ abstract class HDM[R: ClassTag] extends Serializable{
 object HDM {
 
   def apply[T: ClassTag](elems: Array[T], appContext: AppContext): DDM[_, T] = {
-    DDM(elems, HDMServerContext.defaultContext, appContext)
+    DDM(elems, HDMContext.defaultContext, appContext)
   }
 
   def apply(path: Path,
             appContext: AppContext = AppContext.defaultAppContext,
-            hdmContext: HDMContext = HDMAppContext.defaultContext,
+            hdmContext: HDMContext = HDMContext.defaultContext,
             keepPartition: Boolean = true): DFM[_, String] = {
     new DFM(children = null,
       location = path,
@@ -548,9 +546,9 @@ object HDM {
 
 
   def parallelize[T: ClassTag](elems: Seq[T],
-                               hdmContext: HDMContext = HDMServerContext.defaultContext,
+                               hdmContext: HDMContext = HDMContext.defaultContext,
                                appContext: AppContext = AppContext.defaultAppContext,
-                               numOfPartitions: Int = ClusterExecutor.CORES): HDM[T] = {
+                               numOfPartitions: Int = HDMContext.CORES): HDM[T] = {
     require(elems.length > numOfPartitions)
     val ddms = new RoundRobinPartitioner[T](numOfPartitions).split(elems).map(d => DDM(d._2, hdmContext, appContext))
     new DFM(children = ddms.toSeq,
@@ -562,9 +560,9 @@ object HDM {
 
 
   def parallelWithIndex[T: ClassTag](elems: Seq[T],
-                                     hdmContext: HDMContext = HDMServerContext.defaultContext,
+                                     hdmContext: HDMContext = HDMContext.defaultContext,
                                      appContext: AppContext = AppContext.defaultAppContext,
-                                     numOfPartitions: Int = ClusterExecutor.CORES): HDM[(Long, T)] = {
+                                     numOfPartitions: Int = HDMContext.CORES): HDM[(Long, T)] = {
     require(elems.length > numOfPartitions)
     val ddms = new RoundRobinPartitioner[(Long, T)](numOfPartitions)
       .split(elems.zipWithIndex.map(_.swap).map(tup => (tup._1.toLong, tup._2)))
@@ -578,9 +576,9 @@ object HDM {
   }
 
   def jParallelize[T](elems: Array[T],
-                      hdmContext: HDMContext = HDMServerContext.defaultContext,
+                      hdmContext: HDMContext = HDMContext.defaultContext,
                       appContext: AppContext = AppContext.defaultAppContext,
-                      numOfPartitions: Int = ClusterExecutor.CORES): HDM[T] = {
+                      numOfPartitions: Int = HDMContext.CORES): HDM[T] = {
     require(elems.length > numOfPartitions)
     val c = elems.head.getClass
     val ct = ClassTag.apply(c)
@@ -592,7 +590,7 @@ object HDM {
 
   def fromURL[T:ClassTag](urls: Array[Path],
                           appContext: AppContext = AppContext.defaultAppContext,
-                          hdmContext: HDMContext = HDMServerContext.defaultContext,
+                          hdmContext: HDMContext = HDMContext.defaultContext,
                           func: Arr[Byte] => Arr[T],
                           keepPartition: Boolean = true): HDM[T] = {
 

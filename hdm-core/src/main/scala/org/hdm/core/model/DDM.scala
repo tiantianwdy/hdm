@@ -1,11 +1,9 @@
 package org.hdm.core.model
 
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.context.{HDMContext, BlockContext, AppContext}
-import org.hdm.core.executor._
-import org.hdm.core.functions.{NullFunc, ParallelFunction}
+import org.hdm.core.context.{HDMAppContext, HDMContext, BlockContext, AppContext}
+import org.hdm.core.functions.{KeepPartitioner, Partitioner, NullFunc, ParallelFunction}
 import org.hdm.core.io.Path
-import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.{Block, _}
 
 import scala.collection.mutable.Buffer
@@ -99,8 +97,8 @@ object DDM {
 //    this.apply(id, elems.toSeq, broadcast)
 //  }
 
-  def apply[T: ClassTag](id:String, elems: Seq[T], appContext:AppContext, blockContext:BlockContext, hdmContext:HDMContext = HDMServerContext.defaultContext, broadcast:Boolean = false): DDM[T,T] = {
-    val context = if(hdmContext == null) HDMServerContext.defaultContext
+  def apply[T: ClassTag](id:String, elems: Seq[T], appContext:AppContext, blockContext:BlockContext, hdmContext:HDMContext = HDMContext.defaultContext, broadcast:Boolean = false): DDM[T,T] = {
+    val context = if(hdmContext == null) HDMContext.defaultContext
      else hdmContext
     val ddm = new DDM[T,T](id= id,
       func = new NullFunc[T],
@@ -110,9 +108,9 @@ object DDM {
       location = Path(blockContext.localBlockPath + "/" + id),
       preferLocation = Path(SmsSystem.physicalRootPath),
       appContext = appContext)
-    context.addBlock(Block(ddm.id, elems), false)
+    HDMContext.addBlock(Block(ddm.id, elems), false)
     if(broadcast)
-      context.declareHdm(Seq(ddm))
+      HDMContext.declareHdm(Seq(ddm))
     ddm
   }
 
@@ -122,7 +120,7 @@ object DDM {
   }
 
   def apply[T: ClassTag](elems: Seq[Seq[T]], hdmContext:HDMContext, appContext:AppContext, blockContext:BlockContext, broadcast:Boolean = false): Seq[DDM[T, T]] = {
-    val context = if(hdmContext == null) HDMServerContext.defaultContext
+    val context = if(hdmContext == null) HDMContext.defaultContext
     else hdmContext
     val (ddms, blocks:Seq[Block[T]]) =
       elems.map { seq =>
@@ -142,12 +140,12 @@ object DDM {
       }.unzip
     HDMBlockManager().addAll(blocks) //todo change to use HDMContext
     if(broadcast)
-      context.declareHdm(ddms)
+      HDMContext.declareHdm(ddms)
     ddms
   }
 
   def sources[T:ClassTag](urls: Seq[Path], hdmContext:HDMContext, appContext:AppContext, broadcast:Boolean = false): Seq[DDM[T, T]] = {
-    val context = if(hdmContext == null) HDMServerContext.defaultContext
+    val context = if(hdmContext == null) HDMContext.defaultContext
     else hdmContext
     val ddms =
       urls.map { url =>
@@ -165,7 +163,7 @@ object DDM {
         d
       }
     if(broadcast)
-      context.declareHdm(ddms)
+      HDMContext.declareHdm(ddms)
     ddms
   }
 }

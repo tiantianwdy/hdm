@@ -1,16 +1,13 @@
 package org.hdm.core.io.netty
 
 import java.util
-import java.nio.ByteBuffer
 
-import io.netty.buffer.{Unpooled, ByteBuf}
+import io.netty.buffer.{ByteBuf, Unpooled}
 import io.netty.channel.ChannelHandlerContext
 import io.netty.handler.codec.{MessageToByteEncoder, MessageToMessageEncoder}
 import org.hdm.core.io.CompressionCodec
-import org.hdm.core.message.{QueryBlockMsg, HDMBlockMsg}
-
+import org.hdm.core.message.{HDMBlockMsg, QueryBlockMsg}
 import org.hdm.core.serializer.SerializerInstance
-import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.Block
 import org.hdm.core.utils.Logging
 

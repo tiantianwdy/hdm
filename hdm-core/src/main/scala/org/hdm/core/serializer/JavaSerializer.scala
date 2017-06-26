@@ -21,7 +21,7 @@ import java.io._
 import java.nio.ByteBuffer
 
 import com.typesafe.config.Config
-import org.hdm.core.executor.DynamicDependencyThreadFactory
+import org.hdm.core.utils.DynamicDependencyThreadFactory
 
 import scala.reflect.ClassTag
 

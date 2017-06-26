@@ -3,23 +3,17 @@ package org.hdm.core.context
 import java.util.UUID
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger, AtomicReference}
 
-import com.typesafe.config.{Config, ConfigFactory}
+import com.typesafe.config.Config
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.coordinator.{ClusterResourceWorkerSpec, HDMWorkerParams}
-import org.hdm.core.executor.{Task, ClusterExecutorContext}
-import org.hdm.core.functions.SerializableFunction
+import org.hdm.core.io.SnappyCompressionCodec
 import org.hdm.core.io.netty.NettyConnectionManager
-import org.hdm.core.io.{CompressionCodec, SnappyCompressionCodec}
 import org.hdm.core.message._
 import org.hdm.core.model.{GroupedSeqHDM, HDM, KvHDM, ParHDM}
-import org.hdm.core.planing.{StaticMultiClusterPlanner, StaticPlaner}
-import org.hdm.core.scheduling.{AdvancedScheduler, MultiClusterScheduler, SchedulingPolicy}
 import org.hdm.core.serializer.{JavaSerializer, KryoSerializer, SerializerInstance}
-import org.hdm.core.server._
-import org.hdm.core.storage.{Block, HDMBlockManager}
+import org.hdm.core.storage.Block
 import org.hdm.core.utils.Logging
 
-import scala.concurrent.{ExecutionContext, Future, Promise}
+import scala.concurrent.{ExecutionContext, Future}
 import scala.reflect.ClassTag
 import scala.util.Try
 
@@ -34,11 +28,15 @@ trait HDMContext {
 
   val slot = new AtomicInteger(1)
 
+  val defaultConf:Config
+
   val CORES = Runtime.getRuntime.availableProcessors
 
   val BLOCK_COMPRESS_IN_TRANSPORTATION: Boolean
 
   val BLOCK_SERVER_PROTOCOL: String
+
+  val BLOCK_SERVER_INIT: Boolean
 
   var NETTY_BLOCK_SERVER_PORT:Int
 
@@ -52,19 +50,17 @@ trait HDMContext {
 
   val MAX_MEM_GC_SIZE: Int
 
-  val PLANER_PARALLEL_NETWORK_FACTOR: Int
+  val PLANER_PARALLEL_CPU_FACTOR: Int
 
-  val executionContext: ExecutionContext
+  val PLANER_PARALLEL_NETWORK_FACTOR: Int
 
   val defaultSerializer: SerializerInstance
 
   val clusterExecution = new AtomicBoolean(true)
 
+  def executionContext: ExecutionContext
+
   val compressor = HDMContext.DEFAULT_COMPRESSOR
-
-  def init(leader: String, slots: Int): Unit
-
-  def compute(hdm: HDM[_], parallelism: Int): Future[HDM[_]]
 
   def clusterBlockPath = {
     leaderPath.get() + "/" + HDMContext.BLOCK_MANAGER_NAME
@@ -81,41 +77,10 @@ trait HDMContext {
     }
   }
 
-  def clean(appId: String) = {
-    //todo clean all the resources used by this application
-    val masterURL = leaderPath.get() + "/" + HDMContext.CLUSTER_RESOURCE_MANAGER_NAME
-    SmsSystem.askAsync(masterURL, ApplicationShutdown(appId))
-  }
 
-  def shutdown(appContext: AppContext = AppContext.defaultAppContext) {
-    clean(appContext.appName + "#" + appContext.version)
-    SmsSystem.shutDown()
-  }
-
-
-  def declareHdm(hdms: Seq[ParHDM[_, _]], declare: Boolean = true) = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, AddRefMsg(hdms, declare))
-  }
-
-  def addBlock(block: Block[_], declare: Boolean) = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, AddBlockMsg(block, declare))
-  }
-
-  def queryBlock(id: String, location: String) = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, QueryBlockMsg(Seq(id), location))
-  }
-
-  def removeBlock(id: String): Unit = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, RemoveBlockMsg(id))
-  }
-
-  def removeRef(id: String): Unit = {
-    SmsSystem.forwardLocalMsg(HDMContext.BLOCK_MANAGER_NAME, RemoveRefMsg(id))
-  }
-
-  def addTask(task: Task[_, _]) = {
-    SmsSystem.askAsync(leaderPath.get() + "/" + HDMContext.CLUSTER_EXECUTOR_NAME, AddTaskMsg(task))
-  }
+//  def addTask(task: Task[_, _]) = {
+//    SmsSystem.askAsync(leaderPath.get() + "/" + HDMContext.CLUSTER_EXECUTOR_NAME, AddTaskMsg(task))
+//  }
 }
 
 
@@ -127,9 +92,46 @@ object HDMContext extends Logging {
 
   private val jobSerializer = new ThreadLocal[SerializerInstance]()
 
+  val defaultContext:HDMContext = HDMServerContext.defaultContext
+
+  def defaultConf() = _defaultConf.get()
+
+  def setDefaultConf(conf: Config) = _defaultConf.set(conf)
+
   val HDM_VERSION = Try {
     defaultConf.getString("hdm.version")
   } getOrElse ("0.1-SNAPSHOT")
+  val BLOCK_COMPRESS_IN_TRANSPORTATION = Try {
+    defaultConf.getBoolean("hdm.io.network.block.compress")
+  } getOrElse (true)
+
+  val NETTY_BLOCK_SERVER_THREADS = Try {
+    defaultConf.getInt("hdm.io.netty.server.threads")
+  } getOrElse (CORES)
+
+  val NETTY_BLOCK_CLIENT_THREADS = Try {
+    defaultConf.getInt("hdm.io.netty.client.threads")
+  } getOrElse (CORES)
+
+  val NETTY_CLIENT_CONNECTIONS_PER_PEER = Try {
+    defaultConf.getInt("hdm.io.netty.client.connection-per-peer")
+  } getOrElse (CORES)
+
+  val BLOCK_SERVER_INIT = Try {
+    defaultConf.getBoolean("hdm.io.netty.server.init")
+  } getOrElse (true)
+
+  val BLOCK_SERVER_PROTOCOL = Try {
+    defaultConf.getString("hdm.io.network.protocol")
+  } getOrElse ("netty")
+
+  var NETTY_BLOCK_SERVER_PORT:Int = Try {
+    defaultConf.getInt("hdm.io.netty.server.port")
+  } getOrElse (9091)
+
+  val JOB_DEFAULT_WAITING_TIMEOUT = Try {
+    defaultConf.getLong("hdm.executor.job.timeout.default")
+  } getOrElse (600000L)
 
   val CLUSTER_RESOURCE_MANAGER_NAME = "ClusterResourceLeader"
 
@@ -161,10 +163,6 @@ object HDMContext extends Logging {
   lazy val DEFAULT_BLOCK_ID_LENGTH = DEFAULT_SERIALIZER.serialize(newLocalId()).array().length
 
   val CORES = Runtime.getRuntime.availableProcessors
-
-  def defaultConf() = _defaultConf.get()
-
-  def setDefaultConf(conf: Config) = _defaultConf.set(conf)
 
   def newClusterId(): String = {
     UUID.randomUUID().toString

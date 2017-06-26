@@ -1,7 +1,6 @@
 package org.hdm.core.model
 
 import org.hdm.core.context.{HDMContext, AppContext}
-import org.hdm.core.executor._
 import org.hdm.core.functions._
 import org.hdm.core.io.Path
 

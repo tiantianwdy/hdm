@@ -2,9 +2,9 @@ package org.hdm.core.io
 
 import java.util.concurrent.atomic.{AtomicBoolean, AtomicInteger}
 import java.util.concurrent.{LinkedBlockingDeque, Semaphore}
+import org.hdm.core.context.HDMContext
 import org.hdm.core.message.FetchSuccessResponse
 import org.hdm.core.model.HDM
-import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.{Block, HDMBlockManager}
 import org.hdm.core.utils.Logging
 
@@ -117,7 +117,7 @@ class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path],
     val block = received match {
       case resp:FetchSuccessResponse =>
         log.trace(s"Class loader: ${classLoader}")
-        HDMServerContext.defaultContext.defaultSerializer.deserialize[Block[A]](resp.data, classLoader)
+        HDMContext.DEFAULT_SERIALIZER.deserialize[Block[A]](resp.data, classLoader)
       case blk: Block[_] =>
         blk.asInstanceOf[Block[A]]
       case x:Any => Block(Seq.empty[A])

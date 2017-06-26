@@ -2,11 +2,10 @@ package org.hdm.core.math
 
 import breeze.linalg.DenseVector
 import breeze.math.Semiring
-import org.hdm.core.context.HDMContext
+import org.hdm.core.context.{HDMEntry, HDMContext}
 import HDMContext._
 import HDMatrix._
 import org.hdm.core.model.HDM
-import org.hdm.core.server.HDMServerContext
 
 import scala.reflect.ClassTag
 import scala.{specialized => types}
@@ -40,7 +39,7 @@ class HDMatrix[@types(Double, Int, Float, Long) T: ClassTag](self: HDM[(Long, De
   }
 
   def reduceRow(op: (DenseVector[T], DenseVector[T]) => DenseVector[T])
-               (implicit parallelism: Int): DenseVector[T] = {
+               (implicit parallelism: Int, hDMEntry: HDMEntry): DenseVector[T] = {
     self.map(_._2).reduce(op).collect().next()
   }
 
@@ -48,7 +47,7 @@ class HDMatrix[@types(Double, Int, Float, Long) T: ClassTag](self: HDM[(Long, De
     self.mapValues(v => v.fold(e.zero)(op))
   }
 
-  def norm(implicit parallelism: Int) = {
+  def norm(implicit parallelism: Int, hDMEntry: HDMEntry) = {
     val eu = e
     val reduceFunc = (v1: DenseVector[T], v2: DenseVector[T]) =>
       (v1.asInstanceOf[DenseVector[Double]] + v2.asInstanceOf[DenseVector[Double]]).asInstanceOf[DenseVector[T]]
@@ -67,29 +66,29 @@ class HDMatrix[@types(Double, Int, Float, Long) T: ClassTag](self: HDM[(Long, De
     this.reduceColumn(e.plus(_, _))
   }
 
-  def sumRow(implicit parallelism: Int): DenseVector[T] = {
+  def sumRow(implicit parallelism: Int, hDMEntry: HDMEntry): DenseVector[T] = {
     this.reduceRow(_ + _)
   }
 
-  def sum(implicit parallelism: Int): T = {
+  def sum(implicit parallelism: Int, hDMEntry: HDMEntry): T = {
     this.sumColumn().sum
   }
 
   // operations for N1Analysis
 
-  def numRows(implicit parallelism: Int): Int = {
+  def numRows(implicit parallelism: Int, hDMEntry: HDMEntry): Int = {
     self.count().collect().next()
   }
 
 
   def numColumns(): Int = ???
 
-  def column(idx: Int): DenseVector[T] = {
+  def column(idx: Int)(implicit hDMEntry: HDMEntry): DenseVector[T] = {
     self.filter(_._1 == idx).collect().next()._2
   }
 
   //todo check the correctness and optimize the performance
-  def mapColumn[@types(Double, Int, Float, Long) U: ClassTag](f: HDVector[T] => HDVector[U])(implicit eu: Numeric[U]) = {
+  def mapColumn[@types(Double, Int, Float, Long) U: ClassTag](f: HDVector[T] => HDVector[U])(implicit eu: Numeric[U], hDMEntry: HDMEntry) = {
     self.cache()
     val vLen = numRows
     for (i <- 0 until vLen) yield {

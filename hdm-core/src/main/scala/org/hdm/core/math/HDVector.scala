@@ -1,10 +1,9 @@
 package org.hdm.core.math
 
-import org.hdm.core.context.HDMContext
+import org.hdm.core.context.{HDMEntry, HDMContext}
 import org.hdm.core.math.HDMatrix.hdmToVector
 import HDMContext._
 import org.hdm.core.model.HDM
-import org.hdm.core.server.HDMServerContext
 
 import scala.reflect.ClassTag
 import scala.{specialized => types}
@@ -82,22 +81,22 @@ class HDVector[@types(Double, Int, Float, Long) T: ClassTag]
     mapElem(implicitly[Numeric[T]].negate(_))
   }
 
-  def sum(implicit parallelism: Int) = {
+  def sum(implicit parallelism: Int, hDMEntry: HDMEntry) = {
     val numeric = e
     val res = reduce(numeric.plus(_, _)).collect()
     res.next()
   }
 
-  def size()(implicit parallelism: Int): Int = {
+  def size()(implicit parallelism: Int, hDMEntry: HDMEntry): Int = {
     self.count().collect().next()
   }
 
-  def inner(another: HDVector[T])(implicit parallelism: Int): T = {
-    this.times(another.self).sum(parallelism)
+  def inner(another: HDVector[T])(implicit parallelism: Int, hDMEntry: HDMEntry): T = {
+    this.times(another.self).sum(parallelism, hDMEntry)
   }
 
 
-  def concat[A <: T](another: HDVector[A])(implicit parallelism: Int) = {
+  def concat[A <: T](another: HDVector[A])(implicit parallelism: Int, hDMEntry: HDMEntry) = {
     val startIdx = this.size()
     //todo check the correctness of union
     self.union(another.self.map(tup => (tup._1 + startIdx, tup._2)))

@@ -2,10 +2,7 @@ package org.hdm.core.serializer
 
 import io.netty.buffer.Unpooled
 import org.hdm.core.context.HDMContext
-import org.hdm.core.examples.KVBasedPrimitiveBenchmark
 import org.hdm.core.functions.ParMapFunc
-import org.hdm.core.model.ParHDM
-import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.Block
 import org.junit.Test
 
@@ -110,25 +107,25 @@ class KryoSerilizerTest {
     println(s"decode finished in ${t3 - t2} ms.")
   }
 
-  @Test
-  def testHDMSerialize(): Unit ={
-    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
-    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
-    //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
-    val parallelism = 1
-    val len = 3
-    //    val benchmark = new KVBasedPrimitiveBenchmark(context)
-    val benchmark = new KVBasedPrimitiveBenchmark(context = context, kIndex = 0, vIndex = 1)
-    val hdm = benchmark.testGroupBy(data,len, parallelism)
-
-    val t1 = System.currentTimeMillis()
-    val buf = serilizer.serialize(hdm)
-    val t2 = System.currentTimeMillis()
-    println(s"encode finished in ${t2 - t1} ms.")
-    val desHDM = serilizer.deserialize[ParHDM[_, _]](buf)
-    println(desHDM)
-    val t3 = System.currentTimeMillis()
-    println(s"encoded size : ${buf.array().length} bytes.")
-    println(s"decode finished in ${t3 - t2} ms.")
-  }
+//  @Test
+//  def testHDMSerialize(): Unit ={
+//    val context = "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster"
+//    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/partial/rankings"
+//    //    val data = "hdfs://127.0.0.1:9001/user/spark/benchmark/micro/uservisits"
+//    val parallelism = 1
+//    val len = 3
+//    //    val benchmark = new KVBasedPrimitiveBenchmark(context)
+//    val benchmark = new KVBasedPrimitiveBenchmark(context = context, kIndex = 0, vIndex = 1)
+//    val hdm = benchmark.testGroupBy(data,len, parallelism)
+//
+//    val t1 = System.currentTimeMillis()
+//    val buf = serilizer.serialize(hdm)
+//    val t2 = System.currentTimeMillis()
+//    println(s"encode finished in ${t2 - t1} ms.")
+//    val desHDM = serilizer.deserialize[ParHDM[_, _]](buf)
+//    println(desHDM)
+//    val t3 = System.currentTimeMillis()
+//    println(s"encoded size : ${buf.array().length} bytes.")
+//    println(s"decode finished in ${t3 - t2} ms.")
+//  }
 }

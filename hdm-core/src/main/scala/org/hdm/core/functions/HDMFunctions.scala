@@ -1,6 +1,5 @@
 package org.hdm.core.functions
 
-import org.hdm.core.executor.Partitioner
 import org.hdm.core.model.DataDependency
 
 /**

@@ -3,7 +3,6 @@ package org.hdm.core.serializer
 import java.nio.ByteBuffer
 
 import org.hdm.core.context.HDMContext
-import org.hdm.core.server.HDMServerContext
 
 /**
  * Created by tiantian on 8/03/16.

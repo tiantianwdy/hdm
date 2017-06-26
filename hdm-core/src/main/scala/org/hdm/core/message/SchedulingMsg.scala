@@ -1,9 +1,7 @@
 package org.hdm.core.message
 
-import org.hdm.core.executor.{ParallelTask, Task}
 import org.hdm.core.model.{DDM, ParHDM}
-import org.hdm.core.serializer.SerializableByteBuffer
-import scala.reflect.ClassTag
+
 import scala.language.existentials
 
 /**
@@ -11,7 +9,7 @@ import scala.language.existentials
  */
 trait SchedulingMsg extends Serializable
 
-case class AddTaskMsg[R :ClassTag](task:ParallelTask[R]) extends SchedulingMsg
+
 
 case class TaskCompleteMsg(appId:String, taskId:String, func:String, result:Seq[DDM[_,_]]) extends SchedulingMsg
 

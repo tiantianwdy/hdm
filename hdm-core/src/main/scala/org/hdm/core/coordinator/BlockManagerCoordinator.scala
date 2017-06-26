@@ -4,9 +4,8 @@ import akka.actor.ActorPath
 import akka.pattern._
 
 import org.hdm.akka.actors.worker.WorkActor
-import org.hdm.core.context.{HDMContext, AppContext}
+import org.hdm.core.context.{HDMServerContext, HDMContext, AppContext}
 import org.hdm.core.io.{HDMIOManager, Path}
-import org.hdm.core.server.HDMServerContext
 import org.hdm.core.storage.{Computed, HDMBlockManager}
 import org.hdm.core.message._
 import org.hdm.core.model.{ParHDM, DDM}
@@ -22,7 +21,7 @@ import scala.collection.mutable
  * Created by Tiantian on 2014/12/18.
  */
 
-class BlockManagerLeader extends WorkActor {
+class BlockManagerLeader() extends WorkActor {
 
   val blockManager = HDMBlockManager()
 

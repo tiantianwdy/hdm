@@ -1,9 +1,7 @@
 package org.hdm.core.model
 
-import akka.actor.FSM.NullFunction
 import org.hdm.core.context.HDMContext
-import org.hdm.core.executor.{RandomPartitioner, Partitioner}
-import org.hdm.core.functions.{NullParFunc, ParUnionFunc, NullFunc, ParallelFunction}
+import org.hdm.core.functions.{NullParFunc, ParallelFunction, Partitioner}
 import org.hdm.core.io.Path
 import org.hdm.core.storage.BlockState
 

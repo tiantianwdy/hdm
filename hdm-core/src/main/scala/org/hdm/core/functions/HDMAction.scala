@@ -1,6 +1,7 @@
 package org.hdm.core.functions
 
 import org.hdm.core.Arr
+import org.hdm.core.context.HDMEntry
 import org.hdm.core.io.BufferedBlockIterator
 import org.hdm.core.model.HDM
 
@@ -14,8 +15,8 @@ import scala.util.Random
 object HDMAction {
 
 
-  def compute(hdm: HDM[_], parallelism: Int): Future[HDM[_]] = {
-    hdm.hdmContext.compute(hdm, parallelism)
+  def compute(hdm: HDM[_], parallelism: Int, hDMEntry: HDMEntry): Future[HDM[_]] = {
+    hDMEntry.compute(hdm, parallelism)
   }
 
 

@@ -3,7 +3,6 @@ package org.hdm.core.functions
 import java.util.concurrent.atomic.AtomicReference
 
 import org.hdm.core._
-import org.hdm.core.executor.TaskContext
 
 import scala.collection.mutable
 import scala.collection.mutable.{Buffer, HashMap}

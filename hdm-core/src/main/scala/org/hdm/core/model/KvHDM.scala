@@ -1,10 +1,8 @@
 package org.hdm.core.model
 
 import org.hdm.core.context.HDMContext
-import org.hdm.core.executor.{KeepPartitioner, HashPartitioner}
 import org.hdm.core.functions._
 import HDMContext._
-import org.hdm.core.server.HDMServerContext
 
 import scala.reflect.ClassTag
 

@@ -2,7 +2,6 @@ package org.hdm.core.io.reader
 
 import java.io.{InputStream, OutputStream}
 
-import org.apache.commons.io.IOUtils
 
 import scala.reflect.ClassTag
 

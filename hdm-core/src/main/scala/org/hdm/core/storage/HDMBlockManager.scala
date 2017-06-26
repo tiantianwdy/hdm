@@ -7,7 +7,7 @@ import java.util.concurrent.{BlockingQueue, ConcurrentHashMap}
 import org.hdm.akka.monitor.SystemMonitorService
 import org.hdm.core.context.{HDMAppContext, HDMContext}
 import org.hdm.core.io.netty.{NettyBlockServer, NettyConnectionManager}
-import org.hdm.core.io.{DataParser, Path}
+import org.hdm.core.io.Path
 import org.hdm.core.message.{FetchSuccessResponse, QueryBlockMsg}
 import org.hdm.core.model._
 import org.hdm.core.utils.{Logging, Utils}
@@ -178,10 +178,10 @@ class DefaultHDMBlockManager(hDMContext: HDMContext) extends HDMBlockManager wit
 
 object HDMBlockManager extends Logging{
 
-  var defaultManager = new DefaultHDMBlockManager(HDMAppContext.defaultContext) // todo change to loading according to the config
+  var defaultManager = new DefaultHDMBlockManager(HDMContext.defaultContext) // todo change to loading according to the config
 
   var defaultBlockServer =  {
-    val hDMContext = HDMAppContext.defaultContext
+    val hDMContext = HDMContext.defaultContext
     val compressor = if (hDMContext.BLOCK_COMPRESS_IN_TRANSPORTATION) hDMContext.compressor
     else null
     new NettyBlockServer(hDMContext.NETTY_BLOCK_SERVER_PORT,
@@ -193,7 +193,7 @@ object HDMBlockManager extends Logging{
 
 
   def localBlockServerAddress:String = {
-    val localAddr = new InetSocketAddress(NettyConnectionManager.localHost, HDMAppContext.defaultContext.NETTY_BLOCK_SERVER_PORT)
+    val localAddr = new InetSocketAddress(NettyConnectionManager.localHost, HDMContext.defaultContext.NETTY_BLOCK_SERVER_PORT)
     localAddr.getHostString  + ":" + localAddr.getPort
   }
 
@@ -216,25 +216,25 @@ object HDMBlockManager extends Logging{
 
   def apply():HDMBlockManager = defaultManager
 
-  def loadOrCompute[T: ClassTag](refID: String):Seq[Block[T]] = {
-    val id = Path(refID).name
-    val ref = defaultManager.getRef(id)
-    if (ref != null && ref.state == Computed)
-      ref.blocks.map(url => loadBlock[T](url))
-    else Seq.empty[Block[T]]
-  }
-
-  def loadBlock[T: ClassTag](url:String):Block[T] ={
-    val path = Path(url)
-//    val bl = defaultManager.getBlock(id)*/
-    val bl = DataParser.readBlock(path, ClassLoader.getSystemClassLoader)
-    if(bl ne null) bl.asInstanceOf[Block[T]]
-    else {
-      //compute the block
-      //todo change to submit a computing task
-      Block(Seq.empty[T])
-    }
-  }
+//  def loadOrCompute[T: ClassTag](refID: String):Seq[Block[T]] = {
+//    val id = Path(refID).name
+//    val ref = defaultManager.getRef(id)
+//    if (ref != null && ref.state == Computed)
+//      ref.blocks.map(url => loadBlock[T](url))
+//    else Seq.empty[Block[T]]
+//  }
+//
+//  def loadBlock[T: ClassTag](url:String):Block[T] ={
+//    val path = Path(url)
+////    val bl = defaultManager.getBlock(id)*/
+//    val bl = DataParser.readBlock(path, ClassLoader.getSystemClassLoader)
+//    if(bl ne null) bl.asInstanceOf[Block[T]]
+//    else {
+//      //compute the block
+//      //todo change to submit a computing task
+//      Block(Seq.empty[T])
+//    }
+//  }
 
   def loadBlockAsync(path: Path, blockIds: Seq[String], blockHandler: Block[_] => Unit, remoteHandler: FetchSuccessResponse => Unit): Unit = {
     val (localBlks, remoteBlks) = blockIds.span(id => defaultManager.isCached(id))
