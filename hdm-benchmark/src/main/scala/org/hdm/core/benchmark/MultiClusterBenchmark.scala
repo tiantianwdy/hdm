@@ -1,7 +1,7 @@
 package org.hdm.core.benchmark
 
 import breeze.linalg.{Vector, DenseVector}
-import org.hdm.core.context.{HDMAppContext, HDMContext, AppContext}
+import org.hdm.core.context._
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
 import HDMContext._
@@ -21,9 +21,11 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
 
   val appContext2 = new AppContext(appName = "hdm-examples", version = "0.0.1", masterPath = master2)
 
+  implicit val hDMEntry = new HDMSession(hDMContext)
+
 
   def testParallelExecution(dataPath1:String, dataPath2:String)(implicit parallelism:Int): Unit ={
-    hDMContext.init(leader = master1, 0)
+    hDMEntry.init(leader = master1, 0)
     Thread.sleep(200)
 
     val vecLen = 10
@@ -51,7 +53,7 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
   }
 
   def testShuffleTask(dataPath1:String, dataPath2:String)(implicit parallelism:Int): Unit ={
-    hDMContext.init(leader = master1, 0)
+    hDMEntry.init(leader = master1, 0)
     Thread.sleep(200)
 
     val vecLen = 2
@@ -76,7 +78,7 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
 
     val start = System.currentTimeMillis()
 
-    job.compute(parallelism).map { hdm =>
+    job.compute(parallelism, hDMEntry).map { hdm =>
       println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received response: ${hdm.id}")
       hdm.blocks.foreach(println(_))
       System.exit(0)
@@ -85,7 +87,7 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
 
 
   def testMultiPartyLR(dataPath1:String, dataPath2:String, vectorLen: Int, iteration:Int)(implicit parallelism:Int) = {
-    hDMContext.init(leader = master1, 0)
+    hDMEntry.init(leader = master1, 0)
     Thread.sleep(200)
 
     val vecLen = vectorLen / 2
@@ -130,10 +132,10 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
     weights
   }
 
-  def onEvent(hdm:HDM[_], action:String)(implicit parallelism:Int) = action match {
+  def onEvent(hdm:HDM[_], action:String)(implicit parallelism:Int, hDMEntry: HDMEntry) = action match {
     case "compute" =>
       val start = System.currentTimeMillis()
-      hdm.compute(parallelism).map { hdm =>
+      hdm.compute(parallelism, hDMEntry).map { hdm =>
         println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received response: ${hdm.id}")
         hdm.blocks.foreach(println(_))
         System.exit(0)

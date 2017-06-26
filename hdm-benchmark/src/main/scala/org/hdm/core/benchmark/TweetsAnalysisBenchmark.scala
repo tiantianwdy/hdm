@@ -1,6 +1,6 @@
 package org.hdm.core.benchmark
 
-import org.hdm.core.context.HDMContext
+import org.hdm.core.context.{HDMEntry, HDMContext}
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
 
@@ -27,7 +27,7 @@ class TweetsAnalysisBenchmark (val context:String, val kIndex:Int = 0, val vInde
   }
 
 
-  def testAnalysisTweets(dataPath:String, keyLen:Int = 3, p:Int = 4) = {
+  def testAnalysisTweets(dataPath:String, keyLen:Int = 3, p:Int = 4)(implicit hDMEntry: HDMEntry) = {
     implicit  val parallelsm = p
     val path = Path(dataPath)
     val input = HDM(path)

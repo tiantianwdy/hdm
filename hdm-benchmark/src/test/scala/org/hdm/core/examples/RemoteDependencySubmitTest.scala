@@ -1,7 +1,7 @@
 package org.hdm.core.examples
 
 import org.hdm.akka.server.SmsSystem
-import org.hdm.core.context.{HDMContext, HDMAppContext, AppContext}
+import org.hdm.core.context._
 import org.junit.Test
 import org.hdm.core.message.{AddHDMsMsg, SerializedJobMsg}
 import org.hdm.core.model.ParHDM
@@ -16,6 +16,7 @@ class RemoteDependencySubmitTest {
   type Benchmark = org.hdm.core.benchmark.KVBasedPrimitiveBenchmark
   val hDMContext = HDMAppContext.defaultContext
   val appContext = AppContext.defaultAppContext
+  val hDMEntry = new HDMSession(hDMContext)
 
   @Test
   def testSendSerializedJob(): Unit ={
@@ -28,7 +29,7 @@ class RemoteDependencySubmitTest {
     hDMContext.NETTY_BLOCK_SERVER_PORT = 9093
     appContext.appName = "hdm-examples"
     appContext.version = "0.0.1"
-    hDMContext.startAsClient(context, 20011, 9093)
+    hDMEntry.startAsClient(context, 20011, 9093)
     Thread.sleep(1500)
 
     val benchmark = new Benchmark(context)
@@ -38,7 +39,7 @@ class RemoteDependencySubmitTest {
     val encodedJob = jobBytes ++ Array(jobBytes.length.toByte)
 
     val rootPath =  SmsSystem.rootPath
-    hDMContext.declareHdm(Seq(hdm))
+    hDMEntry.declareHdm(Seq(hdm))
     val promise = SmsSystem.askLocalMsg(HDMContext.JOB_RESULT_DISPATCHER,
       AddHDMsMsg(appContext.appName , Seq(hdm), rootPath + "/"+ HDMContext.JOB_RESULT_DISPATCHER)) match {
       case Some(promise) => promise.asInstanceOf[Promise[ParHDM[_,_]]]
@@ -61,7 +62,7 @@ class RemoteDependencySubmitTest {
     hDMContext.NETTY_BLOCK_SERVER_PORT = 9093
     appContext.appName = "hdm-examples"
     appContext.version = "0.0.1"
-    hDMContext.startAsClient(context, 20011, 9093)
+    hDMEntry.startAsClient(context, 20011, 9093)
     Thread.sleep(1500)
 
     val benchmark = new Benchmark(context)
@@ -69,14 +70,14 @@ class RemoteDependencySubmitTest {
 //    HDMContext.submitJob(HDMContext.appName, HDMContext.version, hdm, parallelism) onComplete {
 //      case res => println(res)
 //    }
-    onEvent(hdm, "compute")(parallelism)
+    onEvent(hdm, "compute")(parallelism, hDMEntry)
     Thread.sleep(50000000)
   }
 
-  def onEvent(hdm:ParHDM[_,_], action:String)(implicit parallelism:Int) = action match {
+  def onEvent(hdm:ParHDM[_,_], action:String)(implicit parallelism:Int, hDMEntry: HDMEntry) = action match {
     case "compute" =>
       val start = System.currentTimeMillis()
-      hdm.compute(parallelism).map { hdm =>
+      hdm.compute(parallelism, hDMEntry).map { hdm =>
         println(s"Job completed in ${System.currentTimeMillis() - start} ms. And received response: ${hdm.id}")
         hdm.blocks.foreach(println(_))
         System.exit(0)

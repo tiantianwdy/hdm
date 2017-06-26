@@ -1,6 +1,6 @@
 package org.hdm.core.benchmark
 
-import org.hdm.core.context.{HDMContext, HDMAppContext, AppContext}
+import org.hdm.core.context._
 import org.hdm.core.model.ParHDM
 
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -28,7 +28,8 @@ object HDMBenchmark {
     AppContext.defaultAppContext.version = "0.0.1"
     AppContext.defaultAppContext.masterPath = context
     val hDMContext = HDMAppContext.defaultContext
-    hDMContext.init(leader = context, slots = 0)
+    implicit val hDMEntry = new HDMSession(hDMContext)
+    hDMEntry.init(leader = context, slots = 0)
     Thread.sleep(64)
 
     val benchmark = dataTag match {
@@ -67,14 +68,14 @@ object HDMBenchmark {
       case "top" =>
         benchmark.testTop(data, len, parallelism)
       case "sort" =>
-        benchmark.testTeraSort(data, len)(parallelism)
+        benchmark.testTeraSort(data, len)(parallelism, hDMEntry)
       case "mapCount" =>
         benchmark.testMapCount(data, parallelism)
       //tests for iterations
       case "iteration" =>
-        iterativeBenchmark.testGeneralIteration(data, parallelism)
+        iterativeBenchmark.testGeneralIteration(data, parallelism, hDMEntry)
       case "iterativeAggregation" =>
-        iterativeBenchmark.testIterationWithAggregation(data, parallelism)
+        iterativeBenchmark.testIterationWithAggregation(data, parallelism, hDMEntry)
       case "LR" =>
         val regressionBenchmark = new IterationBenchmark(1, 1)
         regressionBenchmark.testLinearRegression(data, 3, parallelism)
@@ -119,7 +120,7 @@ object HDMBenchmark {
 
     res match {
       case hdm:ParHDM[_,_] =>
-        onEvent(hdm, "compute", start, endInit, hDMContext)(parallelism)
+        onEvent(hdm, "compute", start, endInit, hDMContext)(parallelism, hDMEntry)
       case other:Any =>
         println(other)
     }
@@ -128,9 +129,9 @@ object HDMBenchmark {
   }
 
 
-  def onEvent(hdm:ParHDM[_,_], action:String, start:Long, endInit:Long, hDMContext: HDMContext)(implicit parallelism:Int) = action match {
+  def onEvent(hdm:ParHDM[_,_], action:String, start:Long, endInit:Long, hDMContext: HDMContext)(implicit parallelism:Int, hDMEntry: HDMEntry) = action match {
     case "compute" =>
-      hdm.compute(parallelism).map { hdm =>
+      hdm.compute(parallelism, hDMEntry).map { hdm =>
         val end = System.currentTimeMillis()
         println(s"Job initiated in ${endInit - start} ms.")
         println(s"Job executed in ${end - endInit} ms.")

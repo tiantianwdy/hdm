@@ -1,7 +1,7 @@
 package org.hdm.core.benchmark
 
 import breeze.linalg.{DenseVector, Vector, squaredDistance}
-import org.hdm.core.context.{HDMAppContext, HDMContext}
+import org.hdm.core.context.{HDMEntry, HDMSession, HDMAppContext, HDMContext}
 import HDMContext._
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
@@ -12,26 +12,27 @@ import scala.util.Random
 /**
  * Created by tiantian on 8/10/15.
  */
-class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serializable{
+class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)(implicit hDMEntry: HDMEntry)  extends Serializable{
 
   def init(context:String, localCores:Int = 0): Unit ={
     val hDMContext = HDMAppContext.defaultContext
-    hDMContext.init(leader = context, slots = localCores)
+    val hDMEntry = new HDMSession(hDMContext)
+    hDMEntry.init(leader = context, slots = localCores)
     Thread.sleep(100)
     hDMContext
   }
 
 
-  def testGeneralIteration(dataPath:String, parallelism:Int = 4) = {
+  def testGeneralIteration(dataPath:String, parallelism:Int = 4, hDMEntry: HDMEntry) = {
     val path = Path(dataPath)
-    val hdm = HDM(path).cached(parallelism)
+    val hdm = HDM(path).cached(parallelism, hDMEntry)
     for(i <- 1 to 3){
       val start = System.currentTimeMillis()
       val vOffset = 1 // variables are only available in this scope , todo: support external variables
       hdm.map{ w =>
         val as = w.split(",")
         as(vOffset).toFloat + i*100
-      }.collect()(parallelism).take(20).foreach(println(_))
+      }.collect()(parallelism, hDMEntry).take(20).foreach(println(_))
       val end = System.currentTimeMillis()
       println(s"Time consumed for iteration $i : ${end - start} ms.")
       Thread.sleep(100)
@@ -39,9 +40,9 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
 
   }
 
-  def testIterationWithAggregation(dataPath:String, parallelism:Int = 4): Unit ={
+  def testIterationWithAggregation(dataPath:String, parallelism:Int = 4, hDMEntry: HDMEntry): Unit ={
     val path = Path(dataPath)
-    val hdm = HDM(path).cached(parallelism)
+    val hdm = HDM(path).cached(parallelism, hDMEntry)
     //    val kOffset = 0
     var aggregation = 0F
     for(i <- 1 to 3){
@@ -51,7 +52,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
       val res = hdm.map{ w =>
         val as = w.split(",")
         as(vOffset).toFloat + i*agg
-      }.collect()(parallelism).take(20).toSeq
+      }.collect()(parallelism, hDMEntry).take(20).toSeq
       aggregation += res.sum
 
       val end = System.currentTimeMillis()
@@ -63,7 +64,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
   }
 
 
-  def testIterationWithCache(dataPath:String, parallelism:Int = 4)={
+  def testIterationWithCache(dataPath:String, parallelism:Int = 4)(implicit hDMEntry: HDMEntry)={
 
     val path = Path(dataPath)
     val hdm = HDM(path).cache
@@ -76,7 +77,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
       val res = hdm.map{ w =>
         val as = w.split(",")
         as(vOffset) + i*agg
-      }.collect()(parallelism).take(20).toSeq
+      }.collect()(parallelism, hDMEntry).take(20).toSeq
       res.foreach(println(_))
 //      aggregation += res.sum
       val end = System.currentTimeMillis()
@@ -117,7 +118,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
   }
 
 
-  def testLogisticRegression(dataPath: String, vecLen: Int, labelIdx: Int, iterations:Int, p:Int = 4)={
+  def testLogisticRegression(dataPath: String, vecLen: Int, labelIdx: Int, iterations:Int, p:Int = 4) (implicit hDMEntry: HDMEntry)={
     implicit  val parallelism = p
     val path = Path(dataPath)
     val rand = new Random(42)
@@ -176,7 +177,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
     weights
   }
 
-  def testNormWeatherLR(dataPath: String, vectorLen: Int, iteration:Int, p:Int = 4, cached:Boolean = false) = {
+  def testNormWeatherLR(dataPath: String, vectorLen: Int, iteration:Int, p:Int = 4, cached:Boolean = false)(implicit hDMEntry: HDMEntry) = {
     implicit  val parallelism = p
     val path = Path(dataPath)
     val rand = new Random(42)
@@ -218,7 +219,7 @@ class IterationBenchmark(val kIndex:Int = 0, val vIndex:Int = 1)  extends Serial
   }
 
 
-  def testWeatherKMeans(dataPath: String, vectorLen: Int, iterations:Int, p:Int = 4, K:Int, cached:Boolean) = {
+  def testWeatherKMeans(dataPath: String, vectorLen: Int, iterations:Int, p:Int = 4, K:Int, cached:Boolean)(implicit hDMEntry: HDMEntry) = {
 
     implicit  val parallelism = p
     val path = Path(dataPath)

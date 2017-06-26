@@ -1,10 +1,9 @@
 package org.hdm.core.benchmark
 
-import org.hdm.core.context.HDMContext
+import org.hdm.core.context.{HDMEntry, HDMSession, HDMContext}
 import HDMContext._
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
-import org.hdm.core.server.HDMServerContext
 
 /**
  * consider the input is text files with columns separated by ","
@@ -16,8 +15,9 @@ import org.hdm.core.server.HDMServerContext
 class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vIndex:Int = 1) extends  Serializable{
 
    def init(context:String, localCores:Int = 0): Unit ={
-     val hDMContext = HDMServerContext.defaultContext
-     hDMContext.init(leader = context, slots = localCores)
+     val hDMContext = HDMContext.defaultContext
+     val hDMEntry = new HDMSession(hDMContext)
+     hDMEntry.init(leader = context, slots = localCores)
      Thread.sleep(100)
      hDMContext
    }
@@ -194,7 +194,7 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
 
   }
 
-  def testTeraSort(dataPath:String, keyLen:Int = 3) (implicit parallelism:Int = 4) = {
+  def testTeraSort(dataPath:String, keyLen:Int = 3) (implicit parallelism:Int = 4, hDMEntry: HDMEntry) = {
     val path = Path(dataPath)
     val hdm = HDM(path)
     val kOffset = kIndex
@@ -211,7 +211,7 @@ class KVBasedPrimitiveBenchmark(val context:String, val kIndex:Int = 0, val vInd
       val as = w.split(",")
       if(keyLen > 0) (as(kOffset).substring(0,keyLen), as(vOffset).toFloat)
       else (as(kOffset), as(vOffset).toFloat)
-    }.sortBy(compare)(parallelism)
+    }.sortBy(compare)
     wordCount
   }
 

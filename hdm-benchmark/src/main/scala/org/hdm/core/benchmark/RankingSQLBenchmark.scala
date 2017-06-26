@@ -1,6 +1,6 @@
 package org.hdm.core.benchmark
 
-import org.hdm.core.context.{HDMAppContext, HDMContext}
+import org.hdm.core.context.{HDMEntry, HDMSession, HDMAppContext, HDMContext}
 import HDMContext._
 import org.hdm.core.io.Path
 import org.hdm.core.model.HDM
@@ -12,7 +12,8 @@ class RankingSQLBenchmark extends Serializable {
 
   def init(context:String, localCores:Int = 0): Unit ={
     val hDMContext = HDMAppContext.defaultContext
-    hDMContext.init(leader = context, slots = localCores)
+    val hdmEntry = new HDMSession(hDMContext)
+    hdmEntry.init(leader = context, slots = localCores)
     Thread.sleep(100)
     hDMContext
   }
@@ -42,7 +43,7 @@ class RankingSQLBenchmark extends Serializable {
     hdm
   }
 
-  def testOrderBy(dataPath:String, p:Int = 4, len:Int) = {
+  def testOrderBy(dataPath:String, p:Int = 4, len:Int)(implicit hDMEntry: HDMEntry) = {
     implicit val parallelism = p
     val path = Path(dataPath)
     val compare = (r:Ranking, r2:Ranking) => {
