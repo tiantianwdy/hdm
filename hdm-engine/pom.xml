@@ -187,7 +187,7 @@
                     <descriptors>
                         <descriptor>src/main/resources/assembly.xml</descriptor>
                     </descriptors>
-                    <finalName>hdm-core</finalName>
+                    <finalName>hdm-engine</finalName>
                     <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
                 <executions>
