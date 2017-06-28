@@ -25,7 +25,6 @@
         <hbase.version>0.94.6</hbase.version>
         <jetty.version>8.1.14.v20131031</jetty.version>
         <snappy.version>1.1.1.6</snappy.version>
-
         <PermGen>256m</PermGen>
         <MaxPermGen>1024m</MaxPermGen>
     </properties>
@@ -321,12 +320,30 @@
             </exclusions>
         </dependency>
 
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-codec-http</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
 
         <dependency>
             <groupId>io.netty</groupId>
-            <artifactId>netty-all</artifactId>
-            <version>4.0.23.Final</version>
+            <artifactId>netty-handler</artifactId>
+            <version>${netty.version}</version>
         </dependency>
+
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-common</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-transport</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+
 
         <dependency>
             <groupId>org.apache.mahout</groupId>
@@ -334,6 +351,13 @@
             <version>0.9</version>
         </dependency>
 
+<!--
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-all</artifactId>
+            <version>${netty.version}</version>
+        </dependency>
+-->
 
         <!--<dependency>-->
             <!--<groupId>com.esotericsoftware</groupId>-->
