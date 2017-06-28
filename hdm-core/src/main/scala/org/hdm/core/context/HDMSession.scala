@@ -16,8 +16,8 @@ class HDMSession(val hDMContext:HDMContext) extends HDMEntry with Logging {
 
   override val executionContext: ExecutionContext = ExecutionContext.global
 
-  override def init(leader: String, slots: Int = 0): Unit = {
-    startAsClient(masterPath = leader)
+  override def init(leader: String, slots: Int = 0, port: Int = 20010): Unit = {
+    startAsClient(masterPath = leader, port = port)
   }
 
   def startAsClient(masterPath: String, port: Int = 20010, blockPort: Int = 9092, conf: Config = hDMContext.defaultConf) {

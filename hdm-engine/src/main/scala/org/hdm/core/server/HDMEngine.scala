@@ -102,15 +102,15 @@ class HDMEngine(val hDMContext:HDMServerContext) extends HDMEntry with Logging {
     addShutdownHook(AppContext.defaultAppContext)
   }
 
-  def init(leader: String = "localhost", slots: Int = hDMContext.cores) {
+  def init(leader: String = "localhost", slots: Int = hDMContext.cores, port:Int = 8999) {
 
     if (leader == "localhost") {
-      startAsMaster(slots = slots)
+      startAsMaster(slots = slots, port = port)
     } else {
       if (slots > 0)
-        startAsClient(masterPath = leader, localExecution = true)
+        startAsClient(masterPath = leader, localExecution = true, port = port)
       else
-        startAsClient(masterPath = leader, localExecution = false)
+        startAsClient(masterPath = leader, localExecution = false, port = port)
     }
     //    scheduler.start()
   }

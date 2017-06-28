@@ -25,7 +25,7 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
 
 
   def testParallelExecution(dataPath1:String, dataPath2:String)(implicit parallelism:Int): Unit ={
-    hDMEntry.init(leader = master1, 0)
+    hDMEntry.init(leader = master1, slots = 0)
     Thread.sleep(200)
 
     val vecLen = 10
@@ -53,7 +53,7 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
   }
 
   def testShuffleTask(dataPath1:String, dataPath2:String)(implicit parallelism:Int): Unit ={
-    hDMEntry.init(leader = master1, 0)
+    hDMEntry.init(leader = master1, slots = 0)
     Thread.sleep(200)
 
     val vecLen = 2
@@ -87,7 +87,7 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
 
 
   def testMultiPartyLR(dataPath1:String, dataPath2:String, vectorLen: Int, iteration:Int)(implicit parallelism:Int) = {
-    hDMEntry.init(leader = master1, 0)
+    hDMEntry.init(leader = master1, slots = 0)
     Thread.sleep(200)
 
     val vecLen = vectorLen / 2

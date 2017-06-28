@@ -16,7 +16,7 @@ trait HDMEntry {
 
   val executionContext: ExecutionContext
 
-  def init(leader: String, slots: Int): Unit
+  def init(leader: String, slots: Int, port: Int): Unit
 
   def compute(hdm: HDM[_], parallelism: Int): Future[HDM[_]]
 

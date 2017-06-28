@@ -47,7 +47,7 @@ class TechfestDemo {
   @Before
   def beforeTest(): Unit ={
     hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    hDMEntry.init(leader = "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster", 0)
+    hDMEntry.init(leader = "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster", slots = 0)
     Thread.sleep(1000)
   }
 
@@ -300,7 +300,7 @@ class TechfestDemo {
     val context = "akka.tcp://masterSys@172.18.0.1:8998/user/smsMaster"
     implicit val parallelism = 1
     hDMContext.NETTY_BLOCK_SERVER_PORT = 9092
-    hDMEntry.init(leader = context, 0)
+    hDMEntry.init(leader = context, slots = 0)
     HDM.parallelWithIndex(testData, hDMContext, appContext).collect() foreach { pair =>
       println(pair._1 -> pair._2)
     }

@@ -21,7 +21,7 @@ class BufferIteratorTest {
        func = new NullFunc[(String, List[Double])],
        blockSize = 0,
        state = Computed,
-       location = Path("hdm://tiantian-HP-EliteBook-Folio-9470m:9091/" + id),
+       location = Path("hdm://127.0.1.1:9091/" + id),
        blocks = mutable.Buffer(HDMServerContext.defaultContext.localBlockPath + "/" + id),
        appContext = AppContext())
    }
