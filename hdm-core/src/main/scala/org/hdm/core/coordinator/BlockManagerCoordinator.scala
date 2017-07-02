@@ -23,7 +23,7 @@ import scala.collection.mutable
 
 class BlockManagerLeader() extends WorkActor {
 
-  val blockManager = HDMBlockManager()
+  def blockManager = HDMBlockManager()
 
   val ioManager = HDMIOManager()
 
@@ -122,7 +122,7 @@ class BlockManagerFollower(val leaderPath: String) extends WorkActor {
 
   val hDMContext = HDMServerContext.defaultContext
 
-  val blockManager = HDMBlockManager()
+  def blockManager = HDMBlockManager()
 
 
   override def initParams(params: Any): Int = {
