@@ -47,7 +47,7 @@ class NettyBlockByteDecoder4x(serializer: SerializerInstance, compressor:Compres
 class NettyBlockDecoder4x(serializer: SerializerInstance, compressor:CompressionCodec) extends MessageToMessageDecoder[ByteBuf] with Logging{
 
   override def decode(ctx: channel.ChannelHandlerContext, msg: ByteBuf, out: util.List[AnyRef]): Unit = try {
-    log.debug("de-serializing msg:" + msg)
+    log.debug("De-serializing msg:" + msg)
 //    val len = msg.readInt()
     log.debug("current decoding msg size:" + msg.readableBytes())
     val start = System.currentTimeMillis()
@@ -68,9 +68,9 @@ class NettyBlockDecoder4x(serializer: SerializerInstance, compressor:Compression
 class NettyQueryDecoder4x(serializer: SerializerInstance) extends MessageToMessageDecoder[ByteBuf] with Logging{
 
   override def decode(ctx: channel.ChannelHandlerContext, msg: ByteBuf, out: util.List[AnyRef]): Unit = {
-    log.info("de-serializing msg:" + msg)
+    log.trace("De-serializing msg:" + msg)
     val obj = serializer.deserialize[QueryBlockMsg](msg.nioBuffer())
-    log.info("de-serialized msg:" + obj)
+    log.trace("De-serialized msg:" + obj)
     out.add(obj)
   }
 }

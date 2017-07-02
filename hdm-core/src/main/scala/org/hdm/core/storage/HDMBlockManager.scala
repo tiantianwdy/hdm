@@ -135,7 +135,8 @@ class DefaultHDMBlockManager(hDMContext: HDMContext) extends HDMBlockManager wit
 
   override def add(id: String, block: Block[_]): Unit = {
     blockCache.put(id, block)
-    log.trace(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
+    log.trace(s"Add block [${id}] into block manager.")
+//    log.trace(s"JVM freeMem size: ${HDMBlockManager.freeMemMB()} MB.")
   }
 
   override def addAllRef(brs: Seq[ParHDM[_, _]]): Unit = {

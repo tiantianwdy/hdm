@@ -87,23 +87,33 @@ class NettyBlockServerHandler(blockManager: HDMBlockManager) extends  ChannelInb
 
   override def channelActive(ctx: ChannelHandlerContext): Unit = {
     super.channelActive(ctx)
-    log.info(" Connection activated:" + ctx)
+    log.debug(" Connection activated:" + ctx)
   }
 
 
   override def channelRead(ctx: ChannelHandlerContext, msg: Any): Unit = try {
-    log.info("received a message:" + msg)
-    val query = msg.asInstanceOf[QueryBlockMsg]
-    query.blockIds.foreach{id =>
-      val blk = blockManager.getBlock(id)
-      if(blk ne null){
-        while(!ctx.channel().isActive){
-          log.warn(s"Reconnecting to ${ctx.channel().remoteAddress()}")
-          ctx.connect(ctx.channel().remoteAddress()).awaitUninterruptibly(60 * 1000)
+    log.info(s"Received a message: [$msg]")
+    msg match {
+      case query:QueryBlockMsg =>
+        log.trace(s"Loading block [${query.blockIds}] from block manager.")
+        query.blockIds.foreach{ id =>
+          val blk = blockManager.getBlock(id)
+          if(blk ne null){
+            while(!ctx.channel().isActive){
+              log.warn(s"Reconnecting to ${ctx.channel().remoteAddress()}")
+              ctx.connect(ctx.channel().remoteAddress()).awaitUninterruptibly(60 * 1000)
+            }
+            log.trace("writing block back for: " + msg)
+            ctx.writeAndFlush(blk).addListener(NettyChannelListener(ctx.channel(), System.currentTimeMillis()))
+          } else {
+            log.error(s"Cannot find block with id:[${id}] on current block manager.")
+          }
         }
-        ctx.writeAndFlush(blk).addListener(NettyChannelListener(ctx.channel(), System.currentTimeMillis()))
-      }
+
+      case other:Any =>
+        log.warn(s"Unhandled msg: [$other].")
     }
+
 //    ctx.flush()
   } catch {
     case e: Throwable => e.printStackTrace()
