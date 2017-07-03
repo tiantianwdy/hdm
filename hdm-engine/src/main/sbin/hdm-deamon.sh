@@ -41,12 +41,12 @@ start_slave () {
 
 
 stop_master () {
-  ps -ef | grep -E 'hdm-engine-*.jar.*-m true' | awk '{print $2}' | xargs kill $1
+  ps -ef | grep -E 'hdm-engine.*.jar.*-m true' | awk '{print $2}' | xargs kill $1
   echo "Stopping master completed..."
 }
 
 stop_slave () {
-  ps -ef | grep -E 'hdm-engine-*.jar.*-m false' | awk '{print $2}' | xargs kill $1
+  ps -ef | grep -E 'hdm-engine.*.jar.*-m false' | awk '{print $2}' | xargs kill $1
   echo "Stopping slave completed..."
 }
 
