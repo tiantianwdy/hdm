@@ -549,7 +549,7 @@ object HDM {
                                hdmContext: HDMContext = HDMContext.defaultContext,
                                appContext: AppContext = AppContext.defaultAppContext,
                                numOfPartitions: Int = HDMContext.CORES): HDM[T] = {
-    require(elems.length > numOfPartitions)
+    require(elems.length >= numOfPartitions)
     val ddms = new RoundRobinPartitioner[T](numOfPartitions).split(elems).map(d => DDM(d._2, hdmContext, appContext))
     new DFM(children = ddms.toSeq,
       func = new NullFunc[T],
@@ -563,7 +563,7 @@ object HDM {
                                      hdmContext: HDMContext = HDMContext.defaultContext,
                                      appContext: AppContext = AppContext.defaultAppContext,
                                      numOfPartitions: Int = HDMContext.CORES): HDM[(Long, T)] = {
-    require(elems.length > numOfPartitions)
+    require(elems.length >= numOfPartitions)
     val ddms = new RoundRobinPartitioner[(Long, T)](numOfPartitions)
       .split(elems.zipWithIndex.map(_.swap).map(tup => (tup._1.toLong, tup._2)))
       .map(d => DDM(d._2, hdmContext, appContext))
@@ -579,7 +579,7 @@ object HDM {
                       hdmContext: HDMContext = HDMContext.defaultContext,
                       appContext: AppContext = AppContext.defaultAppContext,
                       numOfPartitions: Int = HDMContext.CORES): HDM[T] = {
-    require(elems.length > numOfPartitions)
+    require(elems.length >= numOfPartitions)
     val c = elems.head.getClass
     val ct = ClassTag.apply(c)
     parallelize[ct.type](elems.toSeq.asInstanceOf[Seq[ct.type]],
