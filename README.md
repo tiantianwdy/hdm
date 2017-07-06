@@ -14,7 +14,7 @@ HDM is built using Apache Maven. To build HDM from source code, go to the direct
 mvn -DskipTests clean install
 ```
 
-Then unzip the hdm-core.zip from the `target` folder, after then you can see all the components required for HDM.
+Then unzip the hdm-engine.zip from the `target` folder, after then you can see all the components required for HDM.
 
 
 # Quick start a HDM cluser
@@ -22,42 +22,47 @@ Then unzip the hdm-core.zip from the `target` folder, after then you can see all
 
 ## Start master
 
-Users can start the master node of HDM by execute the shell cmd `./startup.sh master [port]?` under the root folder of hdm-core, for example:
+Users can start the master node of HDM by execute the shell cmd `./hdm-deamon.sh start master [parameters]?` under the root folder of hdm-core, for example:
 
 ```shell
-cd ./hdm-core
-./startup-master.sh
+cd ./hdm-engine
+./hdm-deamon.sh start master -p 8998 -h 127.0.1.1
 ```
-
-or
-
-```shell
-cd ./hdm-core
-./startup.sh master 8999
-```
-
+The cmd above starts a master listening on port 8998 with host address 127.0.1.1
 
 ## Start a slave
 
-Users can start a slave node by executing the shell cmd `./startup.sh slave [port of slave] [address of the master] [number of cores] [size of JVM memory] [port for data transferring]`
+Users can start a slave node by executing the shell cmd `./hdm-deamon.sh start slave  -p [port of slave] -P [address of the master] -s [number of cores] -mem [amount of JVM memory] -b [port for data transferring]`
 
 ```shell
 cd ./hdm-core
-./startup.sh slave 10001 127.0.1.1:8999 2 3G 9001
+./hdm-deamon.sh start slave -p 10001 -P 172.18.0.1:8998 -s 4 -mem 1G -b 9001
 ```
 
 
-## Submit depdency to the server
+## Submit dependency to the server
 
-Users can submit the dependency for an HDM application by executing the shell cmd: `./hdm-client.sh submit [master url] [application ID] [application version] [dependency file] [author]`
+Before start to execute a job, users need to submit the dependency for a HDM application by executing the shell cmd: `./hdm-client.sh submit [master url] [application ID] [application version] [dependency file] [author]`
 
 ```shell
-./hdm-client.sh submit "akka.tcp://masterSys@127.0.1.1:8999/user/smsMaster/ClusterExecutor"
-  | "hdm-examples"
+./hdm-client.sh submit "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster/ClusterExecutor"
+  | "defaultApp"
   | "0.0.1"
-  | "/home/tiantian/Dev/workspace/hdm/hdm-benchmark/target/HDM-benchmark-0.0.1.jar"
   | dwu
+  | "/home/ubuntu/Dev/workspace/hdm/hdm-benchmark/target/HDM-benchmark-0.0.1.jar"
 ```
+
+An application may need multiple dependency libs, users can add more dependencies to a HDM applications by execute:
+
+```shell
+./hdm-client.sh addDep "akka.tcp://masterSys@172.31.31.72:8998/user/smsMaster/ClusterResourceLeader"
+ | "defaultApp"
+ | "0.0.1"
+ | dwu
+ | "/home/ubuntu/lib/n1-hdm-benchmark/lib/jna-4.0.0.jar"
+```
+
+Once all the dependencies have been submitted to the cluster, the HDM application can be executed freely on the cluster without re-submitting the libs until users make changes on the code.
 
 ## Start HDM console
 
@@ -65,6 +70,22 @@ Users can start the HDM console by deploy the `hdm-console-0.0.1.war` file of hd
 
 
 # Programming in HDM
+
+
+## Use Maven to manage dependencies
+
+To be able to program using HDM APIs, users just need to add hdm-core into their programming environment:
+
+Add dependency using maven:
+
+``` XML
+    <dependency>
+      <groupId>org.hdm</groupId>
+      <artifactId>hdm-core</artifactId>
+      <version>${hdm.version}</version>
+    </dependency>
+```
+
 
 HDM provides pure functional programming interfaces for users to write their data-oriented applications. In HDM, functions are the first citizens. Operations are just wrappers of primitive functions in HDM.
 
