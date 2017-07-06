@@ -49,17 +49,17 @@ Before start to execute a job, users need to submit the dependency for a HDM app
   | "defaultApp"
   | "0.0.1"
   | dwu
-  | "/home/ubuntu/Dev/workspace/hdm/hdm-benchmark/target/HDM-benchmark-0.0.1.jar"
+  | "/home/ubuntu/dev/workspace/hdm/hdm-benchmark/target/hdm-benchmark-0.0.1.jar"
 ```
 
 An application may need multiple dependency libs, users can add more dependencies to a HDM applications by execute:
 
 ```shell
-./hdm-client.sh addDep "akka.tcp://masterSys@172.31.31.72:8998/user/smsMaster/ClusterResourceLeader"
+./hdm-client.sh addDep "akka.tcp://masterSys@127.0.1.1:8998/user/smsMaster/ClusterResourceLeader"
  | "defaultApp"
  | "0.0.1"
  | dwu
- | "/home/ubuntu/lib/n1-hdm-benchmark/lib/jna-4.0.0.jar"
+ | "/home/ubuntu/lib/hdm-benchmark/lib/jna-4.0.0.jar"
 ```
 
 Once all the dependencies have been submitted to the cluster, the HDM application can be executed freely on the cluster without re-submitting the libs until users make changes on the code.
