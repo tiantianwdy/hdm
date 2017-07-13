@@ -15,4 +15,11 @@ package object core {
 
   type Blk[A] = scala.collection.mutable.Buffer[A]
   val Blk = scala.collection.mutable.Buffer
+
+  type ConSeq[A] = java.util.concurrent.CopyOnWriteArrayList[A]
+
+  def ConSeq[A](seq:A*): Seq[A] = {
+    import scala.collection.JavaConversions._
+    new java.util.concurrent.CopyOnWriteArrayList[A](seq)
+  }
 }
