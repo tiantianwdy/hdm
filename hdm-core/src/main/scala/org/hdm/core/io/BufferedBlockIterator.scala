@@ -21,14 +21,14 @@ import scala.reflect.ClassTag
  */
 class BufferedBlockIterator[A:ClassTag](val blockRefs: Seq[Path], 
                                         val bufferSize:Int = 100000,
-                                        val classLoader: ClassLoader) extends BufferedIterator[A] with Logging{
+                                        @transient val classLoader: ClassLoader) extends BufferedIterator[A] with Logging with Serializable {
 
-  val blockCounter = new AtomicInteger(0)
-  val readingOffset = new AtomicInteger(0)
-  val fetchingCompleted = new AtomicBoolean(false)
-  val isReading = new AtomicBoolean(false)
-  val inputQueue = new LinkedBlockingDeque[A]
-  val waitForReading = new Semaphore(1)
+  private val blockCounter = new AtomicInteger(0)
+  private val readingOffset = new AtomicInteger(0)
+  private val fetchingCompleted = new AtomicBoolean(false)
+  private val isReading = new AtomicBoolean(false)
+  private val inputQueue = new LinkedBlockingDeque[A]
+  private val waitForReading = new Semaphore(1)
 
   def this(hdms:Seq[HDM[_]]){
     this(hdms.flatMap(_.blocks).map(Path(_)), 100000, ClassLoader.getSystemClassLoader)
