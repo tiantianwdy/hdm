@@ -11,7 +11,7 @@ HDM (Hierarchy Distributed Matrix) is a light-weight, optimized, functional fram
 HDM is built using Apache Maven. To build HDM from source code, go to the directory of hdm-core and run:
 
 ```shell
-mvn -DskipTests clean install
+mvn  clean install -Dmaven.test.skip=true
 ```
 
 Then unzip the hdm-engine.zip from the `target` folder, after then you can see all the components required for HDM.
