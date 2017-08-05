@@ -20,8 +20,8 @@
     <dependencies>
         <dependency>
             <groupId>org.hdm</groupId>
-            <artifactId>hdm-core</artifactId>
-            <version>0.0.1</version>
+            <artifactId>hdm-engine</artifactId>
+            <version>0.1-SNAPSHOT</version>
             <exclusions>
                 <exclusion>
                     <groupId>javax.servlet</groupId>
