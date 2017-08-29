@@ -8,15 +8,18 @@ import org.hdm.core.message._
 import scala.collection.JavaConversions._
 import org.hdm.akka.actors.worker.WorkActor
 import org.hdm.akka.server.SmsSystem
+import org.hdm.core.server.DependencyManager
 
 /**
   * Created by tiantian on 10/05/17.
   */
-class ClusterResourceWorker(var leaderPath: String, slots:Int, mem:String, val hdmHome:String) extends WorkActor {
+class ClusterResourceWorker(var leaderPath: String, slots: Int, mem: String, val hdmHome: String) extends WorkActor {
 
-  private val  executors:scala.collection.mutable.Map[String, Process] = new ConcurrentHashMap[String, Process]()
-  private val  executorSpec:scala.collection.mutable.Map[String, InitExecutorMsg] = new ConcurrentHashMap[String, InitExecutorMsg]()
-  private val  executorLauncher = ExecutorLauncher()
+  private val executors: scala.collection.mutable.Map[String, Process] = new ConcurrentHashMap[String, Process]()
+  private val executorSpec: scala.collection.mutable.Map[String, InitExecutorMsg] = new ConcurrentHashMap[String, InitExecutorMsg]()
+  private val executorLauncher = ExecutorLauncher()
+
+  protected val dependencyManager = DependencyManager()
 
   def this(params: ClusterResourceWorkerSpec) {
     this(params.leader, params.slots, params.mem, params.hdmHome)
@@ -30,7 +33,7 @@ class ClusterResourceWorker(var leaderPath: String, slots:Int, mem:String, val h
     1
   }
 
-  private def initExecutor(id:String, appMaster:String, core:Int, port:Int, blockServerPort:Int): Unit ={
+  private def initExecutor(id: String, appMaster: String, core: Int, port: Int, blockServerPort: Int): Unit = {
     executorSpec += (id -> InitExecutorMsg(appMaster, slots, mem, port, blockServerPort))
     log.info(s"launch executor [$id] to [$appMaster] from [$hdmHome] with cores:$core, memory:$mem .")
     val process = executorLauncher.launchExecutor(hdmHome, appMaster, "localhost", port, core, mem, blockServerPort)
@@ -38,9 +41,9 @@ class ClusterResourceWorker(var leaderPath: String, slots:Int, mem:String, val h
     executors += (id -> process)
   }
 
-  private def shutdownExecutor(id:String, gracefully:Boolean): Unit ={
+  private def shutdownExecutor(id: String, gracefully: Boolean): Unit = {
     executors.remove(id) map { process =>
-      if(gracefully){
+      if (gracefully) {
         log.info(s"Shutting down executor with ID [$id] gracefully.")
         process.destroy()
       } else {
@@ -50,18 +53,29 @@ class ClusterResourceWorker(var leaderPath: String, slots:Int, mem:String, val h
     }
     log.info(s"Shutting down executor with ID [$id] succeeded.")
   }
+
   /**
     * process business message
     */
   override def process: PartialFunction[Any, Unit] = {
 
+    case msg: ClusterMsg => processClusterMsg(msg)
+
+    case msg: DependencyMsg => processDepMsg(msg)
+
+    case other: Any => log.warning(s"Unhandled msg: [$other]"); unhandled(other)
+
+  }
+
+  protected def processClusterMsg: PartialFunction[ClusterMsg, Unit] = {
     case InitExecutorMsg(appMaster, core, _, port, blockServerPort) => {
-      if(!executors.contains("_DEFAULT")){
+      if (!executors.contains("_DEFAULT")) {
         initExecutor("_DEFAULT", appMaster, core, port, blockServerPort)
       } else {
-        if(executors("_DEFAULT").isAlive){
+        if (executors("_DEFAULT").isAlive) {
           log.info(s"Executor exists, reuse existing executor.")
-        } else { // process is dead.
+        } else {
+          // process is dead.
           try {
             shutdownExecutor("_DEFAULT", false)
           }
@@ -78,7 +92,7 @@ class ClusterResourceWorker(var leaderPath: String, slots:Int, mem:String, val h
 
     case RestartExecutors => {
       val executorIDs = executors.keys
-      executorIDs.foreach{ id =>
+      executorIDs.foreach { id =>
         executors.remove(id).map(process => process.destroyForcibly())
         executorSpec.get(id).map { spec =>
           val process = executorLauncher.launchExecutor(hdmHome, spec.appMaster, "localhost", spec.port, spec.core, spec.mem, spec.blockServerPort)
@@ -88,8 +102,7 @@ class ClusterResourceWorker(var leaderPath: String, slots:Int, mem:String, val h
       }
     }
 
-    case other:Any => log.warning(s"Unhandled msg: [$other]"); unhandled(other)
-
+    case other: Any => log.warning(s"Unhandled msg: [$other]"); unhandled(other)
   }
 
   protected def processCoordinationMsg: PartialFunction[CoordinatingMsg, Unit] = {
@@ -99,10 +112,22 @@ class ClusterResourceWorker(var leaderPath: String, slots:Int, mem:String, val h
     //todo reset the heartbeat actor for this worker with the new master path
   }
 
+
+  protected def processDepMsg: PartialFunction[DependencyMsg, Unit] = {
+    case AddApplication(appName, version, content, author) =>
+      dependencyManager.submit(appName, version, content, author, false)
+      log.info(s"received application bytes [$appName#$version]")
+
+    case AddDependency(appName, version, depName, content, author) =>
+      dependencyManager.addDep(appName, version, depName, content, author, false)
+      log.info(s"received dependency [$depName] for application: [$appName#$version]")
+  }
+
+
   /**
     * shutdown all the executors
     */
-  def shutdownExecutors(): Unit ={
+  def shutdownExecutors(): Unit = {
     executors.map(_._2).foreach(_.destroyForcibly())
   }
 
@@ -115,4 +140,12 @@ class ClusterResourceWorker(var leaderPath: String, slots:Int, mem:String, val h
   }
 }
 
-case class ClusterResourceWorkerSpec(leader:String, slots:Int, mem:String, hdmHome:String) extends Serializable
+
+/**
+  *  A parameter object for initiation of a ClusterResourceWorker.
+  * @param leader
+  * @param slots
+  * @param mem
+  * @param hdmHome
+  */
+case class ClusterResourceWorkerSpec(leader: String, slots: Int, mem: String, hdmHome: String) extends Serializable
