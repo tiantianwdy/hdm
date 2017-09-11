@@ -55,7 +55,7 @@ object ClusterExecutor extends Logging{
         ddm.location.protocol match {
           case Path.AKKA =>
             //todo replace with using data parsers readAsync
-            log.info(s"Asking block ${ddm.location.name} from ${ddm.location.parent}")
+            log.debug(s"Asking block ${ddm.location.name} from ${ddm.location.parent}")
             ioManager.askBlock(ddm.location.name, ddm.location.parent) // this is only for hdm
           case Path.HDFS => Future {
             val bl = DataParser.readBlock(ddm.location, ClassLoader.getSystemClassLoader)
@@ -70,7 +70,7 @@ object ClusterExecutor extends Logging{
     }
 
       Future.sequence(futureBlocks) map { in =>
-        log.info(s"Input data preparing finished, the task starts running: [${(task.taskId, task.func)}] ")
+        log.debug(s"Input data preparing finished, the task starts running: [${(task.taskId, task.func)}] ")
         val results = task.runWithInput(in)
         log.info(s"Task completed, with output id: [${results.map(_.toURL)}] ")
         results

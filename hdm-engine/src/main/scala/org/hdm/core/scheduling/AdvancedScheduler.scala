@@ -117,18 +117,18 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
         case None => //do nothing
       }
     })
-    log.info(s"Assigned plan with size ${plans.size}, Task remaining: ${blockingQue.size()}")
+    log.debug(s"Assigned plan with size ${plans.size}, Task remaining: ${blockingQue.size()}")
   }
 
   override def startup(): Unit = {
     isRunning.set(true)
     while (isRunning.get) try {
       if(taskQueue.isEmpty) {
-        log.info("wait for non-empty tasks..")
+        log.debug("wait for non-empty tasks..")
         nonEmptyLock.acquire()
-        log.info("exit from waiting for tasks..")
+        log.debug("exit from waiting for tasks..")
       }
-      log.info(s"current waiting task size:${taskQueue.size()}")
+      log.debug(s"current waiting task size:${taskQueue.size()}")
       var candidates = Seq.empty[(Path, Int)]
       resAccessorlock.acquire()
       while(candidates.size <= 0){ // todo solve without thread sleep
@@ -136,7 +136,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
         candidates = Scheduler.getAllAvailableWorkersWithIdx(resourceManager.getAllResources())
         Thread.sleep(50)
       }
-      log.info(s"current waiting worker size:${candidates.size}")
+      log.debug(s"current waiting worker size:${candidates.size}")
       scheduleOnResource(taskQueue, candidates)
       resAccessorlock.release()
     }
@@ -251,7 +251,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
     val endTime = System.currentTimeMillis()
     val serRef = ref.toSerializable()
 //    HDMContext.declareHdm(Seq(ref))
-    log.info(s"A task is succeeded : [${taskId + "_" + func}}] ")
+    log.debug(s"A task is succeeded : [${taskId + "_" + func}}] ")
     val promise = promiseManager.removePromise(taskId).asInstanceOf[Promise[HDM[_]]]
     if (promise != null && !promise.isCompleted ){
       promise.success(serRef)
@@ -296,13 +296,13 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
             .copy(input1 = inputDDM1.asInstanceOf[Seq[ParHDM[_, twoInputTask.inTypeOne.type]]], input2 = inputDDM2.asInstanceOf[Seq[ParHDM[_, twoInputTask.inTypeTwo.type]]])
       }
 //      resourceManager.require(1)
-      log.info(s"Task has been assigned to: [$workerPath] [${task.taskId + "_" + task.func.toString}}] ")
+      log.debug(s"Task has been assigned to: [$workerPath] [${task.taskId + "_" + task.func.toString}}] ")
       resourceManager.decResource(workerPath, 1)
       val future = if (Path.isLocal(workerPath)) runLocalTask(updatedTask)
       else runRemoteTask(workerPath, updatedTask)
 
     }
-    log.info(s"A task has been scheduled: [${task.taskId + "_" + task.func.toString}}] ")
+    log.debug(s"A task has been scheduled: [${task.taskId + "_" + task.func.toString}}] ")
     promise
   }
 
@@ -330,8 +330,8 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
         resourceManager.incResource(workerPath, 1)
         taskSucceeded(task.appId, task.taskId, task.func.toString, results)
         log.info(s"A task [${task.taskId + "_" + task.func}] has been completed in ${System.currentTimeMillis() - startTime} ms.")
-        log.info(s"TaskCompleteMsg has been sent to ${leaderPath}.")
-        log.info(s"Memory remanding: ${HDMBlockManager.freeMemMB} MB.")
+        log.debug(s"TaskCompleteMsg has been sent to ${leaderPath}.")
+        log.debug(s"Memory remanding: ${HDMBlockManager.freeMemMB} MB.")
 
       case Failure(t) =>
         t.printStackTrace()
@@ -377,7 +377,7 @@ class AdvancedScheduler(val blockManager:HDMBlockManager,
               acutalTasks.foreach(taskQueue.add(_))
               nonEmptyLock.release()
             }
-            log.info(s"New tasks have has been triggered: [${tasks.map(t => (t.taskId, t.func)) mkString (",")}}] ")
+            log.debug(s"New tasks have has been triggered: [${tasks.map(t => (t.taskId, t.func)) mkString (",")}}] ")
           }
         }
     }
