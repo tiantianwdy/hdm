@@ -14,6 +14,7 @@ lazy val groupids: Map[String, String] = Map(
   "hbase" -> "org.apache.hbase",
   "hadoopCore" -> "org.apache.hadoop",
   "hadoop" -> "org.apache.hadoop",
+  "httpcomponents" -> "org.apache.httpcomponents",
   "jackson" -> "com.fasterxml.jackson",
   "jetty" -> "org.eclipse.jetty",
   "mortbay-jetty" -> "org.mortbay.jetty",
@@ -41,6 +42,7 @@ lazy val revisions: Map[String, String] = Map(
   "hbase" -> "0.94.6",
   "hadoopCore" -> "1.2.1",
   "hadoop" -> "2.6.0",
+  "httpclient" -> "4.5.3",
   "jackson" -> "2.2.2",
   "jetty" -> "8.1.14.v20131031",
   "junit" -> "4.10",
@@ -112,6 +114,24 @@ lazy val coreDep: Seq[ModuleID] = Seq(
     ),
   groupids("netty") % "netty-all" % revisions("netty"),
   groupids("mahout") % "mahout-math-scala" % revisions("mahout"),
+  groupids("breeze") % ("breeze_" + revisions("scalaBinary")) % revisions("breeze"),
+  groupids("scala") % "scala-library" % revisions("scala"),
+  groupids("scala") % "scala-reflect" % revisions("scala")
+)
+
+
+lazy val engineDep: Seq[ModuleID] = Seq(
+  groupids("junit") % "junit" % revisions("junit"),
+  groupids("protobuf") % "protobuf-java" % revisions("protobuf"),
+  groupids("snappy") % "snappy-java" % revisions("snappy"),
+  groupids("chill") % ("chill_" + revisions("scalaBinary")) % revisions("chill") excludeAll(
+    ExclusionRule(organization = groupids("asm"), name = "asm"),
+    ExclusionRule(organization = groupids("asm"), name = "asm-commons")
+  ),
+  groupids("chill") % "chill-java" % revisions("chill") excludeAll(
+    ExclusionRule(organization = groupids("asm"), name = "asm"),
+    ExclusionRule(organization = groupids("asm"), name = "asm-commons")
+  ),
   groupids("hadoop") % "hadoop-client" % revisions("hadoop") excludeAll(
     ExclusionRule(organization = groupids("asm"), name = "asm"),
     ExclusionRule(organization = "asm", name = "asm"),
@@ -119,12 +139,11 @@ lazy val coreDep: Seq[ModuleID] = Seq(
     ExclusionRule(organization = groupids("protobuf"), name = "protobuf-java"),
     ExclusionRule(organization = groupids("mortbay-jetty"), name = "servlet-api-2.5"),
     ExclusionRule(organization = groupids("junit"), name = "junit")
-    ),
-  groupids("breeze") % ("breeze_" + revisions("scalaBinary")) % revisions("breeze"),
+  ),
+  groupids("httpcomponents") % "httpclient" % revisions("httpclient"),
   groupids("scala") % "scala-library" % revisions("scala"),
   groupids("scala") % "scala-reflect" % revisions("scala")
 )
-
 
 lazy val akkaDistDep: Seq[ModuleID] = Seq(
   groupids("junit") % "junit" % revisions("junit")
@@ -157,6 +176,14 @@ lazy val core = (project in file("./hdm-core"))
   )
   .dependsOn(akkaDist)
 
+lazy val engine = (project in file("./hdm-engine"))
+  .settings(commonSettings: _*)
+  .settings(
+    name := "hdm-engine",
+    libraryDependencies ++= engineDep ++ akkaDep ++ logbackDep ++ asmDep
+  )
+  .dependsOn(core)
+
 lazy val consoleDep: Seq[ModuleID] = jettyDep ++ jacksonDep
 
 lazy val console = (project in file("./hdm-console"))
@@ -165,4 +192,4 @@ lazy val console = (project in file("./hdm-console"))
     name := "hdm-console",
     libraryDependencies ++= consoleDep
   )
-  .dependsOn(core)
+  .dependsOn(engine)
