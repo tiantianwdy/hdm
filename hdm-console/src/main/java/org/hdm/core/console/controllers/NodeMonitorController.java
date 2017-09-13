@@ -1,10 +1,8 @@
 package org.hdm.core.console.controllers;
 
-import org.hdm.akka.configuration.ActorConfig;
 import org.hdm.akka.messages.Query;
 import org.hdm.akka.messages.Reply;
 import org.hdm.akka.server.SmsSystem;
-import org.hdm.core.console.models.TreeVO;
 import org.hdm.core.console.views.HDMViewAdapter;
 
 import javax.servlet.ServletException;

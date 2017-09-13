@@ -5,7 +5,7 @@ import java.util.Date
 import org.hdm.akka.configuration.ActorConfig
 import org.hdm.core.console.models._
 import org.hdm.core.io.Path
-import org.hdm.core.message._
+import org.hdm.core.messages._
 import org.hdm.core.model.HDMInfo
 import org.hdm.core.server.provenance.ExecutionTrace
 

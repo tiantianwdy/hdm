@@ -4,9 +4,9 @@ import org.hdm.akka.server.SmsSystem;
 import org.hdm.core.console.models.DagGraph;
 import org.hdm.core.console.models.DagGraph;
 import org.hdm.core.console.views.HDMViewAdapter;
-import org.hdm.core.message.LogicalFLowQuery;
-import org.hdm.core.message.LogicalFLowQueryByStage;
-import org.hdm.core.message.LogicalFLowResp;
+import org.hdm.core.messages.LogicalFLowQuery;
+import org.hdm.core.messages.LogicalFLowQueryByStage;
+import org.hdm.core.messages.LogicalFLowResp;
 import scala.Option;
 
 import javax.servlet.ServletException;

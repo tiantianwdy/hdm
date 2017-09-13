@@ -10,8 +10,9 @@ import org.hdm.akka.server.SmsSystem;
 import org.hdm.core.console.models.TreeVO;
 import org.hdm.core.console.views.HDMViewAdapter;
 import org.hdm.core.console.models.TreeVO;
-import org.hdm.core.message.ApplicationsQuery;
-import org.hdm.core.message.ApplicationsResp;
+import org.hdm.core.messages.ApplicationsQuery;
+import org.hdm.core.messages.ApplicationsResp;
+
 
 /**
  * Created by tiantian on 8/04/16.

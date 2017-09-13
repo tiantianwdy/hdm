@@ -28,7 +28,7 @@
     <module>akka-distribution</module>
     <module>hdm-core</module>
     <module>hdm-benchmark</module>
-    <!--<module>hdm-console</module>-->
+    <module>hdm-console</module>
     <module>hdm-engine</module>
 </modules>
 

@@ -5,17 +5,13 @@ import org.hdm.akka.messages.Query;
 import org.hdm.akka.messages.Reply;
 import org.hdm.akka.server.SmsSystem;
 import org.hdm.core.console.models.TreeVO;
-import org.hdm.core.console.models.TreeVO;
 import org.hdm.core.console.views.HDMViewAdapter;
-import org.hdm.core.message.AllSlavesQuery;
-import org.hdm.core.message.ApplicationsResp;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
-import java.util.List;
 
 /**
  * Created by tiantian on 11/04/16.

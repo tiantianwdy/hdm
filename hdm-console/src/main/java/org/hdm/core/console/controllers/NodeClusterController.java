@@ -1,15 +1,10 @@
 package org.hdm.core.console.controllers;
 
-import org.hdm.akka.configuration.ActorConfig;
-import org.hdm.akka.messages.Query;
-import org.hdm.akka.messages.Reply;
 import org.hdm.akka.server.SmsSystem;
 import org.hdm.core.console.models.DagGraph;
-import org.hdm.core.console.models.DagGraph;
-import org.hdm.core.console.models.TreeVO;
 import org.hdm.core.console.views.HDMViewAdapter;
-import org.hdm.core.message.AllSLavesResp;
-import org.hdm.core.message.AllSlavesQuery;
+import org.hdm.core.messages.AllSLavesResp;
+import org.hdm.core.messages.AllSlavesQuery;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;

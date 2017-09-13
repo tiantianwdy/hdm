@@ -2,8 +2,8 @@ package org.hdm.core.console.controllers;
 
 import org.hdm.core.console.models.DagGraph;
 import org.hdm.core.console.views.HDMViewAdapter;
-import org.hdm.core.message.JobStageResp;
-import org.hdm.core.message.JobStagesQuery;
+import org.hdm.core.messages.JobStageResp;
+import org.hdm.core.messages.JobStagesQuery;
 
 import org.hdm.akka.server.SmsSystem;
 

@@ -2,12 +2,9 @@ package org.hdm.core.console.controllers;
 
 import org.hdm.akka.server.SmsSystem;
 import org.hdm.core.console.models.TreeVO;
-import org.hdm.core.console.models.TreeVO;
 import org.hdm.core.console.views.HDMViewAdapter;
-import org.hdm.core.message.AllAppVersionsQuery;
-import org.hdm.core.message.AllAppVersionsResp;
-import org.hdm.core.message.DependencyTraceQuery;
-import org.hdm.core.message.DependencyTraceResp;
+import org.hdm.core.messages.DependencyTraceQuery;
+import org.hdm.core.messages.DependencyTraceResp;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;

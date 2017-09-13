@@ -3,8 +3,8 @@ package org.hdm.core.console.controllers;
 import org.hdm.akka.server.SmsSystem;
 import org.hdm.core.console.models.DagGraph;
 import org.hdm.core.console.views.HDMViewAdapter;
-import org.hdm.core.message.ExecutionTraceQuery;
-import org.hdm.core.message.ExecutionTraceResp;
+import org.hdm.core.messages.ExecutionTraceQuery;
+import org.hdm.core.messages.ExecutionTraceResp;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
