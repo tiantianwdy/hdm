@@ -42,7 +42,7 @@
         <appender-ref ref="${log.appender}" />
     </root>
 
-    <root level="WARN">
+    <root level="INFO">
         <appender-ref ref="${log.appender}" />
         <appender-ref ref="${log.error.appender}" />
     </root>
