@@ -2,6 +2,7 @@ package org.hdm.core.planing
 
 import org.hdm.core.context.HDMServerContext
 import org.hdm.core.model.HDM
+import org.hdm.core.utils.Logging
 
 import scala.collection.mutable
 
@@ -19,12 +20,14 @@ trait MultiClusterPlaner extends HDMPlaner {
 
 }
 
-class StaticMultiClusterPlanner(hdmPlanner:HDMPlaner, val hDMcontext: HDMServerContext) extends MultiClusterPlaner {
+class StaticMultiClusterPlanner(hdmPlanner:HDMPlaner, val hDMcontext: HDMServerContext) extends MultiClusterPlaner with Logging {
 
   override def planStages(hdm: HDM[_], parallelism: Int): Seq[JobStage] = {
     val context = hDMcontext.leaderPath.get()
+    require(context != null && ! context.isEmpty)
     // initial plan
     val isLocal = (hdm.appContext.masterPath == context)
+    log.info(s"[App masterPath] ${hdm.appContext.masterPath}, [context] $context")
     val appId = hdm.appContext.appName + "#" + hdm.appContext.version
     val lastStage = JobStage(appId, hdm.id, mutable.Buffer.empty[JobStage], hdm, hdm.appContext.masterPath, parallelism, isLocal)
     //plan for children

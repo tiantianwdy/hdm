@@ -25,7 +25,7 @@ object HDMServer extends Logging {
   var host = defaultConf.getString("akka.remote.netty.tcp.hostname")
   var slots = 1
   var mem = "2G"
-  var nodeType = "app" // or cluster
+  var nodeType = "cluster" // or stand-alone
   var blockServerPort = 9091
   var mode = "single-cluster"
   var isMaster = Try {
@@ -75,20 +75,24 @@ object HDMServer extends Logging {
     })
 
     val hDMContext = new HDMServerContext(defaultConf)
+    nodeType match {
+      case "stand-alone" => hDMContext.clusterExecution.set(false)
+      case "cluster" => hDMContext.clusterExecution.set(true)
+    }
 //    val hDMContext = HDMServerContext.defaultContext
-    val engine = new HDMEngine(hDMContext)
+    val engine = HDMEngine(hDMContext)
 
     if (isMaster){
       log.info(s"starting master at $host:$port, with mode: $mode, " +
         s"CPU Parallel factor: ${hDMContext.PLANER_PARALLEL_CPU_FACTOR}, " +
         s"Network parallel factor: ${hDMContext.PLANER_PARALLEL_NETWORK_FACTOR}")
       nodeType match {
-        case "app" => engine.startAsMaster(host= host, port = port, conf = defaultConf, mode = mode)//port, defaultConf
+        case "stand-alone" => engine.startAsMaster(host= host, port = port, conf = defaultConf, mode = mode)//port, defaultConf
         case "cluster" => engine.startAsClusterMaster(host= host, port = port, conf = defaultConf, mode = mode)
       }
     } else {
       nodeType match {
-        case "app" => engine.startAsSlave(parentPath, host, port, blockServerPort, defaultConf, slots)
+        case "stand-alone" => engine.startAsSlave(parentPath, host, port, blockServerPort, defaultConf, slots)
         case "cluster" => engine.startAsClusterSlave(parentPath, host, port, blockServerPort, defaultConf, slots, mem)
       }
     }//parentPath, port, defaultConf

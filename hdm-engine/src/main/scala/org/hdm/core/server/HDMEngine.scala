@@ -58,7 +58,7 @@ class HDMEngine(val hDMContext:HDMServerContext) extends HDMEntry with Logging {
     SmsSystem.startAsMaster(host, port, hDMContext.isLinux, conf)
     //    SmsSystem.addActor(CLUSTER_EXECUTOR_NAME, "localhost","org.hdm.core.coordinator.ClusterExecutorLeader", slots)
     //    SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost","org.hdm.core.coordinator.HDMClusterLeaderActor", slots)
-    val masterCls = if (mode == "multi-cluster") "org.hdm.core.coordinator.HDMMultiClusterLeader"
+    val masterCls = if (mode == "multi-cluster") "org.hdm.core.coordinator.HDMMultiCoordinationLeader"
     else "org.hdm.core.coordinator.SingleCoordinationLeader"
     SmsSystem.addActor(HDMContext.CLUSTER_EXECUTOR_NAME, "localhost", masterCls, slots)
     SmsSystem.addActor(HDMContext.BLOCK_MANAGER_NAME, "localhost", "org.hdm.core.coordinator.BlockManagerLeader", null)
@@ -130,12 +130,13 @@ class HDMEngine(val hDMContext:HDMServerContext) extends HDMEntry with Logging {
         log.info(s"created new HDMServerBackend with scheduling: ${hDMContext.SCHEDULING_POLICY_CLASS}")
 
       case "multiple" =>
+        hDMContext.clusterExecution.set(false)
         val appManager = new AppManager
         val blockManager = HDMBlockManager()
         val promiseManager = new DefPromiseManager
         val resourceManager = new MultiClusterResourceManager
         val schedulingPolicy = Class.forName(hDMContext.SCHEDULING_POLICY_CLASS).newInstance().asInstanceOf[SchedulingPolicy]
-        val multiPlanner = new StaticMultiClusterPlanner(planer, HDMServerContext.defaultContext)
+        val multiPlanner = new StaticMultiClusterPlanner(planer, hDMContext)
         val scheduler = new MultiClusterScheduler(blockManager, promiseManager, resourceManager, ProvenanceManager(), SmsSystem.system, DependencyManager(), multiPlanner, schedulingPolicy, this)
         hdmBackEnd = new MultiClusterBackend(blockManager, scheduler, multiPlanner, resourceManager, promiseManager, DependencyManager(), hDMContext)
         log.info(s"created new MultiClusterBackend with scheduling: ${hDMContext.SCHEDULING_POLICY_CLASS}")
@@ -209,10 +210,18 @@ class HDMEngine(val hDMContext:HDMServerContext) extends HDMEntry with Logging {
 
 object HDMEngine {
 
-  val _engine = new AtomicReference[HDMEngine]
+  private val _engine = new AtomicReference[HDMEngine]
 
   def apply(): HDMEngine ={
-    if(_engine.get() eq null) _engine.set(new HDMEngine(HDMServerContext.defaultContext))
+    apply(HDMServerContext.defaultContext)
+  }
+
+  def apply(hdmContext:HDMServerContext): HDMEngine ={
+    if(_engine.get() eq null) _engine.set(new HDMEngine(hdmContext))
     _engine.get()
+  }
+
+  def set(hDMEngine: HDMEngine): Unit = {
+    _engine.set(hDMEngine)
   }
 }

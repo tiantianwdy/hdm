@@ -21,6 +21,8 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
 
   val appContext2 = new AppContext(appName = "hdm-examples", version = "0.0.1", masterPath = master2)
 
+  hDMContext.clusterExecution.set(false)
+
   implicit val hDMEntry = new HDMSession(hDMContext)
 
 
@@ -99,22 +101,22 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
 
     val trainingDp1 = dataDP1.map(line => line.split("\\s+"))
       .map{ seq => seq.drop(3).dropRight(6)}
-      .filter(seq => seq.forall(s => s.matches("\\d+(.\\d+)?")))
+      .filter(seq => seq.size >= 6 && seq.forall(s => s.matches("\\d+(.\\d+)?")))
       .map{seq => seq.take(vecLen).map(_.toDouble)}
-      .zipWithIndex.mapValues(d => DenseVector(d))
+      .zipWithIndex
 
 
     val trainingDp2 = dataDP2.map(line => line.split("\\s+"))
       .map{ seq => seq.drop(3).dropRight(6)}
-      .filter(seq => seq.forall(s => s.matches("\\d+(.\\d+)?")))
+      .filter(seq => seq.size >= 6 && seq.forall(s => s.matches("\\d+(.\\d+)?")))
       .map{seq => seq.takeRight(vecLen).map(_.toDouble)}
-      .zipWithIndex.mapValues(d => DenseVector(d))
+      .zipWithIndex
 
     val training = trainingDp1.joinByKey(trainingDp2)
-      .mapValues(tup => tup._1 += tup._2)
+      .mapValues(tup => tup._1 ++ tup._2).findByValue(data => data.size == vectorLen)
       .map{ tup =>
-        val vec = Vector(tup._2.data)
-        DataPoint(vec, tup._2.data(0))
+        val vec = Vector(tup._2)
+        DataPoint(vec, tup._2(0))
       }.cache()
 
     var start = System.currentTimeMillis()
@@ -178,7 +180,7 @@ object MultiClusterBenchmarkMain {
         multiclusterBenchmark.testParallelExecution(data, data)
       case "mc-lr" =>
         multiclusterBenchmark.testMultiPartyLR(data, data, 12, 3)
-      case "lr" =>
+      case "shuffle" =>
         multiclusterBenchmark.testShuffleTask(data, data)
     }
   }
