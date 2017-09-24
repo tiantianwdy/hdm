@@ -12,7 +12,9 @@ import scala.util.Random
  */
 class HDMathTestSuite {
 
-  val vecData = Seq.fill[Double](1000){
+  val numColumn = 100
+  val numRows = 1000
+  val vecData = Seq.fill[Double](numRows){
     Random.nextDouble()
   }
 

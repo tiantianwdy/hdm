@@ -1,6 +1,6 @@
 package org.hdm.core.math
 
-import org.hdm.core.math.HDMatrix._
+import org.hdm.core.math.HDMRowMatrix._
 import org.hdm.core.model.HDM
 import org.junit.Test
 

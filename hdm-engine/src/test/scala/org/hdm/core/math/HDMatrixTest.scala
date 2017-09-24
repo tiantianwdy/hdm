@@ -1,7 +1,8 @@
 package org.hdm.core.math
 
-import breeze.linalg.{DenseVector, norm => bNorm}
-import org.hdm.core.math.HDMatrix.hdmToMatrix
+import breeze.linalg.{DenseVector}
+import org.hdm.core.math.HDMRowMatrix._
+
 import org.hdm.core.model.HDM
 import org.junit.Test
 
@@ -12,14 +13,14 @@ import scala.util.Random
  */
 class HDMatrixTest extends HDMathTestSuite {
 
-  val numColumn = 100
-  val numRows = 1000
+
   val matrixData = Seq.fill[DenseVector[Double]](numRows) {
     val vec = Array.fill[Double](numColumn) {
       Random.nextDouble()
     }
     DenseVector.apply(vec)
   }
+
 
 
   @Test
@@ -43,9 +44,9 @@ class HDMatrixTest extends HDMathTestSuite {
 
   @Test
   def testNorm(): Unit = {
-    val matrix = HDM.parallelize(elems = matrixData, numOfPartitions = 8).zipWithIndex.cache()
+    val matrix = HDM.parallelWithIndex(elems = matrixData, numOfPartitions = 8).cache()
     // test map row
-    printData(matrix.norm(parallelism, hDMEntry))
+    printData(matrix.norm)
 
   }
 
@@ -58,6 +59,23 @@ class HDMatrixTest extends HDMathTestSuite {
 
 //    printData(res)
     println(res)
+
+  }
+
+  @Test
+  def testLogisticRegression(): Unit ={
+    val matrix:HDMRowMatrix[Double] = HDM.parallelWithIndex(elems = matrixData, numOfPartitions = 4).cache()
+    val y = new HDVector[Double](HDM.parallelWithIndex(elems = vecData, numOfPartitions = 4).cache())
+    val weights = DenseVector.fill(numColumn){0.01 * Math.random()}
+
+
+    import VectorOps.hdmToVector
+
+    val hx = y.minus(matrix.dot(weights).sigmoid())
+    val gradient = matrix.zipMap(hx.self, (vec, d) => vec * d).map(_._2).reduce(_ + _).collect().next()
+//    val gradient = matrix.times(hx)
+    weights -= gradient
+    println(weights)
 
   }
 

@@ -4,7 +4,7 @@ import breeze.linalg.DenseVector
 import breeze.math.Semiring
 import org.hdm.core.context.{HDMEntry, HDMContext}
 import HDMContext._
-import HDMatrix._
+import HDMRowMatrix._
 import org.hdm.core.model.HDM
 
 import scala.reflect.ClassTag
@@ -13,11 +13,12 @@ import scala.{specialized => types}
 /**
   * Created by tiantian on 4/05/16.
   */
-class HDMatrix[@types(Double, Int, Float, Long) T: ClassTag](self: HDM[(Long, DenseVector[T])])
-                                                            (implicit val e: Numeric[T],
+class HDMRowMatrix[@types(Double, Int, Float, Long) T: ClassTag](self: HDM[(Long, DenseVector[T])])
+                                                                (implicit val e: Numeric[T],
                                                              val l: Semiring[T],
-                                                             val parallelism: Int)
-                                                             extends Serializable with MatrixLike {
+                                                             val parallelism: Int,
+                                                             @transient val hDMEntry: HDMEntry)
+                                                             extends Serializable with MatrixLike[T] {
 
   def mapRow[@types(Double, Int, Float, Long) U: ClassTag](f: DenseVector[T] => DenseVector[U])
                                                           (implicit eu: Numeric[U]): HDM[(Long, DenseVector[U])] = {
@@ -25,21 +26,19 @@ class HDMatrix[@types(Double, Int, Float, Long) T: ClassTag](self: HDM[(Long, De
   }
 
   def mapElem[@types(Double, Int, Float, Long) U: ClassTag](f: T => U)
-                                                           (implicit eu: Numeric[U],
-                                                            lu: Semiring[U]): HDM[(Long, DenseVector[U])] = {
+                                                           (implicit eu: Numeric[U]): HDM[(Long, DenseVector[U])] = {
     self.mapValues(v => v.map(f))
   }
 
-  def zipMap(hdv: HDM[(Long, T)], f: (DenseVector[T], T) => DenseVector[T]) = {
+  def zipMap(hdv: HDM[(Long, T)], f: (DenseVector[T], T) => DenseVector[T]):HDM[(Long, DenseVector[T])] = {
     self.joinByKey(hdv).mapValues(tup => f(tup._1, tup._2))
   }
 
-  def dot(nv: DenseVector[T]): HDM[(Long, T)] = {
-    self.mapValues(v => v.dot(nv))
+  def dot(nv: DenseVector[T]): HDVector[T] = {
+    new HDVector(self.mapValues(v => v.dot(nv)))
   }
 
-  def reduceRow(op: (DenseVector[T], DenseVector[T]) => DenseVector[T])
-               (implicit parallelism: Int, hDMEntry: HDMEntry): DenseVector[T] = {
+  def reduceRow(op: (DenseVector[T], DenseVector[T]) => DenseVector[T]): DenseVector[T] = {
     self.map(_._2).reduce(op).collect().next()
   }
 
@@ -47,7 +46,7 @@ class HDMatrix[@types(Double, Int, Float, Long) T: ClassTag](self: HDM[(Long, De
     self.mapValues(v => v.fold(e.zero)(op))
   }
 
-  def norm(implicit parallelism: Int, hDMEntry: HDMEntry) = {
+  def norm = {
     val eu = e
     val reduceFunc = (v1: DenseVector[T], v2: DenseVector[T]) =>
       (v1.asInstanceOf[DenseVector[Double]] + v2.asInstanceOf[DenseVector[Double]]).asInstanceOf[DenseVector[T]]
@@ -66,24 +65,24 @@ class HDMatrix[@types(Double, Int, Float, Long) T: ClassTag](self: HDM[(Long, De
     this.reduceColumn(e.plus(_, _))
   }
 
-  def sumRow(implicit parallelism: Int, hDMEntry: HDMEntry): DenseVector[T] = {
+  def sumRow: DenseVector[T] = {
     this.reduceRow(_ + _)
   }
 
-  def sum(implicit parallelism: Int, hDMEntry: HDMEntry): T = {
+  def sum: T = {
     this.sumColumn().sum
   }
 
   // operations for N1Analysis
 
-  def numRows(implicit parallelism: Int, hDMEntry: HDMEntry): Int = {
+  def numRows(): Int = {
     self.count().collect().next()
   }
 
 
   def numColumns(): Int = ???
 
-  def column(idx: Int)(implicit hDMEntry: HDMEntry): DenseVector[T] = {
+  def column(idx: Int): DenseVector[T] = {
     self.filter(_._1 == idx).collect().next()._2
   }
 
@@ -97,16 +96,42 @@ class HDMatrix[@types(Double, Int, Float, Long) T: ClassTag](self: HDM[(Long, De
     }
   }
 
+//  def times(vector:HDVector[T]): DenseVector[T] = {
+//    this.zipMap(vector.self, (vec, d) => vec * d).map(_._2).reduce(_ + _).collect().next()
+//  }
+
+  def *(vector:DenseVector[T]) = {
+    dot(vector)
+  }
+
+  override def apply[U](func: (T) => U): MatrixLike[U] = ???
+
+  override def submatrix(vectorCon: (DenseVector[T]) => Boolean): MatrixLike[T] = ???
+
+  override def multiply(denseVector: DenseVector[T]): MatrixLike[T] = ???
+
+  override def multiply(matrix: MatrixLike[T]): MatrixLike[T] = ???
+
+  override def submmatrix(idxCon: (Long) => Boolean): MatrixLike[T] = ???
+
+  override def times(value: T): MatrixLike[T] = ???
+
+  override def add(denseVector: DenseVector[T]): MatrixLike[T] = ???
+
+  override def add(matrix: MatrixLike[T]): MatrixLike[T] = ???
+
+  override def add(value: T): MatrixLike[T] = ???
 
 }
 
-object HDMatrix {
+object HDMRowMatrix {
 
   implicit def hdmToMatrix[@types(Double, Int, Float, Long) T: ClassTag](hdm: HDM[(Long, DenseVector[T])])
                                                                         (implicit e: Numeric[T],
                                                                          l: Semiring[T],
-                                                                         parallelism: Int): HDMatrix[T] = {
-    new HDMatrix(hdm)
+                                                                         parallelism: Int,
+                                                                         hDMEntry: HDMEntry): HDMRowMatrix[T] = {
+    new HDMRowMatrix(hdm)
   }
 
   implicit def hdmToVector[@types(Double, Int, Float, Long) T: ClassTag](hdm: HDM[(Long, T)])

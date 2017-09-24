@@ -1,7 +1,7 @@
 package org.hdm.core.math
 
 import org.hdm.core.context.{HDMEntry, HDMContext}
-import org.hdm.core.math.HDMatrix.hdmToVector
+import org.hdm.core.math.HDMRowMatrix.hdmToVector
 import HDMContext._
 import org.hdm.core.model.HDM
 
@@ -19,7 +19,7 @@ import java.lang.{Double => JDouble}
   */
 class HDVector[@types(Double, Int, Float, Long) T: ClassTag]
 (val self: HDM[(Long, T)])(implicit e: Numeric[T])
-  extends Serializable with VectorLike {
+  extends Serializable with VectorLike[T] {
 
   def times(another: HDM[(Long, T)]): HDM[(Long, T)] = {
     //    self.joinBy(another, _._1, (v:(Long, T)) => v._1).mapValues( tup => implicitly[Numeric[T]].times(tup._1._2, tup._2._2))
@@ -48,16 +48,16 @@ class HDVector[@types(Double, Int, Float, Long) T: ClassTag]
   }
 
 
-  def minus(another: HDVector[T]): HDM[(Long, T)] = {
+  def minus(another: HDVector[T]): HDVector[T] = {
     self.joinByKey(another.self).mapValues(tup => e.minus(tup._1, tup._2))
   }
 
-  def minus(another: Iterator[T]): HDM[(Long, T)] = {
+  def minus(another: Iterator[T]): HDVector[T] = {
     val localVector = another.zipWithIndex.map(e => (e._2.toLong, e._1)).toSeq
     this.minus(HDM.parallelize(localVector))
   }
 
-  def mapElem(f: T => T) = {
+  def mapElem[U: ClassTag](f: T => U) = {
     self.mapValues(f)
   }
 
@@ -126,5 +126,14 @@ class HDVector[@types(Double, Int, Float, Long) T: ClassTag]
   def *(d: T) = multiply(d)
 
   def toHDM() = self
+
+}
+
+object HDVector {
+
+//  implicit def vectorToHDM[@types(Double, Int, Float, Long) T: ClassTag](hdm:HDM[(Long, T)])(implicit e: Numeric[T]):HDVector[T] = {
+//    new HDVector(hdm)
+//  }
+
 
 }
