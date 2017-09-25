@@ -26,6 +26,7 @@ class MultiClusterBenchmark(val master1:String, val master2:String) extends Seri
   implicit val hDMEntry = new HDMSession(hDMContext)
 
 
+
   def testParallelExecution(dataPath1:String, dataPath2:String)(implicit parallelism:Int): Unit ={
     hDMEntry.init(leader = master1, slots = 0)
     Thread.sleep(200)

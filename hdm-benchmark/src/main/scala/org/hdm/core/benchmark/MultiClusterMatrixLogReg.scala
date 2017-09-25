@@ -1,0 +1,82 @@
+package org.hdm.core.benchmark
+
+import breeze.linalg.DenseVector
+import org.hdm.core.io.Path
+import org.hdm.core.math.{VectorOps, HDVector, HDMRowMatrix}
+import org.hdm.core.model.HDM
+
+import scala.util.Random
+import org.hdm.core.math.HDMRowMatrix._
+
+/**
+  * Created by tiantian on 25/09/17.
+  */
+class MultiClusterMatrixLogReg(master1:String,
+                               master2:String
+                               )(implicit parallelism:Int) extends MultiClusterBenchmark(master1, master2) {
+
+  /**
+    *
+    * @param dataPath1
+    * @param dataPath2
+    * @param vectorLen
+    * @return
+    */
+  def fromCSV(dataPath1:String, dataPath2:String, vectorLen: Int):(HDMRowMatrix[Double], HDMRowMatrix[Double]) = {
+    hDMEntry.init(leader = master1, slots = 0)
+    Thread.sleep(200)
+
+    val vecLen = vectorLen / 2
+    var weights = DenseVector.fill(vectorLen){0.01 * Random.nextDouble()}
+    val data1 = Path(dataPath1)
+    val data2 = Path(dataPath2)
+    val dataDP1 = HDM(data1, appContext1)
+    val dataDP2 = HDM(data2, appContext2)
+
+    val trainingDp1 = dataDP1.map(line => line.split("\\s+"))
+      .map{ seq => seq.drop(3).dropRight(6)}
+      .filter(seq => seq.size >= 6 && seq.forall(s => s.matches("\\d+(.\\d+)?")))
+      .map{seq => DenseVector(seq.take(vecLen).map(_.toDouble))}
+      .zipWithIndex
+
+
+    val trainingDp2 = dataDP2.map(line => line.split("\\s+"))
+      .map{ seq => seq.drop(3).dropRight(6)}
+      .filter(seq => seq.size >= 6 && seq.forall(s => s.matches("\\d+(.\\d+)?")))
+      .map{seq => DenseVector(seq.takeRight(vecLen).map(_.toDouble))}
+      .zipWithIndex
+
+    (trainingDp1, trainingDp2)
+  }
+
+
+  /**
+    *
+    * @param matrix1
+    * @param matrix2
+    * @param labels
+    * @param numColumn
+    * @param numIteration
+    */
+  def runMultiClusterMatrixLR(matrix1:HDMRowMatrix[Double],
+                              matrix2:HDMRowMatrix[Double],
+                              labels:HDVector[Double],
+                              numColumn: Int,
+                              numIteration: Int): Unit ={
+    val x = matrix1.vertical(matrix2)
+    val y = labels
+    val weights = DenseVector.fill(numColumn){0.01 * Math.random()}
+    import VectorOps.hdmToVector
+
+    for(i <- 1 to numIteration){
+      val start = System.currentTimeMillis()
+      val gradient = y.minus(x.dot(weights).sigmoid()) *: x
+      weights -= gradient
+      val end = System.currentTimeMillis()
+      println(s"Iteration $i finished in ${end - start} ms.")
+      println(weights)
+    }
+
+  }
+
+}
