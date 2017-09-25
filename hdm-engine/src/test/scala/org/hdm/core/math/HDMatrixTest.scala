@@ -70,12 +70,12 @@ class HDMatrixTest extends HDMathTestSuite {
 
 
     import VectorOps.hdmToVector
-
-    val hx = y.minus(matrix.dot(weights).sigmoid())
-    val gradient = matrix.zipMap(hx.self, (vec, d) => vec * d).map(_._2).reduce(_ + _).collect().next()
-//    val gradient = matrix.times(hx)
-    weights -= gradient
-    println(weights)
+    for(i <- 1 to 3) {
+      val gradient = y.minus(matrix.dot(weights).sigmoid()) *: matrix
+      //    val gradient = matrix.zipMap(hx.self, (vec, d) => vec * d).map(_._2).reduce(_ + _).collect().next()
+      weights -= gradient
+      println(weights)
+    }
 
   }
 

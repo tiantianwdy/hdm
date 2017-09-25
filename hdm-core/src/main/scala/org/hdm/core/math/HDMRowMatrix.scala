@@ -13,7 +13,7 @@ import scala.{specialized => types}
 /**
   * Created by tiantian on 4/05/16.
   */
-class HDMRowMatrix[@types(Double, Int, Float, Long) T: ClassTag](self: HDM[(Long, DenseVector[T])])
+class HDMRowMatrix[@types(Double, Int, Float, Long) T: ClassTag](val self: HDM[(Long, DenseVector[T])])
                                                                 (implicit val e: Numeric[T],
                                                              val l: Semiring[T],
                                                              val parallelism: Int,
@@ -96,12 +96,19 @@ class HDMRowMatrix[@types(Double, Int, Float, Long) T: ClassTag](self: HDM[(Long
     }
   }
 
-//  def times(vector:HDVector[T]): DenseVector[T] = {
-//    this.zipMap(vector.self, (vec, d) => vec * d).map(_._2).reduce(_ + _).collect().next()
-//  }
+  def *:(vector:HDVector[Double]): DenseVector[Double] = {
+    this.asInstanceOf[HDMRowMatrix[Double]].zipMap(vector.self, (vec, d) => vec * d).map(_._2).reduce(_ + _).collect().next()
+  }
 
   def *(vector:DenseVector[T]) = {
     dot(vector)
+  }
+
+  def vertical(another:HDMRowMatrix[T]):HDMRowMatrix[T] = {
+    val data1 = this.self
+    val data2 = another.self
+    val nData = data1.joinByKey(data2)
+    nData.mapValues(tup => DenseVector(tup._1.data ++ tup._2.data))
   }
 
   override def apply[U](func: (T) => U): MatrixLike[U] = ???
