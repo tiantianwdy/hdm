@@ -133,6 +133,10 @@ class HDMRowMatrix[@types(Double, Int, Float, Long) T: ClassTag](val self: HDM[(
 
 object HDMRowMatrix {
 
+  def vertical[T](m1:HDMRowMatrix[T], m2:HDMRowMatrix[T]):HDMRowMatrix[T]= {
+    m1.vertical(m2)
+  }
+
   implicit def hdmToMatrix[@types(Double, Int, Float, Long) T: ClassTag](hdm: HDM[(Long, DenseVector[T])])
                                                                         (implicit e: Numeric[T],
                                                                          l: Semiring[T],

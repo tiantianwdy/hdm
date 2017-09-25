@@ -7,6 +7,7 @@ import org.hdm.core.model.HDM
 
 import scala.util.Random
 import org.hdm.core.math.HDMRowMatrix._
+import VectorOps.hdmToVector
 
 /**
   * Created by tiantian on 25/09/17.
@@ -52,21 +53,21 @@ class MultiClusterMatrixLogReg(master1:String,
 
   /**
     *
-    * @param matrix1
-    * @param matrix2
+    * @param dataPath1
+    * @param dataPath2
     * @param labels
     * @param numColumn
     * @param numIteration
     */
-  def runMultiClusterMatrixLR(matrix1:HDMRowMatrix[Double],
-                              matrix2:HDMRowMatrix[Double],
+  def runTwoClusterMatrixLR(dataPath1:String,
+                              dataPath2:String,
                               labels:HDVector[Double],
                               numColumn: Int,
                               numIteration: Int): Unit ={
-    val x = matrix1.vertical(matrix2)
+    val (m1, m2) = fromCSV(dataPath1, dataPath2, numColumn)
+    val x = HDMRowMatrix.vertical(m1, m2) // todo cache result
     val y = labels
     val weights = DenseVector.fill(numColumn){0.01 * Math.random()}
-    import VectorOps.hdmToVector
 
     for(i <- 1 to numIteration){
       val start = System.currentTimeMillis()
