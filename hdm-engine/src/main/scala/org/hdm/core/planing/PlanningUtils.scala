@@ -18,15 +18,16 @@ object PlanningUtils {
   }
 
   def orderKeepingGroup[T](elem:Seq[T], groupNum:Int):Seq[Buffer[T]]= {
+    val numOfGroup =  if(groupNum > 0) groupNum else 1
     val elemBuffer = elem.toBuffer
-    val groupBuffer = Array.fill(groupNum){Buffer.empty[T]}
-    val elemSize = elem.size/groupNum
-    for (g <- 0 until groupNum){
+    val groupBuffer = Array.fill(numOfGroup){Buffer.empty[T]}
+    val elemSize =  elem.size/numOfGroup
+    for (g <- 0 until numOfGroup){
       groupBuffer(g) = elemBuffer.take(elemSize)
       elemBuffer.remove(0, elemSize)
     }
     for (elem <- elemBuffer){
-      val idx = elemBuffer.indexOf(elem) % groupNum
+      val idx = elemBuffer.indexOf(elem) % numOfGroup
       groupBuffer(idx) += elem
     }
     groupBuffer.toSeq
@@ -87,6 +88,7 @@ object PlanningUtils {
     }
 
     println(s"${ddmBuffer.size}, $total, $n ")
+    ddmBuffer.foreach(d => println(d.size))
     // subGrouping in each bounded group
     val distribution = ddmBuffer.map(seq => Math.round( (seq.size/total) * n))
     val finalRes = Buffer.empty[Buffer[Path]]
