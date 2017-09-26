@@ -111,6 +111,10 @@ class HDMRowMatrix[@types(Double, Int, Float, Long) T: ClassTag](val self: HDM[(
     nData.mapValues(tup => DenseVector(tup._1.data ++ tup._2.data))
   }
 
+  def cache():HDMRowMatrix[T] ={
+    self.cache()
+  }
+
   override def apply[U](func: (T) => U): MatrixLike[U] = ???
 
   override def submatrix(vectorCon: (DenseVector[T]) => Boolean): MatrixLike[T] = ???
