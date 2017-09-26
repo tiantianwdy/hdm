@@ -11,6 +11,7 @@ public class StageNode {
     String id;
     List<String> parents;
     String context;
+    String func;
     Integer parallelism;
     Boolean isLocal;
     String status;
@@ -18,11 +19,12 @@ public class StageNode {
     String name;
     Integer group;
 
-    public StageNode(String appId, String id, List<String> parents, String context, Integer parallelism, Boolean isLocal, String status) {
+    public StageNode(String appId, String id, List<String> parents, String context, String func, Integer parallelism, Boolean isLocal, String status) {
         this.appId = appId;
         this.id = id;
         this.parents = parents;
         this.context = context;
+        this.func = func;
         this.parallelism = parallelism;
         this.isLocal = isLocal;
         this.status = status;
@@ -70,6 +72,14 @@ public class StageNode {
 
     public void setContext(String context) {
         this.context = context;
+    }
+
+    public String getFunc() {
+        return func;
+    }
+
+    public void setFunc(String func) {
+        this.func = func;
     }
 
     public Integer getParallelism() {

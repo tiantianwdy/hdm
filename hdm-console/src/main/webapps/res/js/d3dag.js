@@ -4,13 +4,13 @@ var colorArray = ["lightsteelblue", "LimeGreen", "gold", "steelblue", "green", "
 
 
 var  d3dag = {
-        displayGraph: function (graphData, dagNameElem, svgElem, dir, nodeShape, func) {
+        displayGraph: function (graphData, dagNameElem, svgElem, dir, nodeShape, func, toolTipFunc) {
             dagNameElem.text(graphData.name);
             if(!dir) dir = "LR";
-            this.renderGraph(graphData, svgElem, dir, nodeShape, func);
+            this.renderGraph(graphData, svgElem, dir, nodeShape, func, toolTipFunc);
         },
 
-        renderGraph: function(graphData, svgParent, dir, nodeShape, func) {
+        renderGraph: function(graphData, svgParent, dir, nodeShape, func, toolTipFunc) {
             var divId = svgParent + "tooltip"
             var div = d3.select("body").append("div")
               .attr("class", "tabletooltip")
@@ -109,7 +109,7 @@ var  d3dag = {
             // add ToolTips on nodes
             inner.selectAll("g.node")
             .on("mouseover", function(d){
-              return d3dag.addToolTip(d, div, nodes);
+              return d3dag.addToolTip(d, div, nodes, toolTipFunc);
             }).on("mouseout", function(d){
               return d3dag.hideToolTip(d, div);
             }).on('click', function(d){
@@ -124,7 +124,7 @@ var  d3dag = {
             svg.call(zoom);
         },
 
-        addToolTip: function (data, div, nodeInfo){
+        addToolTip: function (data, div, nodeInfo, toolTipFunc){
 //                var seq = data.name.split("#");
 //                var name = data[0];
                 var version = "";
@@ -141,40 +141,29 @@ var  d3dag = {
 
                     var headings = new Array("Property", "Value")
                     var tableData = new Array()
-                    tableData.push(new Array("Id", d.id))
-                    tableData.push(new Array("Name", d.name))
-                    tableData.push(new Array("Type", d.type))
-                    tableData.push(new Array("Func", d.func))
-                    tableData.push(new Array("Location", d.location))
-                    tableData.push(new Array("Dependency", d.dependency))
-                    tableData.push(new Array("Parallelism", d.parallelism))
-                    tableData.push(new Array("Partitioner", d.partitioner))
-                    tableData.push(new Array("StartTime", d.startTime))
-                    tableData.push(new Array("EndTime", d.endTime))
-                    tableData.push(new Array("State", d.status))
-                    tableData.push(new Array("Input", d.input))
-                    tableData.push(new Array("Output", d.output))
+                    if(!toolTipFunc){
+                        tableData.push(new Array("Id", d.id))
+                        tableData.push(new Array("Name", d.name))
+                        tableData.push(new Array("Type", d.type))
+                        tableData.push(new Array("Func", d.func))
+                        tableData.push(new Array("Location", d.location))
+                        tableData.push(new Array("Dependency", d.dependency))
+                        tableData.push(new Array("Parallelism", d.parallelism))
+                        tableData.push(new Array("Partitioner", d.partitioner))
+                        tableData.push(new Array("StartTime", d.startTime))
+                        tableData.push(new Array("EndTime", d.endTime))
+                        tableData.push(new Array("State", d.status))
+                        tableData.push(new Array("Input", d.input))
+                        tableData.push(new Array("Output", d.output))
+                    } else {
+                     toolTipFunc(tableData, d)
+                    }
+
                     clear(div.attr('id'))
                     addTable(div.attr('id'), headings, tableData)
 
                     div.style("left", (d3.event.pageX) + "px")
                        .style("top", (d3.event.pageY + 10) + "px");
-
-//                    div.html("Id: " + d.id
-//                        + "<br/>" + "Name : " + d.name
-//                        + "<br/>" + "Type : " + d.type
-//                        + "<br/>" + "Func : " + d.func
-//                        + "<br/>" + "Location : " + d.location
-//                        + "<br/>" + "Dependency : " + d.dependency
-//                        + "<br/>" + "Parallelism : " + d.parallelism
-//                        + "<br/>" + "Partitioner : " + d.partitioner
-//                        + "<br/>" + "StartTime : " + d.startTime
-//                        + "<br/>" + "EndTime : " + d.endTime
-//                        + "<br/>" + "State : " + d.status
-//                        + "<br/>" + "Input : "  + input
-//                        + "<br/>" + "Output : "  + output)
-//                        .style("left", (d3.event.pageX) + "px")
-//                        .style("top", (d3.event.pageY + 10) + "px");
                 }
            },
 

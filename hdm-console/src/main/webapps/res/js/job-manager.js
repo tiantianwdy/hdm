@@ -108,7 +108,7 @@
             showDataFlows(d);
             curJobId = d;
             setCookie("curJobId", d);
-        });
+        }, toolTipFunc);
       });
     }
 
@@ -158,4 +158,16 @@
 
     function clearText(elementId){
         document.getElementById(elementId).innerHTML = "";
+    }
+
+    function toolTipFunc(tableData, d){
+        tableData.push(new Array("appId", d.appId))
+        tableData.push(new Array("jobId", d.id))
+        tableData.push(new Array("type", d.name))
+        tableData.push(new Array("jobFunc", d.func))
+        tableData.push(new Array("context", d.context))
+        tableData.push(new Array("parents", d.parents))
+        tableData.push(new Array("Parallelism", d.parallelism))
+        tableData.push(new Array("isLocal", d.local))
+        tableData.push(new Array("State", d.status))
     }

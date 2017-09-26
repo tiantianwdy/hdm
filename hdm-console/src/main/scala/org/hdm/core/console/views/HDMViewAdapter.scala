@@ -205,7 +205,7 @@ object HDMViewAdapter {
     val links = mutable.Buffer.empty[DagLink]
 
     data.foreach { stage =>
-      val node = new StageNode(stage.appId, stage.jobId, stage.parents, stage.context, stage.parallelism, stage.isLocal, "waiting")
+      val node = new StageNode(stage.appId, stage.jobId, stage.parents, stage.context, stage.jobFunc, stage.parallelism, stage.isLocal, "waiting")
       nodeIdxes += (node.getId -> node)
       nodes += node
     }
