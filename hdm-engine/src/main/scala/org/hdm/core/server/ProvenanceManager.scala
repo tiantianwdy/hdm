@@ -160,8 +160,10 @@ class ProvenanceManagerImpl extends ProvenanceManager {
   }
 
   override def addJobStages(appID: String, stages: Seq[JobStage]): Unit = {
-    val simplifiedStages = stages.map(_.toJobStageInfo())
-    stageMap.put(appID, simplifiedStages)
+    if(!stageMap.contains(appID)){ // todo add extra ID for repeated execution
+      val simplifiedStages = stages.map(_.toJobStageInfo())
+      stageMap.put(appID, simplifiedStages)
+    }
   }
 
   override def getJobStages(appID: String): Seq[JobStageInfo] = {

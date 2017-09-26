@@ -220,19 +220,23 @@ class MultiClusterScheduler(override val blockManager:HDMBlockManager,
       val hdm = stage.job
       val appName = hdm.appContext.appName
       val version = hdm.appContext.version
-      val exeId = dependencyManager.addInstance(appName, version , hdm)
-      dependencyManager.historyManager.addExeStage(stage.jobId, exeId)
       blockManager.addRef(hdm)
       val jobFuture = if(stage.isLocal){
         //if job is local
         val start = System.currentTimeMillis()
         val plans = planner.plan(hdm, stage.parallelism)
-        dependencyManager.addPlan(exeId, plans)
         val end = System.currentTimeMillis() - start
         totalScheduleTime.addAndGet(end)
+        //adding traces
+        val exeId = dependencyManager.addInstance(appName, version , hdm)
+        dependencyManager.historyManager.addExeStage(stage.jobId, exeId)
+        dependencyManager.addPlan(exeId, plans)
+        log.debug(s"[[${stage.jobId}]][$exeId] A Stage has been scheduled with ${plans}")
+        // submit for execution
         submitJob(appName, version, exeId, plans.physicalPlan)
       } else {
         // send to remote master state based on context
+        log.debug(s"[[${stage.jobId}]] A Remote Stage has been submitted to ${stage.context}")
         runRemoteJob(hdm, stage.parallelism)
       }
       jobFuture.onComplete {
