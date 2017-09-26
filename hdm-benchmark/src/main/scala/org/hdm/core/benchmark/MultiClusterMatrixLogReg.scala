@@ -23,7 +23,7 @@ class MultiClusterMatrixLogReg(master1:String,
     * @param vectorLen
     * @return
     */
-  def fromCSV(dataPath1:String, dataPath2:String, vectorLen: Int):(HDMRowMatrix[Double], HDMRowMatrix[Double]) = {
+  def fromCSV(dataPath1:String, dataPath2:String, vectorLen: Int):(HDMRowMatrix[Double], HDMRowMatrix[Double], HDVector[Double]) = {
     hDMEntry.init(leader = master1, slots = 0)
     Thread.sleep(200)
 
@@ -38,7 +38,7 @@ class MultiClusterMatrixLogReg(master1:String,
       .map{ seq => seq.drop(3).dropRight(6)}
       .filter(seq => seq.size >= 6 && seq.forall(s => s.matches("\\d+(.\\d+)?")))
       .map{seq => DenseVector(seq.take(vecLen).map(_.toDouble))}
-      .zipWithIndex
+      .zipWithIndex.cache()
 
 
     val trainingDp2 = dataDP2.map(line => line.split("\\s+"))
@@ -47,7 +47,9 @@ class MultiClusterMatrixLogReg(master1:String,
       .map{seq => DenseVector(seq.takeRight(vecLen).map(_.toDouble))}
       .zipWithIndex
 
-    (trainingDp1, trainingDp2)
+    val labels = trainingDp1.map(tup => (tup._1 -> tup._2(0))).cache()
+
+    (trainingDp1, trainingDp2, new HDVector[Double](labels))
   }
 
 
@@ -55,17 +57,15 @@ class MultiClusterMatrixLogReg(master1:String,
     *
     * @param dataPath1
     * @param dataPath2
-    * @param labels
     * @param numColumn
     * @param numIteration
     */
   def runTwoClusterMatrixLR(dataPath1:String,
                               dataPath2:String,
-                              labels:HDVector[Double],
                               numColumn: Int,
                               numIteration: Int): Unit ={
-    val (m1, m2) = fromCSV(dataPath1, dataPath2, numColumn)
-    val x = HDMRowMatrix.vertical(m1, m2) // todo cache result
+    val (m1, m2, labels) = fromCSV(dataPath1, dataPath2, numColumn)
+    val x = HDMRowMatrix.vertical(m1, m2).cache()
     val y = labels
     val weights = DenseVector.fill(numColumn){0.01 * Math.random()}
 

@@ -175,12 +175,14 @@ object MultiClusterBenchmarkMain {
 //    Thread.sleep(64)
 
     val multiclusterBenchmark = new MultiClusterBenchmark(context1, context2)
+    val mclrBenchmark = new MultiClusterMatrixLogReg(context1, context2)
 
     val res = testTag match {
       case "map" =>
         multiclusterBenchmark.testParallelExecution(data, data)
       case "mc-lr" =>
-        multiclusterBenchmark.testMultiPartyLR(data, data, 12, 3)
+//        mclrBenchmark.runTwoClusterMatrixLR(data, data, 12, 3)
+        multiclusterBenchmark.testMultiPartyLR(data, data, 12, 1)
       case "shuffle" =>
         multiclusterBenchmark.testShuffleTask(data, data)
     }
